@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .admin-form-header {
+    @apply text-3xl font-bold mb-8;
+  }
+  .card {
+    @apply border rounded-2xl shadow-xl p-4 md:p-20;
+  }
+
+  .admin-form {
+    @apply md:text-xl;
+  }
+
+  .admin-form label {
+    @apply block mb-1;
+  }
+
+  .admin-form input {
+    @apply border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md block w-full py-1 px-2 mb-4;
+  }
+
+  .admin-horizontal-line {
+    @apply border border-slate-300 my-10;
+  }
+
+  .error {
+    @apply text-red-800;
+  }
+
+  .link-button {
+    @apply border-0 rounded-md  text-white cursor-pointer text-center block  p-[5px] w-[150px];
+  }
+
+  .link-button-green {
+    @apply bg-emerald-500 hover:bg-emerald-600;
+  }
+
+  .link-button-blue {
+    @apply bg-sky-600 hover:bg-sky-700;
+  }
+
+  .link-button-red {
+    @apply bg-rose-600 hover:bg-rose-700;
+  }
+
+  .link-button-gray {
+    @apply bg-slate-400 hover:bg-slate-500;
+  }
+  .gray-subheader {
+    @apply text-2xl text-slate-500;
+  }
+}
