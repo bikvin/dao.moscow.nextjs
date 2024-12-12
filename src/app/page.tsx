@@ -8,7 +8,7 @@ import LinkButton from "@/components/common/LinkButton";
 export default function Home() {
   return (
     <div className="bg-container">
-      <TopMenu />
+      <TopMenu page={"main"} />
       <HeroSection />
       <div className="grid grid-cols-1 md:grid-cols-3  gap-4 px-8 pb-[100px]">
         <GrayCard className={"col-span-1"}>

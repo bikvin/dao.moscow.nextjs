@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { RxHamburgerMenu } from "react-icons/rx";
 import MenuItem from "./MenuItem";
 
-export default function TopMenu() {
+export default function TopMenu({ page }: { page: string }) {
   const [maxHeight, setMaxHeight] = useState<string>("0px");
   const [isMobile, setIsMobile] = useState<boolean>(false); // Track if the view is mobile
   const [isMounted, setIsMounted] = useState(false);
@@ -55,11 +55,33 @@ export default function TopMenu() {
           style={{ maxHeight: isMobile && isMounted ? maxHeight : undefined }} // Only apply maxHeight on mobile
         >
           <div className={"flex flex-col md:flex-row"}>
-            <MenuItem>Главная</MenuItem>
-            <MenuItem>Продукция</MenuItem>
-            <MenuItem>Партнерам</MenuItem>
-            <MenuItem>Контакты</MenuItem>
-            <MenuItem>Доставка</MenuItem>
+            <MenuItem currentPage={page} menuItemPage="main" href="/">
+              Главная
+            </MenuItem>
+            <MenuItem currentPage={page} menuItemPage="sklad" href="/sklad">
+              Продукция
+            </MenuItem>
+            <MenuItem
+              currentPage={page}
+              menuItemPage="partners"
+              href="/partners"
+            >
+              Партнерам
+            </MenuItem>
+            <MenuItem
+              currentPage={page}
+              menuItemPage="contacts"
+              href="/contacts"
+            >
+              Контакты
+            </MenuItem>
+            <MenuItem
+              currentPage={page}
+              menuItemPage="delivery"
+              href="/delivery"
+            >
+              Доставка
+            </MenuItem>
           </div>
           <div
             className={
