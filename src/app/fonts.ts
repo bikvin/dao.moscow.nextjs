@@ -1,13 +1,7 @@
-import { Playfair_Display, Libre_Baskerville } from "next/font/google";
+import { Tinos } from "next/font/google";
 
-export const playfairDisplay = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  weight: ["400", "700"],
-});
-
-export const libreBaskerville = Libre_Baskerville({
-  subsets: ["latin"],
-  variable: "--font-baskerville",
+export const tinos = Tinos({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-tinos",
   weight: ["400", "700"],
 });

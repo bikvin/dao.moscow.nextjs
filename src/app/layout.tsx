@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { playfairDisplay, libreBaskerville } from "@/app/fonts";
+import { tinos } from "@/app/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,17 +7,18 @@ export const metadata: Metadata = {
   description: "Boilerplate. Login. No password recovery.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`scroll-smooth ${playfairDisplay.variable} ${libreBaskerville.variable}`}
-    >
-      <body className={`font-baskerville overflow-x-hidden`}>{children}</body>
+    <html lang="en" className={`scroll-smooth ${tinos.variable} `}>
+      <body
+        className={`font-tinos overflow-x-hidden  bg-repeat`} //bg-[url('/img/bg.jpg')]
+      >
+        {children}
+      </body>
     </html>
   );
 }
