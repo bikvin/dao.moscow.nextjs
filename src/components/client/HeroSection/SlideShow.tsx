@@ -38,7 +38,7 @@ export default function SlideShow() {
         {imageNames.map((imageName, index) => (
           <CarouselItem key={index}>
             <div className="p-1 flex items-center justify-center min-h-[500px]">
-              <img src={`/img/slideshow/${imageName}`}></img>
+              <img src={`/img/slideshow/${imageName}`} alt={imageName}></img>
             </div>
           </CarouselItem>
         ))}

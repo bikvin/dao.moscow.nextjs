@@ -2,7 +2,6 @@ import TopMenu from "@/components/client/TopMenu/TopMenu";
 import GrayCard from "@/components/common/GrayCard";
 import GrayCardHeader from "@/components/common/GrayCardHeader";
 import React from "react";
-import Image from "next/image";
 
 export default function ContactsPage() {
   return (

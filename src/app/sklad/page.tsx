@@ -133,6 +133,7 @@ export default function SkladPage() {
             {goods.map((good) => {
               return (
                 <ImageIcon
+                  key={good.name}
                   imageLink={`/img/mosaic/thumbs/${good.name}.jpg`}
                   targetLink={`/img/mosaic/${good.name}.jpg`}
                 >
