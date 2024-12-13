@@ -9,8 +9,8 @@ export default function PartnersPage() {
   return (
     <div className="bg-container">
       <TopMenu page={"partners"} />
-      <div className="px-8 flex justify-center  pb-[100px]">
-        <GrayCard className={"mt-[100px] w-full md:w-2/3 px-[50px] pt-[100px]"}>
+      <div className="content-container">
+        <GrayCard className={"graycard-settings"}>
           <GrayCardHeader className="text-[30px] mb-[30px] ml-5 md:ml-10">
             Партнерам
           </GrayCardHeader>

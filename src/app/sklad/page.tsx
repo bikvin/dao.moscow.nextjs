@@ -124,11 +124,9 @@ export default function SkladPage() {
   return (
     <div className="bg-container">
       <TopMenu page={"sklad"} />
-      <div className="px-8 flex justify-center  pb-[100px]">
-        <GrayCard
-          className={"mt-[100px] w-2/3 px-[50px] pt-[100px] pb-[100px]"}
-        >
-          <GrayCardHeader className="text-[30px] mb-[30px] ml-10">
+      <div className="content-container">
+        <GrayCard className={"graycard-settings"}>
+          <GrayCardHeader className="text-[30px] mb-[30px] md:ml-10">
             Коллекция мозаики на складе
           </GrayCardHeader>
           <div className="grid grid-cold-1 md:grid-cols-3 gap-4 ">
