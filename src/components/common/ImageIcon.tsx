@@ -5,19 +5,21 @@ import Image from "next/image";
 export default function ImageIcon({
   imageLink,
   targetLink = "",
-  width = 100,
-  height = 100,
+  children,
 }: {
   imageLink: string;
   targetLink?: string;
-  width?: number;
-  height?: number;
+  children?: React.ReactNode;
 }) {
   return (
-    <div className=" border border-slate-300 rounded-[3px] bg-transparent p-[5px]">
-      <Link href={targetLink}>
-        <Image src={imageLink} width={width} height={height} alt=""></Image>
-      </Link>
+    <div className=" border border-slate-300 rounded-[3px] bg-transparent p-[5px]  ">
+      <div className="relative aspect-square w-full min-w-[100px]">
+        <Link href={targetLink}>
+          <Image src={imageLink} fill={true} alt=""></Image>
+        </Link>
+      </div>
+
+      {children}
     </div>
   );
 }

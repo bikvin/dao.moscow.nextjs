@@ -1,6 +1,6 @@
 import HeroSection from "@/components/client/HeroSection/HeroSection";
 import TopMenu from "@/components/client/TopMenu/TopMenu";
-import GrayCard from "@/components/common/grayCard";
+import GrayCard from "@/components/common/GrayCard";
 import GrayCardHeader from "@/components/common/GrayCardHeader";
 import ImageIcon from "@/components/common/ImageIcon";
 import LinkButton from "@/components/common/LinkButton";

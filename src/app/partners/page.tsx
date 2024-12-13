@@ -1,5 +1,5 @@
 import TopMenu from "@/components/client/TopMenu/TopMenu";
-import GrayCard from "@/components/common/grayCard";
+import GrayCard from "@/components/common/GrayCard";
 import GrayCardHeader from "@/components/common/GrayCardHeader";
 import React from "react";
 import Image from "next/image";
@@ -10,8 +10,8 @@ export default function PartnersPage() {
     <div className="bg-container">
       <TopMenu page={"partners"} />
       <div className="px-8 flex justify-center  pb-[100px]">
-        <GrayCard className={"mt-[100px] w-2/3 px-[50px] py-[100px]"}>
-          <GrayCardHeader className="text-[30px] mb-[30px] ml-10">
+        <GrayCard className={"mt-[100px] w-full md:w-2/3 px-[50px] pt-[100px]"}>
+          <GrayCardHeader className="text-[30px] mb-[30px] ml-5 md:ml-10">
             Партнерам
           </GrayCardHeader>
           <p className="mb-4">
@@ -22,10 +22,10 @@ export default function PartnersPage() {
             Благодаря прямой закупке в Китае мы можем предложить очень
             привлекательные цены. Убедитесь сами!
           </p>
-          <GrayCardHeader className="text-[20px] ml-10 mt-10 ">
+          <GrayCardHeader className="text-[20px]  ml-5 md:ml-10 mt-10 ">
             Как происходит сотрудничество?
           </GrayCardHeader>
-          <ol className="list-decimal ml-10 mb-10">
+          <ol className="list-decimal  ml-5 md:ml-10 mb-10">
             <li>
               Мы предоставляем Вам образцы мозаики для выставления в торговом
               зале.
@@ -71,13 +71,13 @@ export default function PartnersPage() {
             width={450}
             alt="Черный стенд для мозаики"
           ></Image>
-          <GrayCardHeader className="text-[20px] ml-10 mt-10 ">
+          <GrayCardHeader className="text-[20px]  ml-5 md:ml-10 mt-10 ">
             <Link href="/contacts" className="text-sky-600 hover:underline">
               Свяжитесь с нами
             </Link>{" "}
             и узнайте все подробности!
           </GrayCardHeader>
-          <GrayCardHeader className="text-[20px] ml-10 mt-10 ">
+          <GrayCardHeader className="text-[20px]  ml-5 md:ml-10 mt-10 ">
             <Link
               href="https://docs.google.com/spreadsheets/d/11UPZmkONzt4-qUnGUwJlq43ZnE4bJKCcBJ-5GbRPlAE/edit#gid=0"
               className="text-sky-600 hover:underline"

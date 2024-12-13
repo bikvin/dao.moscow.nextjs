@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import SlideShow from "./SlideShow";
-import GrayCard from "@/components/common/grayCard";
+import GrayCard from "@/components/common/GrayCard";
 
 export default function HeroSection() {
   return (
