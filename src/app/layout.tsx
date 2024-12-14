@@ -1,11 +1,5 @@
-import type { Metadata } from "next";
 import { tinos } from "@/app/fonts";
 import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Boilerplate. Login. No password recovery.",
-  description: "Boilerplate. Login. No password recovery.",
-};
 
 export default async function RootLayout({
   children,

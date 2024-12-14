@@ -4,6 +4,12 @@ import GrayCard from "@/components/common/GrayCard";
 import GrayCardHeader from "@/components/common/GrayCardHeader";
 import ImageIcon from "@/components/common/ImageIcon";
 
+export const metadata = {
+  title: "Компания DAO - красивая мозаика || Складская программа",
+  description:
+    "Поставка мраморной, стеклянной и керамической мозаики из Китая. Складская программа в Москве.",
+};
+
 export default function SkladPage() {
   const goods = [
     { name: "DAO-502-15-4", priceUSD: 109 },

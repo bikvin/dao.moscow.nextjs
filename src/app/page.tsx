@@ -5,6 +5,12 @@ import GrayCardHeader from "@/components/common/GrayCardHeader";
 import ImageIcon from "@/components/common/ImageIcon";
 import LinkButton from "@/components/common/LinkButton";
 
+export const metadata = {
+  title: "Компания DAO - красивая мозаика || Главная",
+  description:
+    "Поставка мраморной, стеклянной и керамической мозаики из Китая. Складская программа в Москве.",
+};
+
 export default function Home() {
   return (
     <div className="bg-container">

@@ -3,6 +3,12 @@ import GrayCard from "@/components/common/GrayCard";
 import GrayCardHeader from "@/components/common/GrayCardHeader";
 import React from "react";
 
+export const metadata = {
+  title: "Компания DAO - красивая мозаика || Доставка", // Title for this page
+  description:
+    "Поставка мраморной, стеклянной и керамической мозаики из Китая. Складская программа в Москве.",
+};
+
 export default function DeliveryPage() {
   return (
     <div className="bg-container">

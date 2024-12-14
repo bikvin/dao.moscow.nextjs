@@ -5,6 +5,12 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+export const metadata = {
+  title: "Компания DAO - красивая мозаика || Партнерам",
+  description:
+    "Поставка мраморной, стеклянной и керамической мозаики из Китая. Складская программа в Москве.",
+};
+
 export default function PartnersPage() {
   return (
     <div className="bg-container">
