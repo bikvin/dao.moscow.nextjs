@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, CircleUserRound } from "lucide-react";
 
 type TopMenuItemBase = {
   name: string;
@@ -144,7 +144,8 @@ export function TopMenu() {
                   userItemActive ? "underline" : ""
                 }`}
               >
-                Привет, {name}
+                <CircleUserRound className="mr-1" />
+                {name}
                 <ChevronDown className="w-4 h-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="text-lg">
