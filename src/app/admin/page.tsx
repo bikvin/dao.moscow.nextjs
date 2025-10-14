@@ -1,9 +1,9 @@
-import Header from "@/components/admin/topMenu/topMenu";
+import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 
-export default async function AdminPage() {
+export default async function ProfilePage() {
   return (
     <>
-      <Header page="main" />
+      <TopMenu />
 
       <div className="max-w-screen-lg mx-auto ">
         <div className="w-[90%] md:w-2/3 mx-auto">

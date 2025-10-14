@@ -2,7 +2,9 @@
 
 import { db } from "@/db";
 import { createUserSchema } from "@/zod/user";
+import { UserRoleEnum } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 interface CreateUserFormState {
@@ -20,19 +22,11 @@ export async function createUser(
   formData: FormData
 ): Promise<CreateUserFormState> {
   try {
-    // Check that there is no users in the db
-    const existingUsersCount = await db.user.count();
+    const usersCount = await db.user.count();
 
-    if (existingUsersCount > 0) {
-      return {
-        errors: {
-          _form: ["Пользователь уже создан. Пожалуйста залогиньтесь."],
-        },
-      };
-    }
+    const role: UserRoleEnum = usersCount === 0 ? "ADMIN" : "USER";
 
     const result = createUserSchema.safeParse({
-      id: formData.get("id"),
       name: formData.get("name"),
       email: formData.get("email"),
       password: formData.get("password"),
@@ -47,14 +41,28 @@ export async function createUser(
       };
     }
 
+    const email = result.data.email.toLowerCase();
+
+    // check we don't already have the user with this email
+    const existingUser = await db.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return {
+        errors: { _form: ["Пользователь с таким email уже существует"] },
+      };
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(result.data.password, 10);
 
     await db.user.create({
       data: {
         name: result.data.name,
-        email: result.data.email,
+        email,
         password: hashedPassword,
+        role,
       },
     });
   } catch (err: unknown) {
@@ -71,5 +79,7 @@ export async function createUser(
     }
   }
 
-  redirect("/");
+  revalidatePath("/admin/users/all-users");
+
+  redirect("/admin/users/all-users");
 }

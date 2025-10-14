@@ -5,8 +5,9 @@ import bcrypt from "bcrypt";
 import { editUserSchema } from "@/zod/user";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
-interface EditUserFormState {
+interface UpdateUserFormState {
   errors: {
     id?: string[];
     name?: string[];
@@ -17,10 +18,10 @@ interface EditUserFormState {
   };
 }
 
-export async function editUser(
-  formState: EditUserFormState,
+export async function updateUser(
+  formState: UpdateUserFormState,
   formData: FormData
-): Promise<EditUserFormState> {
+): Promise<UpdateUserFormState> {
   const result = editUserSchema.safeParse({
     id: formData.get("id"),
     name: formData.get("name"),
@@ -30,7 +31,7 @@ export async function editUser(
   });
 
   if (!result.success) {
-    console.log(result.error.flatten().fieldErrors);
+    // console.log(result.error.flatten().fieldErrors);
 
     return {
       errors: result.error.flatten().fieldErrors,
@@ -67,5 +68,7 @@ export async function editUser(
     }
   }
 
-  redirect("/admin");
+  revalidatePath("/admin/users/all-users");
+
+  redirect("/admin/users/all-users");
 }

@@ -2,12 +2,7 @@ import { z } from "zod";
 
 export const editUserSchema = z
   .object({
-    name: z
-      .string()
-      .min(3, { message: "Минимум 3 символа" })
-      .regex(/^[a-z-]+$/, {
-        message: "допустимы только строчные латинские буквы, цифры и дефис",
-      }),
+    name: z.string().min(3, { message: "Минимум 3 символа" }),
     email: z.string().email({ message: "Введите корректный адрес почты" }),
     password: z.string().min(6, { message: "Минимум 6 символов" }),
     repeatPassword: z.string().min(6, { message: "Минимум 6 символов" }),
@@ -20,12 +15,7 @@ export const editUserSchema = z
 
 export const createUserSchema = z
   .object({
-    name: z
-      .string()
-      .min(3, { message: "Минимум 3 символа" })
-      .regex(/^[a-z-]+$/, {
-        message: "допустимы только строчные латинские буквы, цифры и дефис",
-      }),
+    name: z.string().min(3, { message: "Минимум 3 символа" }),
     email: z.string().email({ message: "Введите корректный адрес почты" }),
     password: z.string().min(6, { message: "Минимум 6 символов" }),
     repeatPassword: z.string().min(6, { message: "Минимум 6 символов" }),

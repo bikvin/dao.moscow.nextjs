@@ -1,15 +1,75 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { logout } from "@/actions/auth";
 import TopMenuItem from "./topMenuItem";
 import { RxHamburgerMenu } from "react-icons/rx";
+import { useUser } from "@/components/providers/UserProviderClient";
 
-export default function Header({ page }: { page?: string }) {
+import TopMenuDropdown from "./TopMenuDropdown";
+import { LogoutForm } from "../LogoutForm/LogoutForm";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronDown } from "lucide-react";
+
+type TopMenuItemBase = {
+  name: string;
+  adminOnly?: boolean;
+};
+
+type TopMenuItemLink = TopMenuItemBase & {
+  type: "link";
+  link: string;
+};
+
+type TopMenuDropDown = TopMenuItemBase & {
+  type: "dropdown";
+  data: TopMenuItemLink[];
+};
+
+// change menu items here
+type TopMenuItem = TopMenuItemLink | TopMenuDropDown;
+const topMenuList: TopMenuItem[] = [
+  {
+    type: "link",
+    name: "Главная",
+    link: "/admin",
+  },
+
+  {
+    name: "Пользователи",
+    type: "dropdown",
+    adminOnly: true,
+    data: [
+      {
+        type: "link",
+        name: "Все пользователи",
+        link: "/admin/users/all-users",
+      },
+      {
+        type: "link",
+        name: "Создать пользователя",
+        link: "/admin/users/create",
+      },
+    ],
+  },
+];
+
+export function TopMenu() {
   const [maxHeight, setMaxHeight] = useState<string>("0px");
   const [isMobile, setIsMobile] = useState<boolean>(false); // Track if the view is mobile
   const [isMounted, setIsMounted] = useState(false);
 
   const ulRef = useRef<HTMLUListElement>(null);
+
+  const pathname = usePathname();
+
+  const { name, isAdmin } = useUser();
 
   useEffect(() => {
     setIsMounted(true);
@@ -41,6 +101,8 @@ export default function Header({ page }: { page?: string }) {
     }
   };
 
+  const userItemActive = pathname === "/admin/profile";
+
   return (
     <header className="bg-green8  px-8">
       <div className="flex flex-col md:flex-row justify-between max-w-screen-lg mx-auto">
@@ -53,35 +115,56 @@ export default function Header({ page }: { page?: string }) {
         />
         <ul
           ref={ulRef}
-          className={`overflow-hidden transition-[max-height] duration-500 ease-in-out md:flex flex-col md:flex-row justify-center md:justify-end items-center gap-2 tracking-wide max-h-0 md:max-h-full`}
+          className={`overflow-hidden transition-[max-height] duration-500 ease-in-out md:flex flex-col md:flex-row justify-center md:justify-end items-center gap-4 tracking-wide max-h-0 md:max-h-full`}
           style={{ maxHeight: isMobile && isMounted ? maxHeight : undefined }} // Only apply maxHeight on mobile
         >
-          <TopMenuItem
-            currentPage={page}
-            menuItemTargetPage="main"
-            link="/admin"
-          >
-            Главная
-          </TopMenuItem>
-
-          <TopMenuItem
-            currentPage={page}
-            menuItemTargetPage="user"
-            link="/admin/user"
-          >
-            Пользователь
-          </TopMenuItem>
-          <li className="text-center pb-2 md:pb-0   hover:text-black transition-colors  hover:underline ">
-            <div>
-              <form action={logout}>
-                <button
-                  className={`text-red-800 hover:underline`}
-                  type="submit"
-                >
-                  Выйти
-                </button>
-              </form>
-            </div>
+          {topMenuList
+            .filter((item) => !item.adminOnly || isAdmin)
+            .map((item) => {
+              if (item.type === "link") {
+                return (
+                  <TopMenuItem key={item.name} link={item.link}>
+                    {item.name}
+                  </TopMenuItem>
+                );
+              } else if (item.type === "dropdown") {
+                return (
+                  <TopMenuDropdown
+                    key={item.name}
+                    name={item.name}
+                    data={item.data}
+                  />
+                );
+              }
+            })}
+          <li>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={`flex items-center  mx-auto md:mx-0 pb-2 md:pb-0 outline-none focus:outline-none ring-0 focus:ring-0 hover:underline ${
+                  userItemActive ? "underline" : ""
+                }`}
+              >
+                Привет, {name}
+                <ChevronDown className="w-4 h-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="text-lg">
+                <DropdownMenuItem>
+                  <Link
+                    href={"/admin/profile"}
+                    className={`hover:underline ${
+                      pathname === "/admin/profile" ? "underline" : ""
+                    }`}
+                  >
+                    Профиль
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <div className="">
+                    <LogoutForm />
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </li>
         </ul>
       </div>

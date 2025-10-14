@@ -1,4 +1,4 @@
-import { tinos } from "@/app/fonts";
+import { tinos, openSans } from "@/app/fonts";
 import "./globals.css";
 
 export default async function RootLayout({
@@ -7,7 +7,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`scroll-smooth ${tinos.variable} `}>
+    <html
+      lang="ru"
+      className={`scroll-smooth ${tinos.variable} ${openSans.variable} `}
+    >
       <body
         className={`font-tinos overflow-x-hidden  bg-repeat`} //bg-[url('/img/bg.jpg')]
       >

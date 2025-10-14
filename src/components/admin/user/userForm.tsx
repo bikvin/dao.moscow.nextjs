@@ -1,9 +1,8 @@
 "use client";
 import { useFormState } from "react-dom";
 
-// import classes from "./userForm.module.css";
 import { createUser } from "@/actions/user/create";
-import { editUser } from "@/actions/user/edit";
+import { updateUser } from "@/actions/user/update";
 import FormButton from "@/components/common/formButton";
 
 export default function UserForm({
@@ -17,7 +16,7 @@ export default function UserForm({
   id?: string;
   isEdit?: boolean;
 }) {
-  const usedAction = isEdit ? editUser : createUser;
+  const usedAction = isEdit ? updateUser : createUser;
 
   const [formState, action] = useFormState(usedAction, {
     errors: {},
@@ -70,9 +69,7 @@ export default function UserForm({
         )}
       </div>
       <FormButton>
-        {!isEdit
-          ? "Создать первого и единственного пользователя"
-          : "Редактировать пользователя"}
+        {!isEdit ? "Создать пользователя" : "Редактировать пользователя"}
       </FormButton>
       {formState.errors && (
         <div className="error">{formState.errors?._form?.join(", ")}</div>
