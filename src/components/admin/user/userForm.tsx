@@ -3,7 +3,7 @@ import { useFormState } from "react-dom";
 
 import { createUser } from "@/actions/user/create";
 import { updateUser } from "@/actions/user/update";
-import FormButton from "@/components/common/formButton";
+import FormButton from "@/components/common/formButton/formButton";
 
 export default function UserForm({
   userName,

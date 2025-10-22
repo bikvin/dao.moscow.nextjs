@@ -1,6 +1,6 @@
 "use client";
 import { useFormState } from "react-dom";
-import FormButton from "@/components/common/formButton";
+import FormButton from "@/components/common/formButton/formButton";
 import { DeleteFormState } from "./deleteTypes";
 import { useEffect } from "react";
 

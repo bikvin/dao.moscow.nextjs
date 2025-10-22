@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { editUserSchema } from "@/zod/user";
 
 import { redirect } from "next/navigation";

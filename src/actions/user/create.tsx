@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { createUserSchema } from "@/zod/user";
 import { UserRoleEnum } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 

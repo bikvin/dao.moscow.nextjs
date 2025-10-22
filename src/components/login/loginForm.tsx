@@ -2,7 +2,7 @@
 import { useFormState } from "react-dom";
 
 import { login } from "@/actions/auth";
-import FormButton from "@/components/common/formButton";
+import FormButton from "@/components/common/formButton/formButton";
 
 export default function Login() {
   const [errorMessage, action] = useFormState(login, undefined);

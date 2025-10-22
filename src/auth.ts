@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { User } from "@prisma/client";
 
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { db } from "@/db";
 
 async function getUser(email: string): Promise<User | null> {
