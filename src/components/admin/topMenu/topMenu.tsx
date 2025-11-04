@@ -42,6 +42,34 @@ const topMenuList: TopMenuItem[] = [
   },
 
   {
+    name: "Товары",
+    type: "dropdown",
+    adminOnly: true,
+    data: [
+      {
+        type: "link",
+        name: "Все товары",
+        link: "/admin/products",
+      },
+      {
+        type: "link",
+        name: "Создать товар",
+        link: "/admin/products/create",
+      },
+      {
+        type: "link",
+        name: "Группы товаров",
+        link: "/admin/products/product-groups",
+      },
+      {
+        type: "link",
+        name: "Создать группу",
+        link: "/admin/products/product-groups/create",
+      },
+    ],
+  },
+
+  {
     name: "Пользователи",
     type: "dropdown",
     adminOnly: true,

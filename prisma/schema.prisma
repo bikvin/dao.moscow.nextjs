@@ -6,6 +6,11 @@ enum UserRoleEnum {
   USER
 }
 
+enum ProductStatusEnum {
+  ACTIVE
+  CANCELLED
+}
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -34,4 +39,38 @@ model User {
   resetTokenExpiry DateTime?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
+}
+
+model ImageGroupArray {
+  id             String   @id @default(cuid())
+  imageGroupName String   @unique
+  fileNamesArr   String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Product {
+  id               String            @id @default(cuid())
+  sku              String            @unique
+  displayOrder     Int?
+  descriptionShort String?
+  descriptionLong  String?
+  imageGroupName   String
+  status           ProductStatusEnum
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  productGroupId String?
+  productGroup   ProductGroup? @relation(fields: [productGroupId], references: [id])
+}
+
+model ProductGroup {
+  id           String @id @default(cuid())
+  name         String
+  displayOrder Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
 }

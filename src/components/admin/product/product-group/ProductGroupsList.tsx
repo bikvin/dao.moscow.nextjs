@@ -1,12 +1,13 @@
 // import classes from "./accordionItemsEdit.module.css";
-import { db } from "@/db";
-import { UsersListItem } from "./UsersListItem";
 
-export default async function UsersList() {
-  const itemsData = await db.user.findMany({
-    orderBy: [{ createdAt: "desc" }],
-  });
+import { ProductGroup } from "@prisma/client";
+import { ProductGroupListListItem } from "./ProductGroupListItem";
 
+export default async function ProductGroupsList({
+  itemsData,
+}: {
+  itemsData: ProductGroup[];
+}) {
   return (
     <>
       {itemsData.length === 0 && (
@@ -16,7 +17,8 @@ export default async function UsersList() {
       )}
       <div className={`mt-10`}>
         {itemsData.map((item) => (
-          <UsersListItem key={item.id} user={item} />
+          // <UsersListItem key={item.id} user={item} />
+          <ProductGroupListListItem key={item.id} item={item} />
         ))}
       </div>
     </>
