@@ -6,6 +6,7 @@ import { useFormState } from "react-dom";
 import FormButton from "@/components/common/formButton/formButton";
 import { updateProductGroup } from "@/actions/product/product-group/update";
 import { createProductGroup } from "@/actions/product/product-group/create";
+import { FormFieldError } from "@/components/common/formFieldError/FormFieldError";
 
 export default function ProductGroupForm({
   id,
@@ -26,7 +27,7 @@ export default function ProductGroupForm({
 
   return (
     <form className={"admin-form"} action={action}>
-      <div>
+      <div className="form-item">
         <label htmlFor="name">Название</label>
 
         <input
@@ -35,11 +36,10 @@ export default function ProductGroupForm({
           type="text"
           defaultValue={isEdit ? name : ""}
         ></input>
-        {formState.errors && (
-          <div className="error">{formState.errors?.name?.join(", ")}</div>
-        )}
+
+        <FormFieldError errors={formState.errors?.name} />
       </div>
-      <div>
+      <div className="form-item">
         <label htmlFor="displayOrder">Порядок показа</label>
         <div className="w-16">
           <input
@@ -50,19 +50,16 @@ export default function ProductGroupForm({
           ></input>
         </div>
 
-        {formState.errors && (
-          <div className="error">
-            {formState.errors?.displayOrder?.join(", ")}
-          </div>
-        )}
+        <FormFieldError errors={formState.errors?.displayOrder} />
       </div>
 
       <FormButton>
         {!isEdit ? "Создать группу" : "Редактировать группу"}
       </FormButton>
-      {formState.errors && (
-        <div className="error">{formState.errors?._form?.join(", ")}</div>
-      )}
+
+      <FormFieldError errors={formState.errors?.id} />
+
+      <FormFieldError errors={formState.errors?._form} />
       {isEdit && <input type="hidden" name="id" value={id} />}
     </form>
   );

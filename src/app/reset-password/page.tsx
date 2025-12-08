@@ -61,7 +61,6 @@ export default function ResetPasswordPage() {
     const result = resetPasswordSchema.safeParse({ password, repeatPassword });
 
     if (!result.success) {
-      console.log("result.error.issues", result.error.issues);
       setError(result.error.issues);
       return;
     }

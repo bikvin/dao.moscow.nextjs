@@ -18,19 +18,23 @@ generator client {
 // prisma/schema.prisma
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  
 }
 
+
+
 model Settings {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   field     String   @unique
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+
+
 model User {
-  id               String       @id @default(cuid())
+  id               String       @id @default(uuid())
   name             String
   role             UserRoleEnum @default(USER)
   email            String       @unique
@@ -41,31 +45,36 @@ model User {
   updatedAt        DateTime     @updatedAt
 }
 
+
+
 model ImageGroupArray {
-  id             String   @id @default(cuid())
+  id             String   @id @default(uuid())
   imageGroupName String   @unique
   fileNamesArr   String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
 
+
+
 model Product {
-  id               String            @id @default(cuid())
+  id               String            @id @default(uuid())
   sku              String            @unique
   displayOrder     Int?
   descriptionShort String?
   descriptionLong  String?
   imageGroupName   String
+  fileNamesArr     String            @default("[]")
   status           ProductStatusEnum
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  productGroupId String?
+  productGroupId String
   productGroup   ProductGroup? @relation(fields: [productGroupId], references: [id])
 }
 
 model ProductGroup {
-  id           String @id @default(cuid())
+  id           String @id @default(uuid())
   name         String
   displayOrder Int?
 
@@ -74,3 +83,4 @@ model ProductGroup {
 
   products Product[]
 }
+

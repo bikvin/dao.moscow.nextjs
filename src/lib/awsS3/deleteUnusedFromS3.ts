@@ -49,8 +49,6 @@ export const deleteUnusedFromS3 = async (
     (imageObj) => `${directory}/${imageObj.name}`
   );
 
-  // console.log("keysToKeep", keysToKeep);
-
   const listedObjectsToDelete = listedObjects.Contents.filter(
     (item) => item.Key && !keysToKeep.includes(item.Key)
   );

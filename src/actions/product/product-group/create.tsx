@@ -5,19 +5,12 @@ import { createProductGroupSchema } from "@/zod/product/product-group";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
-interface CreateProductGroupFormState {
-  errors: {
-    name?: string[];
-    displayOrder?: string[];
-    _form?: string[];
-  };
-}
+import { ProductGroupFormState } from "./ProductGroupFormState";
 
 export async function createProductGroup(
-  formState: CreateProductGroupFormState,
+  formState: ProductGroupFormState,
   formData: FormData
-): Promise<CreateProductGroupFormState> {
+): Promise<ProductGroupFormState> {
   try {
     const result = createProductGroupSchema.safeParse({
       name: formData.get("name"),
@@ -25,8 +18,6 @@ export async function createProductGroup(
     });
 
     if (!result.success) {
-      console.log(result.error.flatten().fieldErrors);
-
       return {
         errors: result.error.flatten().fieldErrors,
       };

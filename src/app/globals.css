@@ -15,11 +15,16 @@
   }
 
   .admin-form label {
-    @apply block mb-1;
+    @apply block mb-1 text-slate-700;
   }
 
-  .admin-form input {
-    @apply border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md block w-full py-1 px-2 mb-4;
+  .admin-form input,
+  .admin-form textarea {
+    @apply border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md block w-full py-1 px-2;
+  }
+
+  .admin-form .form-item {
+    @apply mb-6;
   }
 
   .admin-horizontal-line {

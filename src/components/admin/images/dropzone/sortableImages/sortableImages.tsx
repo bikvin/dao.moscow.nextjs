@@ -54,7 +54,6 @@ export default function SortableImages({
     if (!over) return;
 
     if (isDeleting) {
-      // console.log("Deleting in progress. No cards shuffling");
       setIsDeleting(false);
       return;
     }
@@ -81,18 +80,18 @@ export default function SortableImages({
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={photoNames} strategy={rectSortingStrategy}>
-        <div className="mt-10  text-center">
+        <div className="mt-2 text-center text-sm ">
           Перетащите картинки в нужном порядке. Потом не забудьте нажать
           Сохранить.
         </div>
-        <div className="flex justify-start gap-0 flex-wrap p-5 pt-3 ">
+        <div className="flex justify-start items-center gap-0 flex-wrap p-5 pt-3 ">
           {photoNames.map((photoName, index) => {
             const highlighted = selectedImages ? index < selectedImages : false;
             return (
               <div
                 key={photoName.id}
                 className={`
-          relative w-[200px] h-[160px] flex items-center justify-center
+          relative w-[160px] h-[160px] flex items-center justify-center
           ${highlighted ? "bg-orange-100 border-0 border-yellow-200" : ""}
         `}
               >
@@ -111,9 +110,11 @@ export default function SortableImages({
             Array.from({ length: isUploadingFilesNumber }).map((_, i) => (
               <div
                 key={`uploading-${i}`}
-                className="flex items-center justify-center relative cursor-grab w-[160px] h-[120px] border border-slate-400 rounded-lg overflow-hidden bg-slate-50"
+                className="flex items-center justify-center w-[160px] h-[160px]"
               >
-                <BiLoaderAlt className="inline-block h-8 w-8 animate-spin" />
+                <div className="flex items-center justify-center relative cursor-grab w-[130px] h-[130px] border border-slate-400 rounded-lg overflow-hidden bg-slate-50">
+                  <BiLoaderAlt className="inline-block h-8 w-8 animate-spin" />
+                </div>
               </div>
             ))}
         </div>

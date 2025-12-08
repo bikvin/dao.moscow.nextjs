@@ -12,7 +12,7 @@ export default async function ProductGroupsList({
     <>
       {itemsData.length === 0 && (
         <div className="text-center text-xl mt-10 font-light tracking-widest">
-          Пользователей пока нет
+          Групп товаров пока нет
         </div>
       )}
       <div className={`mt-10`}>

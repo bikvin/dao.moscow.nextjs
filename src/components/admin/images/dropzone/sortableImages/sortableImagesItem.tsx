@@ -36,7 +36,7 @@ export function SortableItem({
       ref={setNodeRef}
       style={style}
       className={
-        "flex items-center justify-center relative cursor-grab w-[160px] h-[120px] border border-slate-400 rounded-lg overflow-hidden bg-slate-50"
+        "flex items-center justify-center relative cursor-grab w-[130px] h-[130px] border border-slate-400 rounded-lg overflow-hidden bg-slate-50"
       }
       {...attributes}
       {...listeners}
@@ -47,14 +47,14 @@ export function SortableItem({
             src={`${process.env.NEXT_PUBLIC_AWS_S3_BUCKET_PROTOCOL}://${process.env.NEXT_PUBLIC_AWS_S3_BUCKET_LINK}/${dirName}/${name}`}
             alt=""
             width={320}
-            height={240}
+            height={320}
           />
           <div
             className="absolute flex items-center justify-center rounded-full bg-white top-1 right-1 h-8 w-8 cursor-pointer border border-slate-400"
             onMouseDown={deleteClickHandler}
             id={id}
           >
-            <RxCross2 className="w-6 h-6 hover:text-red-700 hover:scale-125 cursor-pointer" />
+            <RxCross2 className="w-6 h-6 hover:text-red-700 hover:scale-115 cursor-pointer" />
           </div>
         </div>
       }

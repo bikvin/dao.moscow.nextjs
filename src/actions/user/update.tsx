@@ -6,22 +6,12 @@ import { editUserSchema } from "@/zod/user";
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-
-interface UpdateUserFormState {
-  errors: {
-    id?: string[];
-    name?: string[];
-    email?: string[];
-    password?: string[];
-    repeatPassword?: string[];
-    _form?: string[];
-  };
-}
+import { UserFormState } from "./UserFormState";
 
 export async function updateUser(
-  formState: UpdateUserFormState,
+  formState: UserFormState,
   formData: FormData
-): Promise<UpdateUserFormState> {
+): Promise<UserFormState> {
   const result = editUserSchema.safeParse({
     id: formData.get("id"),
     name: formData.get("name"),
@@ -30,26 +20,33 @@ export async function updateUser(
     repeatPassword: formData.get("repeatPassword"),
   });
 
-  if (!result.success) {
-    // console.log(result.error.flatten().fieldErrors);
+  console.log(result);
+  console.log(result.error?.flatten().fieldErrors);
 
+  if (!result.success) {
     return {
       errors: result.error.flatten().fieldErrors,
     };
   }
 
-  // Hash password
-  const hashedPassword = await bcrypt.hash(result.data.password, 10);
+  const { id, name, email, password } = result.data;
+
+  const passwordUpdate =
+    password && password.length > 0
+      ? { password: await bcrypt.hash(password, 10) }
+      : {};
+  // // Hash password
+  // const hashedPassword = await bcrypt.hash(result.data.password, 10);
 
   try {
     await db.user.update({
       where: {
-        id: result.data.id,
+        id,
       },
       data: {
-        name: result.data.name,
-        email: result.data.email,
-        password: hashedPassword,
+        name,
+        email,
+        ...passwordUpdate,
       },
     });
   } catch (err: unknown) {

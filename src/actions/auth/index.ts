@@ -7,7 +7,6 @@ import { redirect } from "next/navigation";
 export async function login(prevState: string | undefined, formData: FormData) {
   try {
     // await new Promise((resolve) => setTimeout(resolve, 2500));
-    console.log("login action");
 
     await signIn("credentials", formData);
   } catch (error) {

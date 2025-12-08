@@ -1,9 +1,12 @@
+import { auth } from "@/auth";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import UserForm from "@/components/admin/user/userForm";
 import { db } from "@/db";
 
 export default async function EditUserPage() {
-  const user = await db.user.findFirst();
+  const session = await auth();
+
+  const user = await db.user.findFirst({ where: { id: session?.user.id } });
 
   if (!user) {
     throw new Error("User not found");

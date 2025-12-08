@@ -47,22 +47,19 @@ export default function DropzoneInputMultipleImages({
   };
 
   const deleteFile = (id: string) => {
-    console.log("deleting");
     setIsDeleting(true);
 
     setPhotoNames((prevPhotoNames) => {
       const newPhotoNames = prevPhotoNames.filter(
         (photoName) => photoName.id !== id
       );
-      console.log("newPhotoNames", newPhotoNames);
+
       return newPhotoNames;
     });
   };
 
   const onDrop = useCallback(
     (autoAcceptedFiles: File[]) => {
-      // console.log("OnDrop");
-
       const newCustomRejections: typeof customRejections = [];
 
       if (maxImages && photoNames.length >= maxImages) {
@@ -103,8 +100,6 @@ export default function DropzoneInputMultipleImages({
         (file) => allowedTypes.includes(file.type) // only allowed types
       );
 
-      // console.log("acceptedFiles", acceptedFiles);
-
       setIsUploadingFilesNumber(filteredAccepted.length);
       filteredAccepted.forEach((file) => {
         const reader = new FileReader();
@@ -119,8 +114,6 @@ export default function DropzoneInputMultipleImages({
             console.log(error);
             setIsUploadingFilesNumber(0);
           }
-
-          // console.log("data", data);
 
           addNewFile(data.fileName);
 
@@ -154,7 +147,6 @@ export default function DropzoneInputMultipleImages({
     !isDragAccept && !isDragReject && "border-zinc-400 bg-white" // default fallback
   );
 
-  // console.log("dropZone");
   return (
     <section className="container">
       <div

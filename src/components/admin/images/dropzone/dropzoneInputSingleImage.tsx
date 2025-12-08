@@ -33,15 +33,10 @@ export default function DropzoneInputSingleImage({
   };
 
   const deleteFile = () => {
-    console.log("deleting");
-    // setIsDeleting(true);
-
     setPhotoName(null);
   };
 
   const onDrop = useCallback((autoAcceptedFiles: File[]) => {
-    console.log("OnDrop");
-
     const newCustomRejections: typeof customRejections = [];
 
     if (autoAcceptedFiles.length == 0) return;
@@ -80,8 +75,6 @@ export default function DropzoneInputSingleImage({
           setIsUploading(false);
         }
 
-        // console.log("data", data);
-
         addNewFile(data.fileName);
 
         setIsUploading(false);
@@ -112,7 +105,6 @@ export default function DropzoneInputSingleImage({
     !isDragAccept && !isDragReject && "border-zinc-400 bg-white" // default fallback
   );
 
-  // console.log("dropZone");
   return (
     <div>
       <div

@@ -1,11 +1,39 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
-import UsersList from "@/components/admin/user/UsersList";
 import Link from "next/link";
 
 import { requireAdmin } from "@/lib/requireAdmin";
+import { db } from "@/db";
+import ProductsList from "@/components/admin/product/ProductsList";
+import { ProductWithGroup } from "@/types/product/productWithGroup";
 
 export default async function AllProductsPage() {
   await requireAdmin();
+
+  let products: ProductWithGroup[];
+
+  try {
+    const [productData] = await Promise.all([
+      db.product.findMany({
+        include: {
+          productGroup: true,
+        },
+        orderBy: [
+          { productGroup: { displayOrder: "asc" } },
+          { displayOrder: "asc" },
+          { createdAt: "desc" },
+        ],
+      }),
+    ]);
+
+    if (!productData) {
+      return <div className="text-red-800">Данные не найдены.</div>;
+    }
+
+    products = productData;
+  } catch (err) {
+    console.log(err);
+    return <div className="text-red-800">Ошибка при загрузке данных.</div>;
+  }
 
   return (
     <>
@@ -22,7 +50,8 @@ export default async function AllProductsPage() {
               Создать товар
             </Link>
           </div>
-          {/* <UsersList /> */}
+
+          <ProductsList productData={products} />
         </div>
       </div>
     </>

@@ -5,20 +5,12 @@ import { db } from "@/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { editProductGroupSchema } from "@/zod/product/product-group";
-
-interface UpdateProductGroupFormState {
-  errors: {
-    id?: string[];
-    name?: string[];
-    displayOrder?: string[];
-    _form?: string[];
-  };
-}
+import { ProductGroupFormState } from "./ProductGroupFormState";
 
 export async function updateProductGroup(
-  formState: UpdateProductGroupFormState,
+  formState: ProductGroupFormState,
   formData: FormData
-): Promise<UpdateProductGroupFormState> {
+): Promise<ProductGroupFormState> {
   const result = editProductGroupSchema.safeParse({
     id: formData.get("id"),
     name: formData.get("name"),
@@ -26,8 +18,6 @@ export async function updateProductGroup(
   });
 
   if (!result.success) {
-    // console.log(result.error.flatten().fieldErrors);
-
     return {
       errors: result.error.flatten().fieldErrors,
     };

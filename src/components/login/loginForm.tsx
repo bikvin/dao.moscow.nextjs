@@ -9,13 +9,13 @@ export default function Login() {
 
   return (
     <form className={"admin-form"} action={action}>
-      <div>
+      <div className="form-item">
         <label htmlFor="name">Почта</label>
 
         <input className="admin-form-input" name="email" type="email"></input>
       </div>
 
-      <div>
+      <div className="form-item">
         <label htmlFor="password">Пароль</label>
 
         <input name="password" type="password"></input>

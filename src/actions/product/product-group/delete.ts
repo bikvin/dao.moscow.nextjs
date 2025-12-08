@@ -38,7 +38,7 @@ export async function deleteProductGroup(
     };
   }
 
-  revalidatePath("/admin/prooducts/product-groups");
+  revalidatePath("/admin/products/product-groups");
 
   return { success: { message: "Удалено успешно" } };
 }

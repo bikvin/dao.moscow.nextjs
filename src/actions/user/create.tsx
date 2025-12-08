@@ -6,21 +6,12 @@ import { UserRoleEnum } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
-interface CreateUserFormState {
-  errors: {
-    name?: string[];
-    email?: string[];
-    password?: string[];
-    repeatPassword?: string[];
-    _form?: string[];
-  };
-}
+import { UserFormState } from "./UserFormState";
 
 export async function createUser(
-  formState: CreateUserFormState,
+  formState: UserFormState,
   formData: FormData
-): Promise<CreateUserFormState> {
+): Promise<UserFormState> {
   try {
     const usersCount = await db.user.count();
 
