@@ -109,34 +109,39 @@ export default function ResetPasswordPage() {
       <div className="w-[90%] md:w-2/3 mx-auto">
         <h1 className="admin-form-header mt-10">Восстановление пароля</h1>
         <form onSubmit={handleSubmit} className="admin-form">
-          <input
-            type="password"
-            placeholder="Новый пароль"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className=""
-          />
-          {error && (
-            <p className="error mb-4">
-              {error.find((e) => e.path.includes("password"))?.message}
-            </p>
-          )}
+          <div className="form-item">
+            <input
+              type="password"
+              placeholder="Новый пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className=""
+            />
+            {error && (
+              <p className="error mb-4">
+                {error.find((e) => e.path.includes("password"))?.message}
+              </p>
+            )}
+          </div>
 
-          <input
-            type="password"
-            placeholder="Повторите пароль"
-            value={repeatPassword}
-            onChange={(e) => setRepeatPassword(e.target.value)}
-            className=""
-          />
-          {error && (
-            <p className="error mb-4">
-              {error
-                .filter((e) => e.path.includes("repeatPassword"))
-                .map((e) => e.message)
-                .join(", ")}
-            </p>
-          )}
+          <div className="form-item">
+            <input
+              type="password"
+              placeholder="Повторите пароль"
+              value={repeatPassword}
+              onChange={(e) => setRepeatPassword(e.target.value)}
+              className=""
+            />
+
+            {error && (
+              <p className="error mb-4">
+                {error
+                  .filter((e) => e.path.includes("repeatPassword"))
+                  .map((e) => e.message)
+                  .join(", ")}
+              </p>
+            )}
+          </div>
 
           <FormButtonJs pending={loading} message={status}>
             Изменить пароль

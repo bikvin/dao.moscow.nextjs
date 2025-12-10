@@ -55,14 +55,16 @@ export default function ForgotPasswordPage() {
       <div className="w-[90%] md:w-2/3 mx-auto">
         <h1 className="admin-form-header mt-10">Восстановление пароля</h1>
         <form onSubmit={handleSubmit} className="admin-form">
-          <input
-            type="email"
-            placeholder="Ваш email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className=""
-          />
-          {error && <p className="error mb-4">{error}</p>}
+          <div className="form-item">
+            <input
+              type="email"
+              placeholder="Ваш email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className=""
+            />
+            {error && <p className="error mb-4">{error}</p>}
+          </div>
 
           <FormButtonJs pending={loading} message={status}>
             Отправить ссылку для восстановления

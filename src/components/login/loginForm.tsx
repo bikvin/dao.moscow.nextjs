@@ -3,6 +3,7 @@ import { useFormState } from "react-dom";
 
 import { login } from "@/actions/auth";
 import FormButton from "@/components/common/formButton/formButton";
+import Link from "next/link";
 
 export default function Login() {
   const [errorMessage, action] = useFormState(login, undefined);
@@ -20,8 +21,13 @@ export default function Login() {
 
         <input name="password" type="password"></input>
       </div>
+
       {errorMessage && <div className="error">{errorMessage}</div>}
+
       <FormButton>Войти</FormButton>
+      <Link href="/forgot-password" className="text-blue-700 hover:underline">
+        Забыли пароль?
+      </Link>
     </form>
   );
 }
