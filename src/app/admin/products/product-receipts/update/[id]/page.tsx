@@ -1,9 +1,9 @@
 import { ProductReceiptForm } from "@/components/admin/product/product-receipt/productReceiptForm";
-import { ProductSelect } from "@/components/admin/product/productSelect";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { Product, ProductReceipt } from "@prisma/client";
+import { ProductWithVariants } from "@/types/product/productWithVariants";
+import { ProductReceipt, ProductVariant } from "@prisma/client";
 
 export default async function UpdateProductReceiptPage({
   params,
@@ -14,14 +14,20 @@ export default async function UpdateProductReceiptPage({
 
   const productReceiptId = params.id;
 
-  let products: Product[] = [];
-  let productReceipt: ProductReceipt | null = null;
+  let products: ProductWithVariants[] = [];
+  let productReceipt: (ProductReceipt & { productVariant: ProductVariant }) | null = null;
 
   try {
     const [productReceiptData, productsData] = await Promise.all([
-      db.productReceipt.findUnique({ where: { id: productReceiptId } }),
+      db.productReceipt.findUnique({
+        where: { id: productReceiptId },
+        include: { productVariant: true },
+      }),
       db.product.findMany({
         orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+        include: {
+          productVariants: true,
+        },
       }),
     ]);
 
@@ -45,7 +51,8 @@ export default async function UpdateProductReceiptPage({
           <h1 className="admin-form-header mt-10">Редактировать поступление</h1>
           <ProductReceiptForm
             id={productReceipt.id}
-            productId={productReceipt.productId}
+            productId={productReceipt.productVariant.productId}
+            productVariantId={productReceipt.productVariantId}
             products={products}
             quantity={productReceipt.quantity}
             description={productReceipt.description}

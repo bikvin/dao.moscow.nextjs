@@ -5,17 +5,16 @@ import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ProductReceiptFormState } from "./ProductReceiptFormState";
-import { Prisma } from "@prisma/client";
 import { updateProductReceiptSchema } from "@/zod/product/product-receipt";
 
 export async function updateProductReceipt(
-  formState: ProductReceiptFormState,
+  _formState: ProductReceiptFormState,
   formData: FormData
 ): Promise<ProductReceiptFormState> {
   try {
     const result = updateProductReceiptSchema.safeParse({
       id: formData.get("id")?.toString(),
-      productId: formData.get("productId")?.toString(),
+      productVariantId: formData.get("productVariantId")?.toString(),
       quantity: formData.get("quantity")?.toString(),
       receiptDate: formData.get("receiptDate")?.toString(),
       type: formData.get("type")?.toString(),

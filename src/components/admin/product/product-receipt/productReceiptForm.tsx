@@ -5,39 +5,51 @@ import FormButton from "@/components/common/formButton/formButton";
 
 import { useState } from "react";
 import { FormFieldError } from "@/components/common/formFieldError/FormFieldError";
-import { Product } from "@prisma/client";
 import { ProductSelect } from "../productSelect";
+import { ProductVariantSelect } from "./ProductVariantSelect";
 
 import CalendarFormInput from "@/components/common/CalendarFormInput";
 import { ProductReceiptTypeEnum } from "@prisma/client";
 import { ProductReceiptTypeRadio } from "./ProductReceiptTypeRadio";
 import { createProductReceipt } from "@/actions/product/product-receipt/create";
 import { updateProductReceipt } from "@/actions/product/product-receipt/update";
+import { ProductWithVariants } from "@/types/product/productWithVariants";
 
 export function ProductReceiptForm({
   id,
   productId,
+  productVariantId,
   products,
   quantity,
   description,
   receiptDate,
   receiptType,
-
   isEdit = false,
 }: {
   id?: string;
   productId?: string;
-  products: Product[];
+  productVariantId?: string;
+  products: ProductWithVariants[];
   quantity?: number;
   description?: string | null;
   receiptDate?: Date;
   receiptType?: ProductReceiptTypeEnum;
-  displayOrder?: number;
   isEdit?: boolean;
 }) {
   const usedAction = isEdit ? updateProductReceipt : createProductReceipt;
 
   const [selectedProductId, setSelectedProductId] = useState(productId || "");
+  const [selectedVariantId, setSelectedVariantId] = useState(
+    productVariantId || ""
+  );
+
+  const selectedProduct = products.find((p) => p.id === selectedProductId);
+  const variants = selectedProduct?.productVariants || [];
+
+  const handleProductChange = (newProductId: string) => {
+    setSelectedProductId(newProductId);
+    setSelectedVariantId("");
+  };
   const [selectedReceiptDate, setSelectedReceiptDate] = useState<
     Date | undefined
   >(receiptDate || new Date());
@@ -61,11 +73,19 @@ export function ProductReceiptForm({
         <label htmlFor="">Товар</label>
         <ProductSelect
           id={selectedProductId}
-          setId={setSelectedProductId}
+          setId={handleProductChange}
           products={products}
         />
-
-        <FormFieldError errors={formState.errors?.productId} />
+      </div>
+      <div className="form-item">
+        <label htmlFor="">Вариант</label>
+        <ProductVariantSelect
+          variants={variants}
+          selectedVariantId={selectedVariantId}
+          onVariantChange={setSelectedVariantId}
+          disabled={!selectedProductId}
+        />
+        <FormFieldError errors={formState.errors?.productVariantId} />
       </div>
       <div className="form-item">
         <label htmlFor="name">Количество шт.</label>
@@ -110,8 +130,7 @@ export function ProductReceiptForm({
       <FormFieldError errors={formState.errors?._form} />
       {isEdit && <input type="hidden" name="id" value={id} />}
       <FormFieldError errors={formState.errors?.id} />
-      //// change to productVariont
-      <input type="hidden" name="productId" value={selectedProductId} />
+      <input type="hidden" name="productVariantId" value={selectedVariantId} />
       <input
         type="hidden"
         name="receiptDate"

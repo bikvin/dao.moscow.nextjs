@@ -1,7 +1,7 @@
 export interface ProductReceiptFormState {
   errors: {
     id?: string[];
-    productId?: string[];
+    productVariantId?: string[];
     quantity?: string[];
     receiptDate?: string[];
     type?: string[];

@@ -2,12 +2,12 @@ import { ProductReceiptForm } from "@/components/admin/product/product-receipt/p
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { Product } from "@prisma/client";
+import { ProductWithVariants } from "@/types/product/productWithVariants";
 
 export default async function CreateProductReceiptPage() {
   await requireAdmin();
 
-  let products: Product[];
+  let products: ProductWithVariants[];
 
   try {
     const [productData] = await Promise.all([
@@ -16,6 +16,9 @@ export default async function CreateProductReceiptPage() {
           { displayOrder: "asc" }, // Primary sort by 'order' column
           { createdAt: "desc" }, // Secondary sort by 'createdAt' column
         ],
+        include: {
+          productVariants: true,
+        },
       }),
     ]);
 
