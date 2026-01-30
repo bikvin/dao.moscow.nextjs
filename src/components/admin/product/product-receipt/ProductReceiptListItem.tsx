@@ -32,12 +32,16 @@ export function ProductReceiptListItem({
       <div className="flex flex-col md:flex-row justify-start items-center">
         <div className="p-1">
           <div className="flex items-center text-lg">
-            {/* <div className="pr-4 text-sm">{date}</div> */}
-            <div className="pr-4 min-w-40">
+            <div className="pr-2 min-w-40">
               {item.productVariant.product?.sku}
             </div>
-            <div className="flex pr-4">
+
+            <div className="flex pr-8">
               +<div className="pr-1">{item.quantity}</div>шт.
+            </div>
+
+            <div className="text-sm pr-12 text-slate-400">
+              вариант: {item.productVariant.variantName}
             </div>
             <div className="text-sm text-orange-500">
               {item.type === ProductReceiptTypeEnum.CORRECTION
