@@ -1,5 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+// prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+}
 
 enum UserRoleEnum {
   ADMIN
@@ -11,17 +17,21 @@ enum ProductStatusEnum {
   CANCELLED
 }
 
-generator client {
-  provider = "prisma-client-js"
+enum ProductReceiptTypeEnum {
+  SHIPMENT
+  CORRECTION
 }
 
-// prisma/schema.prisma
-datasource db {
-  provider = "postgresql"
-  
+enum ProductIssueEnum {
+  SALE
+  CORRECTION
 }
 
-
+enum ProductReserveStatusEnum {
+  ACTIVE
+  FULFILLED
+  CANCELLED
+}
 
 model Settings {
   id        String   @id @default(uuid())
@@ -31,7 +41,13 @@ model Settings {
   updatedAt DateTime @updatedAt
 }
 
-
+model ImageGroupArray {
+  id             String   @id @default(uuid())
+  imageGroupName String   @unique
+  fileNamesArr   String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
 
 model User {
   id               String       @id @default(uuid())
@@ -45,18 +61,6 @@ model User {
   updatedAt        DateTime     @updatedAt
 }
 
-
-
-model ImageGroupArray {
-  id             String   @id @default(uuid())
-  imageGroupName String   @unique
-  fileNamesArr   String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-}
-
-
-
 model Product {
   id               String            @id @default(uuid())
   sku              String            @unique
@@ -66,11 +70,32 @@ model Product {
   imageGroupName   String
   fileNamesArr     String            @default("[]")
   status           ProductStatusEnum
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   productGroupId String
   productGroup   ProductGroup? @relation(fields: [productGroupId], references: [id])
+
+  productVariants ProductVariant[]
+}
+
+model ProductVariant {
+  id                String @id @default(uuid())
+  variantName       String // e.g., "Batch A - Light", "Batch B - Dark"
+  warehouseQuantity Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  productReceipts ProductReceipt[]
+  productIssues   ProductIssue[]
+  productReserves ProductReserve[]
+
+  @@index([productId])
 }
 
 model ProductGroup {
@@ -84,3 +109,50 @@ model ProductGroup {
   products Product[]
 }
 
+model ProductReceipt {
+  id          String                 @id @default(uuid())
+  quantity    Int
+  receiptDate DateTime
+  description String?
+  type        ProductReceiptTypeEnum
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+  productVariantId String
+
+  @@index([productVariantId])
+}
+
+model ProductIssue {
+  id          String           @id @default(uuid())
+  quantity    Int
+  issueDate   DateTime
+  description String?
+  type        ProductIssueEnum
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+  productVariantId String
+
+  @@index([productVariantId])
+}
+
+model ProductReserve {
+  id          String                   @id @default(uuid())
+  quantity    Int
+  reserveDate DateTime
+  client      String
+  status      ProductReserveStatusEnum
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+  productVariantId String
+
+  @@index([productVariantId])
+}

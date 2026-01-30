@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { ProductFormState } from "./ProductFormState";
-import { editProductSchema } from "@/zod/product";
+import { editProductSchema } from "@/zod/product/product";
 import { deleteUnusedFromS3 } from "@/lib/awsS3/deleteUnusedFromS3";
 
 export async function updateProduct(

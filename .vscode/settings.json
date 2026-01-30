@@ -1,0 +1,27 @@
+{
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#426A5A",
+    "activityBar.foreground": "#F1FAEE",
+    "activityBar.inactiveForeground": "#F1FAEE77",
+    "activityBarBadge.background": "#bf0060",
+    "activityBarBadge.foreground": "#e7e7e7"
+  },
+  "folder-color.pathColors": [
+    {
+      "folderPath": "dao.moscow.nextjs/src/components/",
+      "color": "foldercolorizer.color_00ccff"
+    },
+    {
+      "folderPath": "dao.moscow.nextjs/src/app/",
+      "color": "foldercolorizer.color_00cc00"
+    },
+    {
+      "folderPath": "dao.moscow.nextjs/src/actions/",
+      "color": "foldercolorizer.color_999999"
+    },
+    {
+      "folderPath": "dao.moscow.nextjs/src/zod/",
+      "color": "foldercolorizer.color_cc0099"
+    }
+  ]
+}

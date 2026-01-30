@@ -2,7 +2,7 @@ import React from "react";
 import DeleteDialog from "@/components/common/delete/DeleteDialog";
 import { RiEdit2Line } from "react-icons/ri";
 import Link from "next/link";
-import { deleteProduct } from "@/actions/product/delete";
+import { deleteProduct } from "@/actions/product/product/delete";
 import { ProductWithGroup } from "@/types/product/productWithGroup";
 import Image from "next/image";
 

@@ -1,8 +1,9 @@
-import ProductForm from "@/components/admin/product/productForm";
+import ProductForm from "@/components/admin/product/product/productForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { Product, ProductGroup } from "@prisma/client";
+import { ProductWithVariants } from "@/types/product/productWithVariants";
+import { ProductGroup } from "@prisma/client";
 
 export default async function UpdateProductPage({
   params,
@@ -14,12 +15,13 @@ export default async function UpdateProductPage({
   const productId = params.id;
 
   let productGroups: ProductGroup[] = [];
-  let product: Product | null = null;
+  let product: ProductWithVariants | null = null;
 
   try {
     const [productData, productGroupData] = await Promise.all([
       db.product.findUnique({
         where: { id: productId },
+        include: { productVariants: true },
       }),
       db.productGroup.findMany({
         orderBy: [
@@ -58,6 +60,7 @@ export default async function UpdateProductPage({
             productGroupId={product.productGroupId ?? undefined}
             productGroups={productGroups}
             displayOrder={product.displayOrder ?? undefined}
+            productVariants={product.productVariants ?? undefined}
             isEdit={true}
           />
         </div>

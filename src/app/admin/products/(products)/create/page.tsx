@@ -1,4 +1,4 @@
-import ProductForm from "@/components/admin/product/productForm";
+import ProductForm from "@/components/admin/product/product/productForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { requireAdmin } from "@/lib/requireAdmin";

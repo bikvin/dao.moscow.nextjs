@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ProductFormState } from "./ProductFormState";
-import { createProductSchema } from "@/zod/product";
+import { createProductSchema } from "@/zod/product/product";
 import { Prisma } from "@prisma/client";
 
 export async function createProduct(
@@ -42,10 +42,15 @@ export async function createProduct(
         descriptionShort: result.data.descriptionShort,
         descriptionLong: result.data.descriptionLong,
         displayOrder: Number(result.data.displayOrder),
+        productVariants: {
+          create: {
+            variantName: "Основной",
+            warehouseQuantity: 0,
+          },
+        },
       },
     });
   } catch (err: unknown) {
-    // 🔥 Prisma unique constraint error → custom message
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2002"
@@ -70,7 +75,7 @@ export async function createProduct(
     }
   }
 
-  revalidatePath("/admin/products");
+  revalidatePath("/admin/product");
 
   redirect("/admin/products");
 }
