@@ -2,6 +2,7 @@
 
 import { DeleteFormState } from "@/components/common/delete/deleteTypes";
 import { db } from "@/db";
+import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 import { revalidatePath } from "next/cache";
 
 export async function deleteProductReceipt(
@@ -23,12 +24,14 @@ export async function deleteProductReceipt(
       where: { id: id },
     });
 
-    if (!productReceipt) throw new Error("Group not found");
+    if (!productReceipt) throw new Error("Приход не найден");
 
-    await db.productReceipt.delete({
-      where: {
-        id: id,
-      },
+    await db.$transaction(async (tx) => {
+      await tx.productReceipt.delete({
+        where: { id: id },
+      });
+
+      await recalculateWarehouseQuantity(productReceipt.productVariantId, tx);
     });
   } catch (err: unknown) {
     return {

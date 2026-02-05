@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ProductReceiptFormState } from "./ProductReceiptFormState";
 import { updateProductReceiptSchema } from "@/zod/product/product-receipt";
+import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 
 export async function updateProductReceipt(
   _formState: ProductReceiptFormState,
@@ -27,11 +28,28 @@ export async function updateProductReceipt(
       };
     }
 
-    await db.productReceipt.update({
-      where: {
-        id: result.data.id,
-      },
-      data: result.data,
+    await db.$transaction(async (tx) => {
+      // Fetch the old receipt to get the previous variantId
+      const oldReceipt = await tx.productReceipt.findUnique({
+        where: { id: result.data.id },
+      });
+
+      // Update the receipt
+      await tx.productReceipt.update({
+        where: { id: result.data.id },
+        data: result.data,
+      });
+
+      // Recalculate the new variant
+      await recalculateWarehouseQuantity(result.data.productVariantId, tx);
+
+      // If variant changed, also recalculate the old one
+      if (
+        oldReceipt &&
+        oldReceipt.productVariantId !== result.data.productVariantId
+      ) {
+        await recalculateWarehouseQuantity(oldReceipt.productVariantId, tx);
+      }
     });
   } catch (err: unknown) {
     if (err instanceof Error) {

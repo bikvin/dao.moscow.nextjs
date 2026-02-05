@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { ProductReceiptFormState } from "./ProductReceiptFormState";
 import { Prisma } from "@prisma/client";
 import { createProductReceiptSchema } from "@/zod/product/product-receipt";
+import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 
 export async function createProductReceipt(
   formState: ProductReceiptFormState,
@@ -27,8 +28,12 @@ export async function createProductReceipt(
       };
     }
 
-    await db.productReceipt.create({
-      data: result.data,
+    await db.$transaction(async (tx) => {
+      await tx.productReceipt.create({
+        data: result.data,
+      });
+
+      await recalculateWarehouseQuantity(result.data.productVariantId, tx);
     });
   } catch (err: unknown) {
     if (err instanceof Error) {
