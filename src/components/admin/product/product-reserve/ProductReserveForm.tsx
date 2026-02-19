@@ -6,24 +6,24 @@ import FormButton from "@/components/common/formButton/formButton";
 import { useState } from "react";
 import { FormFieldError } from "@/components/common/formFieldError/FormFieldError";
 import { ProductSelect } from "../productSelect";
-import { ProductVariantSelect } from "./ProductVariantSelect";
+import { ProductVariantSelect } from "../product-receipt/ProductVariantSelect";
 
 import CalendarFormInput from "@/components/common/CalendarFormInput";
-import { ProductReceiptTypeEnum } from "@prisma/client";
-import { TypeRadio } from "./ProductReceiptTypeRadio";
-import { createProductReceipt } from "@/actions/product/product-receipt/create";
-import { updateProductReceipt } from "@/actions/product/product-receipt/update";
+import { ProductReserveStatusEnum } from "@prisma/client";
+import { TypeRadio } from "../product-receipt/ProductReceiptTypeRadio";
+import { createProductReserve } from "@/actions/product/product-reserve/create";
+import { updateProductReserve } from "@/actions/product/product-reserve/update";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
 
-export function ProductReceiptForm({
+export function ProductReserveForm({
   id,
   productId,
   productVariantId,
   products,
   quantity,
-  description,
-  receiptDate,
-  receiptType,
+  reserveDate,
+  client,
+  status,
   isEdit = false,
 }: {
   id?: string;
@@ -31,12 +31,12 @@ export function ProductReceiptForm({
   productVariantId?: string;
   products: ProductWithVariants[];
   quantity?: number;
-  description?: string | null;
-  receiptDate?: Date;
-  receiptType?: ProductReceiptTypeEnum;
+  reserveDate?: Date;
+  client?: string;
+  status?: ProductReserveStatusEnum;
   isEdit?: boolean;
 }) {
-  const usedAction = isEdit ? updateProductReceipt : createProductReceipt;
+  const usedAction = isEdit ? updateProductReserve : createProductReserve;
 
   const [selectedProductId, setSelectedProductId] = useState(productId || "");
   const [selectedVariantId, setSelectedVariantId] = useState(
@@ -50,11 +50,13 @@ export function ProductReceiptForm({
     setSelectedProductId(newProductId);
     setSelectedVariantId("");
   };
-  const [selectedReceiptDate, setSelectedReceiptDate] = useState<
+
+  const [selectedReserveDate, setSelectedReserveDate] = useState<
     Date | undefined
-  >(receiptDate || new Date());
-  const [type, setType] = useState<ProductReceiptTypeEnum>(
-    receiptType || ProductReceiptTypeEnum.SHIPMENT
+  >(reserveDate || new Date());
+
+  const [selectedStatus, setSelectedStatus] = useState<ProductReserveStatusEnum>(
+    status || ProductReserveStatusEnum.ACTIVE
   );
 
   const [formState, action] = useFormState(usedAction, {
@@ -68,9 +70,9 @@ export function ProductReceiptForm({
   }
 
   return (
-    <form className={"admin-form"} action={action}>
+    <form className="admin-form" action={action}>
       <div className="form-item">
-        <label htmlFor="">Товар</label>
+        <label>Товар</label>
         <ProductSelect
           id={selectedProductId}
           setId={handleProductChange}
@@ -78,7 +80,7 @@ export function ProductReceiptForm({
         />
       </div>
       <div className="form-item">
-        <label htmlFor="">Вариант</label>
+        <label>Вариант</label>
         <ProductVariantSelect
           variants={variants}
           selectedVariantId={selectedVariantId}
@@ -88,51 +90,50 @@ export function ProductReceiptForm({
         <FormFieldError errors={formState.errors?.productVariantId} />
       </div>
       <div className="form-item">
-        <label htmlFor="name">Количество шт.</label>
+        <label>Количество шт.</label>
         <div className="w-16">
           <input
             className="admin-form-input"
             name="quantity"
             type="number"
             defaultValue={isEdit ? quantity : ""}
-          ></input>
+          />
         </div>
         <FormFieldError errors={formState.errors?.quantity} />
       </div>
       <div className="form-item">
         <CalendarFormInput
-          label="Дата поставки"
-          date={selectedReceiptDate}
-          setDate={setSelectedReceiptDate}
+          label="Дата резерва"
+          date={selectedReserveDate}
+          setDate={setSelectedReserveDate}
         />
-        <FormFieldError errors={formState.errors?.receiptDate} />
+        <FormFieldError errors={formState.errors?.reserveDate} />
       </div>
       <div className="form-item">
-        <label htmlFor="">Тип</label>
-        <TypeRadio
-              type={type}
-              setType={setType}
-              options={[
-                { value: ProductReceiptTypeEnum.SHIPMENT, label: "Поставка" },
-                { value: ProductReceiptTypeEnum.CORRECTION, label: "Коррекция остатка" },
-              ]}
-            />
-        <FormFieldError errors={formState.errors?.type} />
-      </div>
-      <div className="form-item">
-        <label htmlFor="name">Описание</label>
-
+        <label>Клиент</label>
         <input
           className="admin-form-input"
-          name="description"
+          name="client"
           type="text"
-          defaultValue={isEdit && description ? description : ""}
-        ></input>
-
-        <FormFieldError errors={formState.errors?.description} />
+          defaultValue={isEdit && client ? client : ""}
+        />
+        <FormFieldError errors={formState.errors?.client} />
+      </div>
+      <div className="form-item">
+        <label>Статус</label>
+        <TypeRadio
+          type={selectedStatus}
+          setType={setSelectedStatus}
+          options={[
+            { value: ProductReserveStatusEnum.ACTIVE, label: "Активен" },
+            { value: ProductReserveStatusEnum.FULFILLED, label: "Выполнен" },
+            { value: ProductReserveStatusEnum.CANCELLED, label: "Отменён" },
+          ]}
+        />
+        <FormFieldError errors={formState.errors?.status} />
       </div>
       <FormButton>
-        {!isEdit ? "Создать поставку" : "Редактировать поставку"}
+        {!isEdit ? "Создать резерв" : "Редактировать резерв"}
       </FormButton>
       <FormFieldError errors={formState.errors?._form} />
       {isEdit && <input type="hidden" name="id" value={id} />}
@@ -140,10 +141,10 @@ export function ProductReceiptForm({
       <input type="hidden" name="productVariantId" value={selectedVariantId} />
       <input
         type="hidden"
-        name="receiptDate"
-        value={selectedReceiptDate ? toIsoDateAtNoon(selectedReceiptDate) : ""}
+        name="reserveDate"
+        value={selectedReserveDate ? toIsoDateAtNoon(selectedReserveDate) : ""}
       />
-      <input type="hidden" name="type" value={type} />
+      <input type="hidden" name="status" value={selectedStatus} />
     </form>
   );
 }

@@ -83,7 +83,8 @@ model Product {
 model ProductVariant {
   id                String @id @default(uuid())
   variantName       String // e.g., "Batch A - Light", "Batch B - Dark"
-  warehouseQuantity Int    @default(0)
+  warehouseQuantity Int    @default(0) // Physical stock: receipts - issues
+  availableQuantity Int    @default(0) // Available for sale: warehouseQuantity - active reserves
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

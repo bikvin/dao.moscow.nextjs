@@ -62,6 +62,16 @@ const topMenuList: TopMenuItem[] = [
         name: "Поступления товаров",
         link: "/admin/products/product-receipts",
       },
+      {
+        type: "link",
+        name: "Списания товаров",
+        link: "/admin/products/product-issues",
+      },
+      {
+        type: "link",
+        name: "Резервы товаров",
+        link: "/admin/products/product-reserves",
+      },
     ],
   },
 

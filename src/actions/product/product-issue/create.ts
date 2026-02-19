@@ -4,19 +4,19 @@ import { db } from "@/db";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ProductReceiptFormState } from "./ProductReceiptFormState";
-import { createProductReceiptSchema } from "@/zod/product/product-receipt";
+import { ProductIssueFormState } from "./ProductIssueFormState";
+import { createProductIssueSchema } from "@/zod/product/product-issue";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 
-export async function createProductReceipt(
-  formState: ProductReceiptFormState,
-  formData: FormData,
-): Promise<ProductReceiptFormState> {
+export async function createProductIssue(
+  formState: ProductIssueFormState,
+  formData: FormData
+): Promise<ProductIssueFormState> {
   try {
-    const result = createProductReceiptSchema.safeParse({
+    const result = createProductIssueSchema.safeParse({
       productVariantId: formData.get("productVariantId")?.toString(),
       quantity: formData.get("quantity")?.toString(),
-      receiptDate: formData.get("receiptDate")?.toString(),
+      issueDate: formData.get("issueDate")?.toString(),
       type: formData.get("type")?.toString(),
       description: formData.get("description")?.toString(),
     });
@@ -28,7 +28,7 @@ export async function createProductReceipt(
     }
 
     await db.$transaction(async (tx) => {
-      await tx.productReceipt.create({
+      await tx.productIssue.create({
         data: result.data,
       });
 
@@ -48,7 +48,7 @@ export async function createProductReceipt(
     }
   }
 
-  revalidatePath("/admin/products/product-receipts");
+  revalidatePath("/admin/products/product-issues");
 
-  redirect("/admin/products/product-receipts");
+  redirect("/admin/products/product-issues");
 }

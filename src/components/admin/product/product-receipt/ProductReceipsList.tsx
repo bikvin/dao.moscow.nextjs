@@ -6,15 +6,18 @@ export default async function ProductReceiptsList({
 }: {
   itemsData: ProductReceiptWithProductVariant[];
 }) {
-  const grouped = itemsData.reduce((acc, receipt) => {
-    const d = new Date(receipt.receiptDate);
-    d.setHours(12, 0, 0, 0);
-    const date = d.toISOString().slice(0, 10); // YYYY-MM-DD
+  const grouped = itemsData.reduce(
+    (acc, receipt) => {
+      const d = new Date(receipt.receiptDate);
+      d.setHours(12, 0, 0, 0);
+      const date = d.toISOString().slice(0, 10); // YYYY-MM-DD
 
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(receipt);
-    return acc;
-  }, {} as Record<string, ProductReceiptWithProductVariant[]>);
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(receipt);
+      return acc;
+    },
+    {} as Record<string, ProductReceiptWithProductVariant[]>,
+  );
 
   return (
     <>
@@ -25,7 +28,7 @@ export default async function ProductReceiptsList({
       )}
 
       <div className={`mt-10`}>
-        {Object.entries(grouped).map(([date, items], index) => (
+        {Object.entries(grouped).map(([date, items]) => (
           <div key={date} className="mb-8">
             {new Date(date).toLocaleDateString("ru-RU")}
             {items.map((item) => (

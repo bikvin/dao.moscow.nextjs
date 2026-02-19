@@ -4,21 +4,21 @@ import { db } from "@/db";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ProductReceiptFormState } from "./ProductReceiptFormState";
-import { createProductReceiptSchema } from "@/zod/product/product-receipt";
+import { ProductReserveFormState } from "./ProductReserveFormState";
+import { createProductReserveSchema } from "@/zod/product/product-reserve";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 
-export async function createProductReceipt(
-  formState: ProductReceiptFormState,
-  formData: FormData,
-): Promise<ProductReceiptFormState> {
+export async function createProductReserve(
+  formState: ProductReserveFormState,
+  formData: FormData
+): Promise<ProductReserveFormState> {
   try {
-    const result = createProductReceiptSchema.safeParse({
+    const result = createProductReserveSchema.safeParse({
       productVariantId: formData.get("productVariantId")?.toString(),
       quantity: formData.get("quantity")?.toString(),
-      receiptDate: formData.get("receiptDate")?.toString(),
-      type: formData.get("type")?.toString(),
-      description: formData.get("description")?.toString(),
+      reserveDate: formData.get("reserveDate")?.toString(),
+      client: formData.get("client")?.toString(),
+      status: formData.get("status")?.toString(),
     });
 
     if (!result.success) {
@@ -28,7 +28,7 @@ export async function createProductReceipt(
     }
 
     await db.$transaction(async (tx) => {
-      await tx.productReceipt.create({
+      await tx.productReserve.create({
         data: result.data,
       });
 
@@ -48,7 +48,7 @@ export async function createProductReceipt(
     }
   }
 
-  revalidatePath("/admin/products/product-receipts");
+  revalidatePath("/admin/products/product-reserves");
 
-  redirect("/admin/products/product-receipts");
+  redirect("/admin/products/product-reserves");
 }
