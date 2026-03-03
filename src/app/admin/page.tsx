@@ -7,7 +7,7 @@ export default async function ProfilePage() {
       <TopMenu />
 
       <div className="max-w-screen-lg mx-auto">
-        <div className="w-[90%] md:w-2/3 mx-auto">
+        <div className="w-[90%] mx-auto">
           <WarehouseTable />
         </div>
       </div>

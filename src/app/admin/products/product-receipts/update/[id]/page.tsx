@@ -15,7 +15,9 @@ export default async function UpdateProductReceiptPage({
   const productReceiptId = params.id;
 
   let products: ProductWithVariants[] = [];
-  let productReceipt: (ProductReceipt & { productVariant: ProductVariant }) | null = null;
+  let productReceipt:
+    | (ProductReceipt & { productVariant: ProductVariant })
+    | null = null;
 
   try {
     const [productReceiptData, productsData] = await Promise.all([
@@ -48,7 +50,9 @@ export default async function UpdateProductReceiptPage({
 
       <div className="max-w-screen-lg mx-auto ">
         <div className="w-[90%] md:w-2/3 mx-auto">
-          <h1 className="admin-form-header mt-10">Редактировать поступление</h1>
+          <h1 className="admin-form-header mt-10">
+            Редактировать приход товара
+          </h1>
           <ProductReceiptForm
             id={productReceipt.id}
             productId={productReceipt.productVariant.productId}

@@ -42,13 +42,13 @@ export default async function AllProductReciptsPage() {
 
       <div className="max-w-screen-lg mx-auto ">
         <div className="w-[90%] md:w-2/3 mx-auto">
-          <h1 className="admin-form-header mt-10">Все поступления товаров</h1>
+          <h1 className="admin-form-header mt-10">Все приходы товаров</h1>
           <div className=" mt-10 flex justify-end">
             <Link
               className="link-button link-button-green"
               href="/admin/products/product-receipts/create"
             >
-              Создать поступление
+              Создать приход
             </Link>
           </div>
 

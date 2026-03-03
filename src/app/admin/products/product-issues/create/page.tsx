@@ -4,8 +4,14 @@ import { db } from "@/db";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
 
-export default async function CreateProductIssuePage() {
+export default async function CreateProductIssuePage({
+  searchParams,
+}: {
+  searchParams: { productId?: string };
+}) {
   await requireAdmin();
+
+  const preselectedProductId = searchParams.productId;
 
   let products: ProductWithVariants[];
 
@@ -39,7 +45,7 @@ export default async function CreateProductIssuePage() {
       <div className="max-w-screen-lg mx-auto ">
         <div className="w-[90%] md:w-2/3 mx-auto">
           <h1 className="admin-form-header mt-10">Добавить списание</h1>
-          <ProductIssueForm products={products} />
+          <ProductIssueForm products={products} productId={preselectedProductId} />
         </div>
       </div>
     </>

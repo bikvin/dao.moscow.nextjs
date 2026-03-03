@@ -4,8 +4,14 @@ import { db } from "@/db";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
 
-export default async function CreateProductReceiptPage() {
+export default async function CreateProductReceiptPage({
+  searchParams,
+}: {
+  searchParams: { productId?: string };
+}) {
   await requireAdmin();
+
+  const preselectedProductId = searchParams.productId;
 
   let products: ProductWithVariants[];
 
@@ -38,9 +44,12 @@ export default async function CreateProductReceiptPage() {
 
       <div className="max-w-screen-lg mx-auto ">
         <div className="w-[90%] md:w-2/3 mx-auto">
-          <h1 className="admin-form-header mt-10">Добавить поставку</h1>
+          <h1 className="admin-form-header mt-10">Добавить приход товара</h1>
           {/* <UserForm /> */}
-          <ProductReceiptForm products={products} />
+          <ProductReceiptForm
+            products={products}
+            productId={preselectedProductId}
+          />
         </div>
       </div>
     </>
