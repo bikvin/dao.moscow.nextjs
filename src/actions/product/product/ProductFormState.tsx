@@ -9,6 +9,9 @@ export interface ProductFormState {
     status?: string[];
     productGroupId?: string[];
     displayOrder?: string[];
+    length_mm?: string[];
+    width_mm?: string[];
+    thickness_mm?: string[];
     _form?: string[];
   };
 }

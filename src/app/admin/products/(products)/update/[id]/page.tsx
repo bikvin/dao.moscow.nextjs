@@ -60,6 +60,9 @@ export default async function UpdateProductPage({
             productGroupId={product.productGroupId ?? undefined}
             productGroups={productGroups}
             displayOrder={product.displayOrder ?? undefined}
+            length_mm={product.length_mm}
+            width_mm={product.width_mm}
+            thickness_mm={product.thickness_mm}
             productVariants={product.productVariants ?? undefined}
             isEdit={true}
           />

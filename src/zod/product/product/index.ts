@@ -12,6 +12,9 @@ const baseProductSchema = z.object({
   }),
   displayOrder: z.string().optional(),
   productGroupId: z.string().uuid({ message: "Выберите группу товаров" }),
+  length_mm: z.coerce.number().int().min(1, { message: "Укажите длину" }),
+  width_mm: z.coerce.number().int().min(1, { message: "Укажите ширину" }),
+  thickness_mm: z.coerce.number().int().min(1, { message: "Укажите толщину" }),
 });
 
 export const createProductSchema = baseProductSchema;

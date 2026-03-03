@@ -32,6 +32,9 @@ export default function ProductForm({
   status,
   productGroupId,
   displayOrder,
+  length_mm,
+  width_mm,
+  thickness_mm,
   productGroups,
   imageData = [],
   productVariants,
@@ -45,6 +48,9 @@ export default function ProductForm({
   status?: ProductStatusEnum;
   productGroupId?: string;
   displayOrder?: number;
+  length_mm?: number;
+  width_mm?: number;
+  thickness_mm?: number;
   productGroups: ProductGroup[];
   imageData?: ImageObj[];
   productVariants?: ProductVariant[];
@@ -124,6 +130,42 @@ export default function ProductForm({
         />
       </div>
       <FormFieldError errors={formState.errors?.imagesArrString} />
+
+      <div className="form-item">
+        <label>Размеры (мм)</label>
+        <div className="flex gap-4">
+          <div>
+            <label className="text-sm text-slate-500">Длина</label>
+            <input
+              className="admin-form-input w-24"
+              name="length_mm"
+              type="number"
+              defaultValue={isEdit ? length_mm || "" : ""}
+            />
+            <FormFieldError errors={formState.errors?.length_mm} />
+          </div>
+          <div>
+            <label className="text-sm text-slate-500">Ширина</label>
+            <input
+              className="admin-form-input w-24"
+              name="width_mm"
+              type="number"
+              defaultValue={isEdit ? width_mm || "" : ""}
+            />
+            <FormFieldError errors={formState.errors?.width_mm} />
+          </div>
+          <div>
+            <label className="text-sm text-slate-500">Толщина</label>
+            <input
+              className="admin-form-input w-24"
+              name="thickness_mm"
+              type="number"
+              defaultValue={isEdit ? thickness_mm || "" : ""}
+            />
+            <FormFieldError errors={formState.errors?.thickness_mm} />
+          </div>
+        </div>
+      </div>
 
       <div className="form-item">
         <label htmlFor="">Статус</label>

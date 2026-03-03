@@ -10,7 +10,7 @@ import { Prisma } from "@prisma/client";
 
 export async function createProduct(
   formState: ProductFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ProductFormState> {
   try {
     console.log("status", formData.get("status"));
@@ -24,6 +24,9 @@ export async function createProduct(
       descriptionShort: formData.get("descriptionShort"),
       descriptionLong: formData.get("descriptionLong"),
       displayOrder: formData.get("displayOrder"),
+      length_mm: formData.get("length_mm"),
+      width_mm: formData.get("width_mm"),
+      thickness_mm: formData.get("thickness_mm"),
     });
 
     if (!result.success) {
@@ -42,6 +45,9 @@ export async function createProduct(
         descriptionShort: result.data.descriptionShort,
         descriptionLong: result.data.descriptionLong,
         displayOrder: Number(result.data.displayOrder),
+        length_mm: result.data.length_mm,
+        width_mm: result.data.width_mm,
+        thickness_mm: result.data.thickness_mm,
         productVariants: {
           create: {
             variantName: "Основной",
