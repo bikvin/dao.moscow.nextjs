@@ -43,10 +43,18 @@ export function ProductReceiptListItem({
             <div className="text-sm pr-12 text-slate-400">
               вариант: {item.productVariant.variantName}
             </div>
-            <div className="text-sm text-orange-500">
+            <div className={`text-sm ${
+              item.type === ProductReceiptTypeEnum.CORRECTION
+                ? "text-orange-500"
+                : item.type === ProductReceiptTypeEnum.RETURN
+                  ? "text-sky-500"
+                  : "text-emerald-500"
+            }`}>
               {item.type === ProductReceiptTypeEnum.CORRECTION
                 ? "коррекция"
-                : ""}
+                : item.type === ProductReceiptTypeEnum.RETURN
+                  ? "возврат"
+                  : "поставка"}
             </div>
           </div>
         </div>
