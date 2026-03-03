@@ -17,7 +17,7 @@ type TransactionClient = Omit<
  */
 export async function recalculateWarehouseQuantity(
   variantId: string,
-  prisma: TransactionClient = db
+  prisma: TransactionClient = db,
 ): Promise<{ warehouseQuantity: number; availableQuantity: number }> {
   // Sum all receipts (incoming stock)
   const receiptsTotal = await prisma.productReceipt.aggregate({
