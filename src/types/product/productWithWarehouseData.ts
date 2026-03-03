@@ -1,4 +1,4 @@
-import { Product, ProductReserve, ProductVariant } from "@prisma/client";
+import { Product, ProductGroup, ProductReserve, ProductVariant } from "@prisma/client";
 
 export type VariantWithActiveReserves = ProductVariant & {
   productReserves: ProductReserve[];
@@ -6,4 +6,8 @@ export type VariantWithActiveReserves = ProductVariant & {
 
 export type ProductWithWarehouseData = Product & {
   productVariants: VariantWithActiveReserves[];
+};
+
+export type ProductGroupWithWarehouseData = ProductGroup & {
+  products: ProductWithWarehouseData[];
 };
