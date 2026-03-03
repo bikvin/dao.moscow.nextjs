@@ -13,6 +13,25 @@ export function WarehouseTableClient({
 
   const normalized = filter.trim().toLowerCase();
 
+  const allProducts = productGroups.flatMap((g) => g.products);
+
+  const totals = allProducts.reduce(
+    (acc, product) => {
+      const sheetArea = (product.length_mm * product.width_mm) / 1_000_000;
+      for (const v of product.productVariants) {
+        acc.warehouseQty += v.warehouseQuantity;
+        acc.availableQty += v.availableQuantity;
+        acc.warehouseArea += v.warehouseQuantity * sheetArea;
+        acc.availableArea += v.availableQuantity * sheetArea;
+      }
+      return acc;
+    },
+    { warehouseQty: 0, availableQty: 0, warehouseArea: 0, availableArea: 0 },
+  );
+
+  const reservedQty = totals.warehouseQty - totals.availableQty;
+  const reservedArea = totals.warehouseArea - totals.availableArea;
+
   const filtered = productGroups
     .map((group) => ({
       ...group,
@@ -81,6 +100,18 @@ export function WarehouseTableClient({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Footer totals */}
+      <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-2 py-2 px-3 mt-16 border-t font-medium text-slate-400">
+        <div>Итого</div>
+        <div className="text-center">{totals.warehouseQty}</div>
+        <div className="text-center">{totals.warehouseArea.toFixed(2)}</div>
+        <div className="text-center">{totals.availableQty}</div>
+        <div className="text-center">{totals.availableArea.toFixed(2)}</div>
+        <div className="text-center">{reservedQty}</div>
+        <div className="text-center">{reservedArea.toFixed(2)}</div>
+        <div />
       </div>
     </>
   );
