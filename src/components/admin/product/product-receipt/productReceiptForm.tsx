@@ -40,7 +40,7 @@ export function ProductReceiptForm({
 
   const [selectedProductId, setSelectedProductId] = useState(productId || "");
   const [selectedVariantId, setSelectedVariantId] = useState(
-    productVariantId || ""
+    productVariantId || "",
   );
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
@@ -54,7 +54,7 @@ export function ProductReceiptForm({
     Date | undefined
   >(receiptDate || new Date());
   const [type, setType] = useState<ProductReceiptTypeEnum>(
-    receiptType || ProductReceiptTypeEnum.SHIPMENT
+    receiptType || ProductReceiptTypeEnum.RETURN,
   );
 
   const [formState, action] = useFormState(usedAction, {
@@ -110,13 +110,17 @@ export function ProductReceiptForm({
       <div className="form-item">
         <label htmlFor="">Тип</label>
         <TypeRadio
-              type={type}
-              setType={setType}
-              options={[
-                { value: ProductReceiptTypeEnum.SHIPMENT, label: "Поставка" },
-                { value: ProductReceiptTypeEnum.CORRECTION, label: "Коррекция остатка" },
-              ]}
-            />
+          type={type}
+          setType={setType}
+          options={[
+            { value: ProductReceiptTypeEnum.RETURN, label: "Возврат товара" },
+            { value: ProductReceiptTypeEnum.SHIPMENT, label: "Новая поставка" },
+            {
+              value: ProductReceiptTypeEnum.CORRECTION,
+              label: "Коррекция остатка",
+            },
+          ]}
+        />
         <FormFieldError errors={formState.errors?.type} />
       </div>
       <div className="form-item">

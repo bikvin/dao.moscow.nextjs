@@ -20,6 +20,7 @@ enum ProductStatusEnum {
 enum ProductReceiptTypeEnum {
   SHIPMENT
   CORRECTION
+  RETURN
 }
 
 enum ProductIssueEnum {
