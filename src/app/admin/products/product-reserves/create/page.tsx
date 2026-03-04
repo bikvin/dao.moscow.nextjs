@@ -1,7 +1,6 @@
 import { ProductReserveForm } from "@/components/admin/product/product-reserve/ProductReserveForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { requireAdmin } from "@/lib/requireAdmin";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
 
 export default async function CreateProductReservePage({
@@ -9,8 +8,6 @@ export default async function CreateProductReservePage({
 }: {
   searchParams: { productId?: string };
 }) {
-  await requireAdmin();
-
   const preselectedProductId = searchParams.productId;
 
   let products: ProductWithVariants[];
@@ -40,7 +37,10 @@ export default async function CreateProductReservePage({
       <div className="max-w-screen-lg mx-auto">
         <div className="w-[90%] md:w-2/3 mx-auto">
           <h1 className="admin-form-header mt-10">Создать резерв</h1>
-          <ProductReserveForm products={products} productId={preselectedProductId} />
+          <ProductReserveForm
+            products={products}
+            productId={preselectedProductId}
+          />
         </div>
       </div>
     </>

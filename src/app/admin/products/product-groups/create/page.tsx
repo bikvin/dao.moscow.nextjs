@@ -1,10 +1,7 @@
 import ProductGroupForm from "@/components/admin/product/product-group/productGroupForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
-import { requireAdmin } from "@/lib/requireAdmin";
 
 export default async function CreateProductGroupPage() {
-  await requireAdmin();
-
   return (
     <>
       <TopMenu />

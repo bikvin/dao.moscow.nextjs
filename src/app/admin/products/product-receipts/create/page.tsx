@@ -1,7 +1,6 @@
 import { ProductReceiptForm } from "@/components/admin/product/product-receipt/productReceiptForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { requireAdmin } from "@/lib/requireAdmin";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
 
 export default async function CreateProductReceiptPage({
@@ -9,8 +8,6 @@ export default async function CreateProductReceiptPage({
 }: {
   searchParams: { productId?: string };
 }) {
-  await requireAdmin();
-
   const preselectedProductId = searchParams.productId;
 
   let products: ProductWithVariants[];

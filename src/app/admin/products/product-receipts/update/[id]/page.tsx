@@ -1,7 +1,6 @@
 import { ProductReceiptForm } from "@/components/admin/product/product-receipt/productReceiptForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { requireAdmin } from "@/lib/requireAdmin";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
 import { ProductReceipt, ProductVariant } from "@prisma/client";
 
@@ -10,8 +9,6 @@ export default async function UpdateProductReceiptPage({
 }: {
   params: { id: string };
 }) {
-  await requireAdmin();
-
   const productReceiptId = params.id;
 
   let products: ProductWithVariants[] = [];

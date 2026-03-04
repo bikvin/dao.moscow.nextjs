@@ -1,7 +1,6 @@
 import ProductForm from "@/components/admin/product/product/productForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { requireAdmin } from "@/lib/requireAdmin";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
 import { ProductGroup } from "@prisma/client";
 
@@ -10,8 +9,6 @@ export default async function UpdateProductPage({
 }: {
   params: { id: string };
 }) {
-  await requireAdmin();
-
   const productId = params.id;
 
   let productGroups: ProductGroup[] = [];

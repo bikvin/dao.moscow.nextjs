@@ -1,15 +1,12 @@
 import ProductGroupForm from "@/components/admin/product/product-group/productGroupForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { requireAdmin } from "@/lib/requireAdmin";
 
 export default async function UpdateProductGroupPage({
   params,
 }: {
   params: { id: string };
 }) {
-  await requireAdmin();
-
   const productGroupId = params.id;
   const productGroup = await db.productGroup.findUnique({
     where: { id: productGroupId },

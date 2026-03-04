@@ -1,7 +1,6 @@
 import { ProductIssueForm } from "@/components/admin/product/product-issue/ProductIssueForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { requireAdmin } from "@/lib/requireAdmin";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
 import { ProductIssue, ProductVariant } from "@prisma/client";
 
@@ -10,12 +9,11 @@ export default async function UpdateProductIssuePage({
 }: {
   params: { id: string };
 }) {
-  await requireAdmin();
-
   const productIssueId = params.id;
 
   let products: ProductWithVariants[] = [];
-  let productIssue: (ProductIssue & { productVariant: ProductVariant }) | null = null;
+  let productIssue: (ProductIssue & { productVariant: ProductVariant }) | null =
+    null;
 
   try {
     const [productIssueData, productsData] = await Promise.all([

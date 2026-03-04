@@ -1,7 +1,6 @@
 import { ProductReserveForm } from "@/components/admin/product/product-reserve/ProductReserveForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { requireAdmin } from "@/lib/requireAdmin";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
 import { ProductReserve, ProductVariant } from "@prisma/client";
 
@@ -10,12 +9,12 @@ export default async function UpdateProductReservePage({
 }: {
   params: { id: string };
 }) {
-  await requireAdmin();
-
   const productReserveId = params.id;
 
   let products: ProductWithVariants[] = [];
-  let productReserve: (ProductReserve & { productVariant: ProductVariant }) | null = null;
+  let productReserve:
+    | (ProductReserve & { productVariant: ProductVariant })
+    | null = null;
 
   try {
     const [productReserveData, productsData] = await Promise.all([
