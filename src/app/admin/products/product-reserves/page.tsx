@@ -3,27 +3,39 @@ import Link from "next/link";
 import { db } from "@/db";
 import { ProductReserveWithProductVariant } from "@/types/product/productReserve/productReserveWithProductVariant";
 import ProductReservesList from "@/components/admin/product/product-reserve/ProductReservesList";
+import { Pagination } from "@/components/admin/Pagination";
 
-export default async function AllProductReservesPage() {
+const PAGE_SIZE = 30;
+
+export default async function AllProductReservesPage({
+  searchParams,
+}: {
+  searchParams: { page?: string };
+}) {
+  const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+
   let productReserves: ProductReserveWithProductVariant[];
+  let totalPages: number;
 
   try {
-    const data = await db.productReserve.findMany({
-      include: {
-        productVariant: {
-          include: {
-            product: true,
+    const [data, total] = await Promise.all([
+      db.productReserve.findMany({
+        include: {
+          productVariant: {
+            include: {
+              product: true,
+            },
           },
         },
-      },
-      orderBy: [{ reserveDate: "desc" }, { createdAt: "desc" }],
-    });
-
-    if (!data) {
-      return <div className="text-red-800">Данные не найдены.</div>;
-    }
+        orderBy: [{ reserveDate: "desc" }, { createdAt: "desc" }],
+        skip: (currentPage - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+      }),
+      db.productReserve.count(),
+    ]);
 
     productReserves = data;
+    totalPages = Math.ceil(total / PAGE_SIZE);
   } catch (err) {
     console.log(err);
     return <div className="text-red-800">Ошибка при загрузке данных.</div>;
@@ -46,6 +58,11 @@ export default async function AllProductReservesPage() {
           </div>
 
           <ProductReservesList itemsData={productReserves} />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            basePath="/admin/products/product-reserves"
+          />
         </div>
       </div>
     </>

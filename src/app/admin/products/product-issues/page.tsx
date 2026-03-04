@@ -5,12 +5,22 @@ import { db } from "@/db";
 
 import { ProductIssueWithProductVariant } from "@/types/product/productIssue/productIssueWithProductVariant";
 import ProductIssuesList from "@/components/admin/product/product-issue/ProductIssuesList";
+import { Pagination } from "@/components/admin/Pagination";
 
-export default async function AllProductIssuesPage() {
+const PAGE_SIZE = 30;
+
+export default async function AllProductIssuesPage({
+  searchParams,
+}: {
+  searchParams: { page?: string };
+}) {
+  const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+
   let productIssues: ProductIssueWithProductVariant[];
+  let totalPages: number;
 
   try {
-    const [productIssueData] = await Promise.all([
+    const [productIssueData, total] = await Promise.all([
       db.productIssue.findMany({
         include: {
           productVariant: {
@@ -20,14 +30,14 @@ export default async function AllProductIssuesPage() {
           },
         },
         orderBy: [{ issueDate: "desc" }, { createdAt: "desc" }],
+        skip: (currentPage - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
       }),
+      db.productIssue.count(),
     ]);
 
-    if (!productIssueData) {
-      return <div className="text-red-800">Данные не найдены.</div>;
-    }
-
     productIssues = productIssueData;
+    totalPages = Math.ceil(total / PAGE_SIZE);
   } catch (err) {
     console.log(err);
     return <div className="text-red-800">Ошибка при загрузке данных.</div>;
@@ -50,6 +60,11 @@ export default async function AllProductIssuesPage() {
           </div>
 
           <ProductIssuesList itemsData={productIssues} />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            basePath="/admin/products/product-issues"
+          />
         </div>
       </div>
     </>
