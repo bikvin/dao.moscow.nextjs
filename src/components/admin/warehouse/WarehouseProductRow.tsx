@@ -19,10 +19,33 @@ export function WarehouseProductRow({
 
   const allActiveReserves = variants.flatMap((v) => v.productReserves);
 
+  const actionButtons = (
+    <>
+      <Link
+        href={`/admin/products/product-reserves/create?productId=${product.id}`}
+        className="text-xs text-sky-800 bg-sky-100 hover:bg-sky-200 rounded px-2 py-0.5 whitespace-nowrap"
+      >
+        + Резерв
+      </Link>
+      <Link
+        href={`/admin/products/product-issues/create?productId=${product.id}`}
+        className="text-xs text-rose-800 bg-rose-100 hover:bg-rose-200 rounded px-2 py-0.5 whitespace-nowrap"
+      >
+        + Списание
+      </Link>
+      <Link
+        href={`/admin/products/product-receipts/create?productId=${product.id}`}
+        className="text-xs text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded px-2 py-0.5 whitespace-nowrap"
+      >
+        + Приход
+      </Link>
+    </>
+  );
+
   return (
     <div>
       {/* Product row */}
-      <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_80px] gap-2 py-2 px-3 rounded-md bg-slate-100 font-medium items-center">
+      <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 pt-2 pb-4 mt-4 md:mt-0 md:py-2 px-3 rounded-md bg-slate-100 font-medium items-center">
         <div>{product.sku}</div>
         <div className="text-center">{totalWarehouse}</div>
         <div className="text-center">
@@ -47,26 +70,11 @@ export function WarehouseProductRow({
             </Link>
           ))}
         </div>
-        <div className="flex flex-col md:flex-row gap-1">
-          <Link
-            href={`/admin/products/product-reserves/create?productId=${product.id}`}
-            className="text-xs text-sky-800 bg-sky-100 hover:bg-sky-200 rounded px-2 py-0.5 whitespace-nowrap"
-          >
-            + Резерв
-          </Link>
-          <Link
-            href={`/admin/products/product-issues/create?productId=${product.id}`}
-            className="text-xs text-rose-800 bg-rose-100 hover:bg-rose-200 rounded px-2 py-0.5 whitespace-nowrap"
-          >
-            + Списание
-          </Link>
-          <Link
-            href={`/admin/products/product-receipts/create?productId=${product.id}`}
-            className="text-xs text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded px-2 py-0.5 whitespace-nowrap"
-          >
-            + Приход
-          </Link>
-        </div>
+        <div className="hidden md:flex flex-row gap-1">{actionButtons}</div>
+      </div>
+      {/* Buttons row on mobile */}
+      <div className="flex md:hidden flex-row gap-1 px-3 pb-1 -mt-2">
+        {actionButtons}
       </div>
 
       {/* Variant rows */}
@@ -77,7 +85,7 @@ export function WarehouseProductRow({
           return (
             <div
               key={variant.id}
-              className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_80px] gap-2 py-1 px-3 pl-8 text-sm text-slate-600 items-center"
+              className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 py-1 px-3 pl-8 text-sm text-slate-600 items-center"
             >
               <div>{variant.variantName}</div>
               <div className="text-center">{variant.warehouseQuantity}</div>
