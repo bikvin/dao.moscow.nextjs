@@ -44,7 +44,7 @@ const topMenuList: TopMenuItem[] = [
   {
     name: "Товары",
     type: "dropdown",
-    adminOnly: true,
+    adminOnly: false,
     data: [
       {
         type: "link",
@@ -59,17 +59,17 @@ const topMenuList: TopMenuItem[] = [
       },
       {
         type: "link",
-        name: "Поступления товаров",
+        name: "Приходы",
         link: "/admin/products/product-receipts",
       },
       {
         type: "link",
-        name: "Списания товаров",
+        name: "Списания",
         link: "/admin/products/product-issues",
       },
       {
         type: "link",
-        name: "Резервы товаров",
+        name: "Резервы",
         link: "/admin/products/product-reserves",
       },
     ],

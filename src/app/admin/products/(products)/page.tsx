@@ -1,14 +1,11 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import Link from "next/link";
 
-import { requireAdmin } from "@/lib/requireAdmin";
 import { db } from "@/db";
 import ProductsList from "@/components/admin/product/product/ProductsList";
 import { ProductWithGroup } from "@/types/product/productWithGroup";
 
 export default async function AllProductsPage() {
-  await requireAdmin();
-
   let products: ProductWithGroup[];
 
   try {

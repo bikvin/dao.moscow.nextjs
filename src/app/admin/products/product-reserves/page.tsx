@@ -1,13 +1,10 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import Link from "next/link";
-import { requireAdmin } from "@/lib/requireAdmin";
 import { db } from "@/db";
 import { ProductReserveWithProductVariant } from "@/types/product/productReserve/productReserveWithProductVariant";
 import ProductReservesList from "@/components/admin/product/product-reserve/ProductReservesList";
 
 export default async function AllProductReservesPage() {
-  await requireAdmin();
-
   let productReserves: ProductReserveWithProductVariant[];
 
   try {

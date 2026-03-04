@@ -1,15 +1,12 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import Link from "next/link";
 
-import { requireAdmin } from "@/lib/requireAdmin";
 import { db } from "@/db";
 
 import { ProductIssueWithProductVariant } from "@/types/product/productIssue/productIssueWithProductVariant";
 import ProductIssuesList from "@/components/admin/product/product-issue/ProductIssuesList";
 
 export default async function AllProductIssuesPage() {
-  await requireAdmin();
-
   let productIssues: ProductIssueWithProductVariant[];
 
   try {

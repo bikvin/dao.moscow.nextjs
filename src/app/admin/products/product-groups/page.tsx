@@ -1,14 +1,11 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import Link from "next/link";
 
-import { requireAdmin } from "@/lib/requireAdmin";
 import { db } from "@/db";
 import { ProductGroup } from "@prisma/client";
 import ProductGroupsList from "@/components/admin/product/product-group/ProductGroupsList";
 
 export default async function AllProductGroupsPage() {
-  await requireAdmin();
-
   let productGroups: ProductGroup[];
 
   try {

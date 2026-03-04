@@ -1,15 +1,12 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import Link from "next/link";
 
-import { requireAdmin } from "@/lib/requireAdmin";
 import { db } from "@/db";
 
 import { ProductReceiptWithProductVariant } from "@/types/product/productReceipt/productReceiptWithProductVariant";
 import ProductReceiptsList from "@/components/admin/product/product-receipt/ProductReceipsList";
 
 export default async function AllProductReciptsPage() {
-  await requireAdmin();
-
   let productReceipts: ProductReceiptWithProductVariant[];
 
   try {
