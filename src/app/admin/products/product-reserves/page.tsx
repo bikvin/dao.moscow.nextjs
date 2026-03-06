@@ -10,7 +10,7 @@ import {
 } from "@/components/admin/product/ProductListFilters";
 import { ProductReserveStatusEnum } from "@prisma/client";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 50;
 
 export default async function AllProductReservesPage({
   searchParams,
@@ -44,7 +44,10 @@ export default async function AllProductReservesPage({
     ...(type && { status: type as ProductReserveStatusEnum }),
   };
 
-  const orderBy = [{ reserveDate: "desc" as const }, { createdAt: "desc" as const }];
+  const orderBy = [
+    { reserveDate: "desc" as const },
+    { createdAt: "desc" as const },
+  ];
 
   let productReserves: ProductReserveWithProductVariant[];
   let totalPages: number;

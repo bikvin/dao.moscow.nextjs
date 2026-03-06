@@ -10,7 +10,7 @@ import {
 } from "@/components/admin/product/ProductListFilters";
 import { ProductIssueEnum } from "@prisma/client";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 50;
 
 export default async function AllProductIssuesPage({
   searchParams,
@@ -44,7 +44,10 @@ export default async function AllProductIssuesPage({
     ...(type && { type: type as ProductIssueEnum }),
   };
 
-  const orderBy = [{ issueDate: "desc" as const }, { createdAt: "desc" as const }];
+  const orderBy = [
+    { issueDate: "desc" as const },
+    { createdAt: "desc" as const },
+  ];
 
   let productIssues: ProductIssueWithProductVariant[];
   let totalPages: number;

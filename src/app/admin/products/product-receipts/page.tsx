@@ -10,7 +10,7 @@ import {
 } from "@/components/admin/product/ProductListFilters";
 import { ProductReceiptTypeEnum } from "@prisma/client";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 50;
 
 export default async function AllProductReciptsPage({
   searchParams,
@@ -44,7 +44,10 @@ export default async function AllProductReciptsPage({
     ...(type && { type: type as ProductReceiptTypeEnum }),
   };
 
-  const orderBy = [{ receiptDate: "desc" as const }, { createdAt: "desc" as const }];
+  const orderBy = [
+    { receiptDate: "desc" as const },
+    { createdAt: "desc" as const },
+  ];
 
   let productReceipts: ProductReceiptWithProductVariant[];
   let totalPages: number;
