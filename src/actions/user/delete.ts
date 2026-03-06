@@ -2,6 +2,7 @@
 
 import { DeleteFormState } from "@/components/common/delete/deleteTypes";
 import { db } from "@/db";
+import { UserRoleEnum } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function deleteUser(
@@ -22,6 +23,10 @@ export async function deleteUser(
     const article = await db.user.findUnique({ where: { id: id } });
 
     if (!article) throw new Error("User not found");
+
+    if (article.role === UserRoleEnum.ADMIN) {
+      throw new Error("Нельзя удалить администратора");
+    }
 
     await db.user.delete({
       where: {

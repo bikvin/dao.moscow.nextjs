@@ -1,30 +1,44 @@
 import React from "react";
-import { User } from "@prisma/client";
+import { User, UserRoleEnum } from "@prisma/client";
 import DeleteDialog from "@/components/common/delete/DeleteDialog";
 import { deleteUser } from "@/actions/user/delete";
 import { RiEdit2Line } from "react-icons/ri";
 import Link from "next/link";
 
+const roleLabel: Record<UserRoleEnum, string> = {
+  [UserRoleEnum.ADMIN]: "Администратор",
+  [UserRoleEnum.USER]: "Пользователь",
+};
+
+const roleColor: Record<UserRoleEnum, string> = {
+  [UserRoleEnum.ADMIN]: "text-sky-600",
+  [UserRoleEnum.USER]: "text-slate-400",
+};
+
 export function UsersListItem({ user }: { user: User }) {
   return (
-    <div className="relative flex flex-col border rounded-md mb-4 p-2 shadow-main">
-      <div className="absolute top-4 right-4 flex gap-2 flex-col">
-        <DeleteDialog
-          id={user.id}
-          action={deleteUser}
-          message={`Вы уверены, что хотите удалить пользователя ${user.name}`}
-        />
-        <Link className="" href={`/admin/users/update/${user.id}`}>
-          <RiEdit2Line className="w-6 h-6 hover:text-blue-700 hover:scale-125 cursor-pointer" />
-        </Link>
-      </div>
-
-      <div className="flex flex-col md:flex-row justify-start items-center">
-        <div className="p-4">
-          <h4 className="text-2xl">{user.name}</h4>
-          <div className="text-base">{user.email}</div>
+    <div className="border rounded-md mb-2 p-3 shadow-main">
+      <div className="flex justify-between items-center mb-1">
+        <div className="flex items-center gap-4">
+          <h4 className="text-xl font-medium">{user.name}</h4>
+          <span className={`text-sm font-medium ${roleColor[user.role]}`}>
+            {roleLabel[user.role]}
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <Link href={`/admin/users/update/${user.id}`}>
+            <RiEdit2Line className="w-5 h-5 hover:text-blue-700 hover:scale-125 cursor-pointer" />
+          </Link>
+          {user.role !== UserRoleEnum.ADMIN && (
+            <DeleteDialog
+              id={user.id}
+              action={deleteUser}
+              message={`Вы уверены, что хотите удалить пользователя ${user.name}`}
+            />
+          )}
         </div>
       </div>
+      <div className="text-sm text-slate-400">{user.email}</div>
     </div>
   );
 }
