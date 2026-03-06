@@ -11,14 +11,20 @@ export default function ProductsList({
 }: {
   productData: ProductWithGroup[];
 }) {
-  const activeProducts = productData.filter(
-    (product) => product.status === ProductStatusEnum.ACTIVE
-  );
-  const cancelledProducts = productData.filter(
-    (product) => product.status === ProductStatusEnum.CANCELLED
-  );
-
+  const [filter, setFilter] = useState("");
   const [cancelledShown, setCancelledShown] = useState(false);
+
+  const normalized = filter.trim().toLowerCase();
+  const filtered = normalized
+    ? productData.filter((p) => p.sku.toLowerCase().includes(normalized))
+    : productData;
+
+  const activeProducts = filtered.filter(
+    (product) => product.status === ProductStatusEnum.ACTIVE,
+  );
+  const cancelledProducts = filtered.filter(
+    (product) => product.status === ProductStatusEnum.CANCELLED,
+  );
 
   // Group active products by productGroup
   const grouped = activeProducts.reduce((acc, product) => {
@@ -30,6 +36,13 @@ export default function ProductsList({
 
   return (
     <>
+      <input
+        type="text"
+        placeholder="Поиск по SKU..."
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        className="w-full md:w-80 mb-6 border border-slate-300 rounded-md py-1 px-2 focus:border-slate-500 focus:outline-none focus:ring-0"
+      />
       <div>
         <h3 className="text-xl mb-4">Активные товары:</h3>
         {activeProducts.length === 0 && (
