@@ -39,22 +39,27 @@ export function ProductIssueForm({
   const usedAction = isEdit ? updateProductIssue : createProductIssue;
 
   const [selectedProductId, setSelectedProductId] = useState(productId || "");
-  const [selectedVariantId, setSelectedVariantId] = useState(
-    productVariantId || ""
-  );
+  const [selectedVariantId, setSelectedVariantId] = useState(() => {
+    if (productVariantId) return productVariantId;
+    const product = products.find((p) => p.id === productId);
+    const vs = product?.productVariants ?? [];
+    return vs.length === 1 ? vs[0].id : "";
+  });
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const variants = selectedProduct?.productVariants || [];
 
   const handleProductChange = (newProductId: string) => {
     setSelectedProductId(newProductId);
-    setSelectedVariantId("");
+    const newVariants =
+      products.find((p) => p.id === newProductId)?.productVariants ?? [];
+    setSelectedVariantId(newVariants.length === 1 ? newVariants[0].id : "");
   };
-  const [selectedIssueDate, setSelectedIssueDate] = useState<
-    Date | undefined
-  >(issueDate || new Date());
+  const [selectedIssueDate, setSelectedIssueDate] = useState<Date | undefined>(
+    issueDate || new Date(),
+  );
   const [type, setType] = useState<ProductIssueEnum>(
-    issueType || ProductIssueEnum.SALE
+    issueType || ProductIssueEnum.SALE,
   );
 
   const [formState, action] = useFormState(usedAction, {
@@ -80,6 +85,7 @@ export function ProductIssueForm({
       <div className="form-item">
         <label htmlFor="">Вариант</label>
         <ProductVariantSelect
+          key={selectedProductId}
           variants={variants}
           selectedVariantId={selectedVariantId}
           onVariantChange={setSelectedVariantId}
