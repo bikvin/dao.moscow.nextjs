@@ -13,9 +13,11 @@ export type FilterState = {
 export function ProductListFilters({
   current,
   typeOptions,
+  allTypeValue = "",
 }: {
   current: FilterState;
   typeOptions: { value: string; label: string }[];
+  allTypeValue?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -94,7 +96,7 @@ export function ProductListFilters({
           onChange={(e) => update({ type: e.target.value })}
           className={inputClass}
         >
-          <option value="">Все типы</option>
+          <option value={allTypeValue}>Все типы</option>
           {typeOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}

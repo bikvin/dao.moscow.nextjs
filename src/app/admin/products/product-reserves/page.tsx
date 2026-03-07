@@ -27,7 +27,7 @@ export default async function AllProductReservesPage({
   const sku = searchParams.sku ?? "";
   const dateFrom = searchParams.dateFrom ?? "";
   const dateTo = searchParams.dateTo ?? "";
-  const type = searchParams.type ?? "";
+  const type = searchParams.type ?? ProductReserveStatusEnum.ACTIVE;
 
   const dateFilter = {
     ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
@@ -41,7 +41,7 @@ export default async function AllProductReservesPage({
       },
     }),
     ...(Object.keys(dateFilter).length > 0 && { reserveDate: dateFilter }),
-    ...(type && { status: type as ProductReserveStatusEnum }),
+    ...(type && type !== "ALL" && { status: type as ProductReserveStatusEnum }),
   };
 
   const orderBy = [
@@ -92,6 +92,7 @@ export default async function AllProductReservesPage({
           <div className="mt-6">
             <ProductListFilters
               current={filterState}
+              allTypeValue="ALL"
               typeOptions={[
                 { value: ProductReserveStatusEnum.ACTIVE, label: "Активен" },
                 {
