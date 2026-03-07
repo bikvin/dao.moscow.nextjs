@@ -21,11 +21,13 @@ enum ProductReceiptTypeEnum {
   SHIPMENT
   CORRECTION
   RETURN
+  OTHER
 }
 
 enum ProductIssueEnum {
   SALE
   CORRECTION
+  OTHER
 }
 
 enum ProductReserveStatusEnum {

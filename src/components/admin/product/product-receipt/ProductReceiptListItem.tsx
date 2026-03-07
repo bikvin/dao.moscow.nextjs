@@ -10,12 +10,14 @@ const typeLabel: Record<ProductReceiptTypeEnum, string> = {
   [ProductReceiptTypeEnum.SHIPMENT]: "поставка",
   [ProductReceiptTypeEnum.RETURN]: "возврат",
   [ProductReceiptTypeEnum.CORRECTION]: "коррекция",
+  [ProductReceiptTypeEnum.OTHER]: "другое",
 };
 
 const typeColor: Record<ProductReceiptTypeEnum, string> = {
   [ProductReceiptTypeEnum.SHIPMENT]: "text-emerald-500",
   [ProductReceiptTypeEnum.RETURN]: "text-sky-500",
   [ProductReceiptTypeEnum.CORRECTION]: "text-orange-500",
+  [ProductReceiptTypeEnum.OTHER]: "text-slate-500",
 };
 
 export function ProductReceiptListItem({

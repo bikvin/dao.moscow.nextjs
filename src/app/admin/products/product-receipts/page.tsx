@@ -99,6 +99,7 @@ export default async function AllProductReciptsPage({
                   value: ProductReceiptTypeEnum.CORRECTION,
                   label: "Коррекция",
                 },
+                { value: ProductReceiptTypeEnum.OTHER, label: "Другое" },
               ]}
             />
           </div>

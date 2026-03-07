@@ -115,6 +115,7 @@ export function ProductIssueForm({
           options={[
             { value: ProductIssueEnum.SALE, label: "Продажа" },
             { value: ProductIssueEnum.CORRECTION, label: "Коррекция остатка" },
+            { value: ProductIssueEnum.OTHER, label: "Другое" },
           ]}
         />
         <FormFieldError errors={formState.errors?.type} />

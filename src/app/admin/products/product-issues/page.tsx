@@ -98,6 +98,7 @@ export default async function AllProductIssuesPage({
                   value: ProductIssueEnum.CORRECTION,
                   label: "Коррекция",
                 },
+                { value: ProductIssueEnum.OTHER, label: "Другое" },
               ]}
             />
           </div>

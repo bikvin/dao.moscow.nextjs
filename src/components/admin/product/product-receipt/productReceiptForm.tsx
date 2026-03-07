@@ -119,6 +119,7 @@ export function ProductReceiptForm({
               value: ProductReceiptTypeEnum.CORRECTION,
               label: "Коррекция остатка",
             },
+            { value: ProductReceiptTypeEnum.OTHER, label: "Другое" },
           ]}
         />
         <FormFieldError errors={formState.errors?.type} />

@@ -9,11 +9,13 @@ import { ProductIssueEnum } from "@prisma/client";
 const typeLabel: Record<ProductIssueEnum, string> = {
   [ProductIssueEnum.SALE]: "продажа",
   [ProductIssueEnum.CORRECTION]: "коррекция",
+  [ProductIssueEnum.OTHER]: "другое",
 };
 
 const typeColor: Record<ProductIssueEnum, string> = {
   [ProductIssueEnum.SALE]: "text-slate-500",
   [ProductIssueEnum.CORRECTION]: "text-orange-500",
+  [ProductIssueEnum.OTHER]: "text-slate-500",
 };
 
 export function ProductIssueListItem({
