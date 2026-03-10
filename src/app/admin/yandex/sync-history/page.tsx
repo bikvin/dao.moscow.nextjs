@@ -38,7 +38,7 @@ export default async function YandexSyncHistoryPage({
                 <div key={log.id} className="border rounded-md mb-1 p-3 shadow-main">
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-slate-500">
-                      {new Date(log.createdAt).toLocaleString("ru-RU")}
+                      {new Date(log.createdAt).toLocaleString("ru-RU")} UTC
                     </span>
                     <span
                       className={`text-sm font-medium ${

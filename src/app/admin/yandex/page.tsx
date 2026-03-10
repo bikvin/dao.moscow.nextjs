@@ -29,7 +29,7 @@ export default async function YandexPage() {
             {lastLog ? (
               <div className="text-sm flex flex-wrap gap-x-4 gap-y-1">
                 <span className="text-slate-500">
-                  {new Date(lastLog.createdAt).toLocaleString("ru-RU")}
+                  {new Date(lastLog.createdAt).toLocaleString("ru-RU")} UTC
                 </span>
                 <span
                   className={

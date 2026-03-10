@@ -22,7 +22,7 @@ export default async function ProfilePage() {
               <span>Яндекс Маркет:</span>
               {lastYandexLog ? (
                 <>
-                  <span>{new Date(lastYandexLog.createdAt).toLocaleString("ru-RU")}</span>
+                  <span>{new Date(lastYandexLog.createdAt).toLocaleString("ru-RU")} UTC</span>
                   <span
                     className={
                       lastYandexLog.status === YandexSyncStatusEnum.SUCCESS
@@ -46,7 +46,7 @@ export default async function ProfilePage() {
               <span>Ozon:</span>
               {lastOzonLog ? (
                 <>
-                  <span>{new Date(lastOzonLog.createdAt).toLocaleString("ru-RU")}</span>
+                  <span>{new Date(lastOzonLog.createdAt).toLocaleString("ru-RU")} UTC</span>
                   <span
                     className={
                       lastOzonLog.status === OzonSyncStatusEnum.SUCCESS
