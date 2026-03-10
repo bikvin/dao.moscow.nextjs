@@ -92,6 +92,29 @@ const topMenuList: TopMenuItem[] = [
       },
     ],
   },
+
+  {
+    name: "Яндекс",
+    type: "dropdown",
+    adminOnly: true,
+    data: [
+      {
+        type: "link",
+        name: "Синхронизация",
+        link: "/admin/yandex",
+      },
+      {
+        type: "link",
+        name: "История",
+        link: "/admin/yandex/sync-history",
+      },
+      {
+        type: "link",
+        name: "Маппинг товаров",
+        link: "/admin/yandex/mappings",
+      },
+    ],
+  },
 ];
 
 export function TopMenu() {
