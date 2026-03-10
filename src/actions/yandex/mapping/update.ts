@@ -15,6 +15,7 @@ export async function updateYandexMapping(
     productId: formData.get("productId"),
     yandexSku: formData.get("yandexSku"),
     buffer: formData.get("buffer"),
+    divisor: formData.get("divisor"),
   });
 
   if (!result.success) {

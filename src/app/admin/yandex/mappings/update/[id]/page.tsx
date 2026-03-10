@@ -27,6 +27,7 @@ export default async function UpdateYandexMappingPage({
             productId={mapping.productId}
             yandexSku={mapping.yandexSku}
             buffer={mapping.buffer}
+            divisor={mapping.divisor}
             isEdit
           />
         </div>

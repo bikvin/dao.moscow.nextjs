@@ -14,11 +14,19 @@ export async function syncYandexStock(
     );
   }
 
-  // Read global default buffer from Settings
-  const bufferSetting = await db.settings.findUnique({
-    where: { field: "yandexDefaultBuffer" },
-  });
+  // Read global settings
+  const [bufferSetting, divisorSetting] = await Promise.all([
+    db.settings.findUnique({ where: { field: "yandexDefaultBuffer" } }),
+    db.settings.findUnique({ where: { field: "yandexDefaultDivisor" } }),
+  ]);
   const globalBuffer = bufferSetting ? parseInt(bufferSetting.value, 10) || 0 : 0;
+  if (!divisorSetting) {
+    throw new Error("Не задан глобальный делитель (yandexDefaultDivisor). Укажите его в настройках Яндекс Маркета.");
+  }
+  const globalDivisor = parseInt(divisorSetting.value, 10);
+  if (isNaN(globalDivisor) || globalDivisor < 1) {
+    throw new Error("Некорректное значение глобального делителя. Укажите целое число ≥ 1.");
+  }
 
   // Fetch all mappings with product variants
   const mappings = await db.yandexMarketMapping.findMany({
@@ -42,7 +50,8 @@ export async function syncYandexStock(
       0
     );
     const effectiveBuffer = mapping.buffer ?? globalBuffer;
-    const count = Math.max(0, Math.floor((totalAvailable - effectiveBuffer) / 3));
+    const effectiveDivisor = mapping.divisor ?? globalDivisor;
+    const count = Math.max(0, Math.floor((totalAvailable - effectiveBuffer) / effectiveDivisor));
     return { sku: mapping.yandexSku, items: [{ count }] };
   });
 

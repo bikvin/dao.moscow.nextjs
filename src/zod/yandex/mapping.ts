@@ -7,6 +7,10 @@ const baseMappingSchema = z.object({
     (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
     z.number().int().min(0).nullable().optional()
   ),
+  divisor: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
+    z.number().int().min(1).nullable().optional()
+  ),
 });
 
 export const createMappingSchema = baseMappingSchema;

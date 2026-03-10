@@ -10,6 +10,7 @@ export interface MappingFormState {
     productId?: string[];
     yandexSku?: string[];
     buffer?: string[];
+    divisor?: string[];
     _form?: string[];
   };
 }
@@ -22,6 +23,7 @@ export async function createYandexMapping(
     productId: formData.get("productId"),
     yandexSku: formData.get("yandexSku"),
     buffer: formData.get("buffer"),
+    divisor: formData.get("divisor"),
   });
 
   if (!result.success) {

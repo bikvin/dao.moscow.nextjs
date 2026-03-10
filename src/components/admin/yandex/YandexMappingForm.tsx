@@ -15,6 +15,7 @@ export function YandexMappingForm({
   productId: initialProductId,
   yandexSku,
   buffer,
+  divisor,
   isEdit = false,
 }: {
   id?: string;
@@ -22,6 +23,7 @@ export function YandexMappingForm({
   productId?: string;
   yandexSku?: string;
   buffer?: number | null;
+  divisor?: number | null;
   isEdit?: boolean;
 }) {
   const action = isEdit ? updateYandexMapping : createYandexMapping;
@@ -58,6 +60,20 @@ export function YandexMappingForm({
           />
         </div>
         <FormFieldError errors={formState.errors?.buffer} />
+      </div>
+      <div className="form-item">
+        <label>Индивидуальный делитель (необязательно)</label>
+        <div className="w-20">
+          <input
+            name="divisor"
+            type="number"
+            min={1}
+            className="admin-form-input"
+            defaultValue={divisor ?? ""}
+            placeholder="—"
+          />
+        </div>
+        <FormFieldError errors={formState.errors?.divisor} />
       </div>
       {isEdit && <input type="hidden" name="id" value={id} />}
       <FormButton>{isEdit ? "Сохранить" : "Создать"}</FormButton>
