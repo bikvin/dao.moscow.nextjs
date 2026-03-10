@@ -41,6 +41,11 @@ enum YandexSyncStatusEnum {
   ERROR
 }
 
+enum OzonSyncStatusEnum {
+  SUCCESS
+  ERROR
+}
+
 model Settings {
   id        String   @id @default(uuid())
   field     String   @unique
@@ -90,6 +95,7 @@ model Product {
 
   productVariants      ProductVariant[]
   yandexMarketMappings YandexMarketMapping[]
+  ozonMappings         OzonMapping[]
 }
 
 model ProductVariant {
@@ -167,6 +173,31 @@ model YandexMarketMapping {
   updatedAt DateTime @updatedAt
 
   @@index([productId])
+}
+
+model OzonMapping {
+  id          String   @id @default(uuid())
+  ozonOfferId String   @unique
+  buffer      Int?
+  divisor     Int?
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model OzonSyncLog {
+  id        String             @id @default(uuid())
+  status    OzonSyncStatusEnum
+  trigger   String
+  message   String?
+  skuCount  Int?
+
+  createdAt DateTime @default(now())
 }
 
 model YandexSyncLog {

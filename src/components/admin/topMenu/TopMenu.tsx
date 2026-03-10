@@ -115,6 +115,29 @@ const topMenuList: TopMenuItem[] = [
       },
     ],
   },
+
+  {
+    name: "Ozon",
+    type: "dropdown",
+    adminOnly: true,
+    data: [
+      {
+        type: "link",
+        name: "Синхронизация",
+        link: "/admin/ozon",
+      },
+      {
+        type: "link",
+        name: "История",
+        link: "/admin/ozon/sync-history",
+      },
+      {
+        type: "link",
+        name: "Маппинг товаров",
+        link: "/admin/ozon/mappings",
+      },
+    ],
+  },
 ];
 
 export function TopMenu() {
