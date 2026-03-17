@@ -66,7 +66,7 @@ export default function TopMenu({ page }: { page: string }) {
               menuItemPage="partners"
               href="/partners"
             >
-              Партнерам
+              Приглашаем партнеров
             </MenuItem>
             <MenuItem
               currentPage={page}
