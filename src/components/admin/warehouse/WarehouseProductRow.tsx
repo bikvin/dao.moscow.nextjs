@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { ProductWithWarehouseData } from "@/types/product/productWithWarehouseData";
 
@@ -57,22 +58,22 @@ export function WarehouseProductRow({
           <span className="text-green-700 text-center pt-1">{totalAvailable}</span>
           <span className="text-green-700 text-center pt-1">{area(totalAvailable, product.length_mm, product.width_mm)}</span>
           {multiVariant && variants.map((v) => (
-            <>
+            <Fragment key={v.id}>
               <span className="text-slate-400 pl-3">{v.variantName}</span>
               <span className="text-green-700 text-center">{v.availableQuantity}</span>
               <span className="text-green-700 text-center">{area(v.availableQuantity, product.length_mm, product.width_mm)}</span>
-            </>
+            </Fragment>
           ))}
 
           <span className="text-slate-400 pt-2">На складе</span>
           <span className="text-center pt-2">{totalWarehouse}</span>
           <span className="text-center pt-2">{area(totalWarehouse, product.length_mm, product.width_mm)}</span>
           {multiVariant && variants.map((v) => (
-            <>
+            <Fragment key={v.id}>
               <span className="text-slate-400 pl-3">{v.variantName}</span>
               <span className="text-center">{v.warehouseQuantity}</span>
               <span className="text-center">{area(v.warehouseQuantity, product.length_mm, product.width_mm)}</span>
-            </>
+            </Fragment>
           ))}
 
           <span className="text-slate-400 pt-2">В резерве</span>
@@ -81,11 +82,11 @@ export function WarehouseProductRow({
           {multiVariant && variants.map((v) => {
             const reserved = v.warehouseQuantity - v.availableQuantity;
             return (
-              <>
+              <Fragment key={v.id}>
                 <span className="text-slate-400 pl-3">{v.variantName}</span>
                 <span className="text-amber-600 text-center">{reserved}</span>
                 <span className="text-amber-600 text-center">{area(reserved, product.length_mm, product.width_mm)}</span>
-              </>
+              </Fragment>
             );
           })}
         </div>
