@@ -44,16 +44,78 @@ export function WarehouseProductRow({
 
   return (
     <div>
-      {/* Product row */}
-      <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 pt-2 pb-4 mt-4 md:mt-0 md:py-2 px-3 rounded-md bg-slate-100 font-medium items-center">
-        <div>{product.sku}</div>
-        <div className="text-center">{totalWarehouse}</div>
-        <div className="text-center">
-          {area(totalWarehouse, product.length_mm, product.width_mm)}
+      {/* Mobile card */}
+      <div className="md:hidden flex flex-col gap-1 py-2 px-3 rounded-md bg-slate-100 text-sm mt-4">
+        <div className="font-bold">{product.sku}</div>
+
+        <div className="grid grid-cols-[auto_1fr_1fr] gap-x-3 mt-1">
+          <span />
+          <span className="text-slate-400 text-xs text-center">листов</span>
+          <span className="text-slate-400 text-xs text-center">м²</span>
+
+          <span className="text-slate-400 pt-1">Доступно для заказа</span>
+          <span className="text-green-700 text-center pt-1">{totalAvailable}</span>
+          <span className="text-green-700 text-center pt-1">{area(totalAvailable, product.length_mm, product.width_mm)}</span>
+          {multiVariant && variants.map((v) => (
+            <>
+              <span className="text-slate-400 pl-3">{v.variantName}</span>
+              <span className="text-green-700 text-center">{v.availableQuantity}</span>
+              <span className="text-green-700 text-center">{area(v.availableQuantity, product.length_mm, product.width_mm)}</span>
+            </>
+          ))}
+
+          <span className="text-slate-400 pt-2">На складе</span>
+          <span className="text-center pt-2">{totalWarehouse}</span>
+          <span className="text-center pt-2">{area(totalWarehouse, product.length_mm, product.width_mm)}</span>
+          {multiVariant && variants.map((v) => (
+            <>
+              <span className="text-slate-400 pl-3">{v.variantName}</span>
+              <span className="text-center">{v.warehouseQuantity}</span>
+              <span className="text-center">{area(v.warehouseQuantity, product.length_mm, product.width_mm)}</span>
+            </>
+          ))}
+
+          <span className="text-slate-400 pt-2">В резерве</span>
+          <span className="text-amber-600 text-center pt-2">{totalReserved}</span>
+          <span className="text-amber-600 text-center pt-2">{area(totalReserved, product.length_mm, product.width_mm)}</span>
+          {multiVariant && variants.map((v) => {
+            const reserved = v.warehouseQuantity - v.availableQuantity;
+            return (
+              <>
+                <span className="text-slate-400 pl-3">{v.variantName}</span>
+                <span className="text-amber-600 text-center">{reserved}</span>
+                <span className="text-amber-600 text-center">{area(reserved, product.length_mm, product.width_mm)}</span>
+              </>
+            );
+          })}
         </div>
+
+        {allActiveReserves.length > 0 && (
+          <div className="mt-1 space-y-0.5">
+            {allActiveReserves.map((r) => (
+              <Link
+                key={r.id}
+                href={`/admin/products/product-reserves/update/${r.id}`}
+                className="block text-slate-600 hover:underline hover:text-blue-600"
+              >
+                {r.client} — {r.quantity} шт.
+              </Link>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-row gap-1 mt-1">{actionButtons}</div>
+      </div>
+
+      {/* Desktop row */}
+      <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 py-2 px-3 rounded-md bg-slate-100 font-medium items-center">
+        <div>{product.sku}</div>
         <div className="text-center text-green-700">{totalAvailable}</div>
         <div className="text-center text-green-700">
           {area(totalAvailable, product.length_mm, product.width_mm)}
+        </div>
+        <div className="text-center">{totalWarehouse}</div>
+        <div className="text-center">
+          {area(totalWarehouse, product.length_mm, product.width_mm)}
         </div>
         <div className="text-center text-amber-600">{totalReserved}</div>
         <div className="text-center text-amber-600">
@@ -70,11 +132,7 @@ export function WarehouseProductRow({
             </Link>
           ))}
         </div>
-        <div className="hidden md:flex flex-row gap-1">{actionButtons}</div>
-      </div>
-      {/* Buttons row on mobile */}
-      <div className="flex md:hidden flex-row gap-1 px-3 pb-1 -mt-2">
-        {actionButtons}
+        <div className="flex flex-row gap-1">{actionButtons}</div>
       </div>
 
       {/* Variant rows */}
@@ -85,23 +143,23 @@ export function WarehouseProductRow({
           return (
             <div
               key={variant.id}
-              className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 py-1 px-3 pl-8 text-sm text-slate-600 items-center"
+              className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 py-1 px-3 pl-8 text-sm text-slate-600 items-center"
             >
               <div>{variant.variantName}</div>
-              <div className="text-center">{variant.warehouseQuantity}</div>
-              <div className="text-center">
-                {area(
-                  variant.warehouseQuantity,
-                  product.length_mm,
-                  product.width_mm,
-                )}
-              </div>
               <div className="text-center text-green-600">
                 {variant.availableQuantity}
               </div>
               <div className="text-center text-green-600">
                 {area(
                   variant.availableQuantity,
+                  product.length_mm,
+                  product.width_mm,
+                )}
+              </div>
+              <div className="text-center">{variant.warehouseQuantity}</div>
+              <div className="text-center">
+                {area(
+                  variant.warehouseQuantity,
                   product.length_mm,
                   product.width_mm,
                 )}

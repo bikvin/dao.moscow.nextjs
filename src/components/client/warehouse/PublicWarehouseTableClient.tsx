@@ -38,18 +38,18 @@ export function PublicWarehouseTableClient({
       />
 
       {/* Sticky headers */}
-      <div className="sticky top-0 bg-white z-10">
+      <div className="sticky top-0 bg-white z-10 hidden md:block">
         {/* Group headers */}
         <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 px-3 text-xs text-slate-400">
           <div />
           <div className="col-span-2 text-center border-b border-slate-200 pb-1">
+            Доступно для заказа
+          </div>
+          <div className="col-span-2 text-center border-b border-slate-200 pb-1">
             На складе
           </div>
           <div className="col-span-2 text-center border-b border-slate-200 pb-1">
-            Доступно
-          </div>
-          <div className="col-span-2 text-center border-b border-slate-200 pb-1">
-            Зарезервировано
+            В резерве
           </div>
         </div>
 

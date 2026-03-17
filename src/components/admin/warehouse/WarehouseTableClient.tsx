@@ -52,18 +52,18 @@ export function WarehouseTableClient({
       />
 
       {/* Sticky headers */}
-      <div className="sticky top-0 bg-white z-10">
+      <div className="sticky top-0 bg-white z-10 hidden md:block">
         {/* Group headers */}
         <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 px-3 text-xs text-slate-400">
           <div />
           <div className="col-span-2 text-center border-b border-slate-200 pb-1">
+            Доступно для заказа
+          </div>
+          <div className="col-span-2 text-center border-b border-slate-200 pb-1">
             На складе
           </div>
           <div className="col-span-2 text-center border-b border-slate-200 pb-1">
-            Доступно
-          </div>
-          <div className="col-span-2 text-center border-b border-slate-200 pb-1">
-            Зарезервировано
+            В резерве
           </div>
           <div />
           <div />
@@ -107,10 +107,10 @@ export function WarehouseTableClient({
       {/* Footer totals */}
       <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 py-2 px-3 mt-16 border-t font-medium text-slate-400">
         <div>Итого</div>
-        <div className="text-center">{totals.warehouseQty}</div>
-        <div className="text-center">{totals.warehouseArea.toFixed(2)}</div>
         <div className="text-center">{totals.availableQty}</div>
         <div className="text-center">{totals.availableArea.toFixed(2)}</div>
+        <div className="text-center">{totals.warehouseQty}</div>
+        <div className="text-center">{totals.warehouseArea.toFixed(2)}</div>
         <div className="text-center">{reservedQty}</div>
         <div className="text-center">{reservedArea.toFixed(2)}</div>
         <div />
