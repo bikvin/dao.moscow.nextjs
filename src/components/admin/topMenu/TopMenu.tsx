@@ -37,7 +37,7 @@ type TopMenuItem = TopMenuItemLink | TopMenuDropDown;
 const topMenuList: TopMenuItem[] = [
   {
     type: "link",
-    name: "Главная",
+    name: "Склад",
     link: "/admin",
   },
 
