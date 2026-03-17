@@ -18,4 +18,4 @@ jobs:
           script: |
             cd ~/dao.moscow.nextjs
             git pull
-            docker-compose up -d --build
+            docker compose up -d --build
