@@ -84,7 +84,7 @@ export function WarehouseTableClient({
       </div>
 
       {/* Rows */}
-      <div className="flex flex-col gap-1 mt-2">
+      <div className="flex flex-col gap-1 mt-2 mb-16 md:mb-0">
         {filtered.length === 0 && (
           <div className="text-center text-slate-400 py-6">
             Товары не найдены
@@ -92,7 +92,7 @@ export function WarehouseTableClient({
         )}
         {filtered.map((group) => (
           <div key={group.id}>
-            <div className="text-sm font-semibold text-slate-500 uppercase tracking-widest mt-4 mb-1 px-3">
+            <div className="text-sm font-semibold text-slate-500 uppercase tracking-widest mt-6 mb-0 px-3">
               {group.name}
             </div>
             <div className="flex flex-col gap-1">
@@ -105,7 +105,7 @@ export function WarehouseTableClient({
       </div>
 
       {/* Footer totals */}
-      <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 py-2 px-3 mt-16 border-t font-medium text-slate-400">
+      <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr_240px] gap-2 py-2 px-3 mt-16 border-t font-medium text-slate-400">
         <div>Итого</div>
         <div className="text-center">{totals.availableQty}</div>
         <div className="text-center">{totals.availableArea.toFixed(2)}</div>

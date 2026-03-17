@@ -91,7 +91,8 @@ export function WarehouseProductRow({
         </div>
 
         {allActiveReserves.length > 0 && (
-          <div className="mt-1 space-y-0.5">
+          <div className="mt-2 space-y-0.5">
+            <span className="text-slate-400">Активные резервы</span>
             {allActiveReserves.map((r) => (
               <Link
                 key={r.id}
@@ -103,7 +104,7 @@ export function WarehouseProductRow({
             ))}
           </div>
         )}
-        <div className="flex flex-row gap-1 mt-1">{actionButtons}</div>
+        <div className="flex flex-row gap-1 mt-3">{actionButtons}</div>
       </div>
 
       {/* Desktop row */}
