@@ -89,7 +89,6 @@ export default function TopMenu({ page }: { page: string }) {
             }
           >
             <div className="text-[15px]">+7-985-513-27-44</div>
-            <div className="text-[15px]">+7-903-589-22-17</div>
           </div>
         </ul>
       </div>
