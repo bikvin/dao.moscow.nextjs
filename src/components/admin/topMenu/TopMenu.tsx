@@ -94,6 +94,12 @@ const topMenuList: TopMenuItem[] = [
   },
 
   {
+    type: "link",
+    name: "Курс валют",
+    link: "/admin/exchange-rate",
+  },
+
+  {
     name: "Яндекс",
     type: "dropdown",
     adminOnly: true,
