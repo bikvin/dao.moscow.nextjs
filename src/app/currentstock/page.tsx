@@ -1,5 +1,7 @@
 import PublicWarehouseTable from "@/components/client/warehouse/PublicWarehouseTable";
 
+export const dynamic = "force-dynamic";
+
 export default function CurrentStockPage() {
   return (
     <div className="max-w-screen-lg mx-auto">
