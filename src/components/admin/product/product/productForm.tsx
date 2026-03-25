@@ -3,6 +3,8 @@ import { useFormState } from "react-dom";
 
 import FormButton from "@/components/common/formButton/formButton";
 import {
+  Price,
+  PriceTypeEnum,
   ProductGroup,
   ProductStatusEnum,
   ProductVariant,
@@ -38,6 +40,7 @@ export default function ProductForm({
   productGroups,
   imageData = [],
   productVariants,
+  prices = [],
   isEdit = false,
 }: {
   id?: string;
@@ -54,6 +57,7 @@ export default function ProductForm({
   productGroups: ProductGroup[];
   imageData?: ImageObj[];
   productVariants?: ProductVariant[];
+  prices?: Price[];
   isEdit?: boolean;
 }) {
   const usedAction = isEdit ? updateProduct : createProduct;
@@ -66,6 +70,16 @@ export default function ProductForm({
     status || ProductStatusEnum.ACTIVE
   );
   const [photoNames, setPhotoNames] = useState(imageData);
+
+  const existingDealerPrice = prices.find((p) => p.type === PriceTypeEnum.DEALER);
+  const existingRetailPrice = prices.find((p) => p.type === PriceTypeEnum.RETAIL);
+
+  const [dealerCurrency, setDealerCurrency] = useState<"USD" | "RUB">(
+    (existingDealerPrice?.currency as "USD" | "RUB") ?? "USD"
+  );
+  const [retailCurrency, setRetailCurrency] = useState<"USD" | "RUB">(
+    (existingRetailPrice?.currency as "USD" | "RUB") ?? "USD"
+  );
 
   const [formState, action] = useFormState(usedAction, {
     errors: {},
@@ -187,6 +201,58 @@ export default function ProductForm({
         </div>
 
         <FormFieldError errors={formState.errors?.displayOrder} />
+      </div>
+
+      <div className="form-item">
+        <label>Цены</label>
+        <div className="flex flex-col md:flex-row gap-3 md:gap-8">
+          <div>
+            <label className="text-sm text-slate-500">Дилерская цена</label>
+            <div className="flex gap-2 items-center">
+              <input
+                className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 !w-28"
+                name="dealerPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={existingDealerPrice ? (existingDealerPrice.priceInCents / 100).toFixed(2) : ""}
+              />
+              <select
+                className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 w-20"
+                name="dealerCurrency"
+                value={dealerCurrency}
+                onChange={(e) => setDealerCurrency(e.target.value as "USD" | "RUB")}
+              >
+                <option value="USD">USD</option>
+                <option value="RUB">RUB</option>
+              </select>
+            </div>
+            <FormFieldError errors={formState.errors?.dealerPrice} />
+          </div>
+          <div>
+            <label className="text-sm text-slate-500">Розничная цена</label>
+            <div className="flex gap-2 items-center">
+              <input
+                className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 !w-28"
+                name="retailPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={existingRetailPrice ? (existingRetailPrice.priceInCents / 100).toFixed(2) : ""}
+              />
+              <select
+                className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 w-20"
+                name="retailCurrency"
+                value={retailCurrency}
+                onChange={(e) => setRetailCurrency(e.target.value as "USD" | "RUB")}
+              >
+                <option value="USD">USD</option>
+                <option value="RUB">RUB</option>
+              </select>
+            </div>
+            <FormFieldError errors={formState.errors?.retailPrice} />
+          </div>
+        </div>
       </div>
 
       {isEdit && id && (

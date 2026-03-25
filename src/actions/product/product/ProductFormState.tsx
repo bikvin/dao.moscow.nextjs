@@ -12,6 +12,10 @@ export interface ProductFormState {
     length_mm?: string[];
     width_mm?: string[];
     thickness_mm?: string[];
+    dealerPrice?: string[];
+    dealerCurrency?: string[];
+    retailPrice?: string[];
+    retailCurrency?: string[];
     _form?: string[];
   };
 }

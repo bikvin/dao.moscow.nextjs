@@ -2,7 +2,7 @@ import ProductForm from "@/components/admin/product/product/productForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
-import { ProductGroup } from "@prisma/client";
+import { Price, ProductGroup } from "@prisma/client";
 
 export default async function UpdateProductPage({
   params,
@@ -13,12 +13,13 @@ export default async function UpdateProductPage({
 
   let productGroups: ProductGroup[] = [];
   let product: ProductWithVariants | null = null;
+  let prices: Price[] = [];
 
   try {
     const [productData, productGroupData] = await Promise.all([
       db.product.findUnique({
         where: { id: productId },
-        include: { productVariants: true },
+        include: { productVariants: true, prices: true },
       }),
       db.productGroup.findMany({
         orderBy: [
@@ -30,6 +31,7 @@ export default async function UpdateProductPage({
 
     productGroups = productGroupData;
     product = productData;
+    prices = productData?.prices ?? [];
   } catch (err) {
     console.log(err);
     return <div className="text-red-800">Ошибка при загрузке данных.</div>;
@@ -61,6 +63,7 @@ export default async function UpdateProductPage({
             width_mm={product.width_mm}
             thickness_mm={product.thickness_mm}
             productVariants={product.productVariants ?? undefined}
+            prices={prices}
             isEdit={true}
           />
         </div>

@@ -15,6 +15,10 @@ const baseProductSchema = z.object({
   length_mm: z.coerce.number().int().min(1, { message: "Укажите длину" }),
   width_mm: z.coerce.number().int().min(1, { message: "Укажите ширину" }),
   thickness_mm: z.coerce.number().int().min(1, { message: "Укажите толщину" }),
+  dealerPrice: z.coerce.number().positive({ message: "Укажите цену > 0" }).optional().or(z.literal("")),
+  dealerCurrency: z.enum(["USD", "RUB"]).optional(),
+  retailPrice: z.coerce.number().positive({ message: "Укажите цену > 0" }).optional().or(z.literal("")),
+  retailCurrency: z.enum(["USD", "RUB"]).optional(),
 });
 
 export const createProductSchema = baseProductSchema;
