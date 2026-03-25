@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Price, PriceTypeEnum, PriceUnitEnum, Product, ProductGroup } from "@prisma/client";
+import { ChipSize, Price, PriceTypeEnum, PriceUnitEnum, Product, ProductGroup } from "@prisma/client";
 
-type ProductWithPrices = Product & { prices: Price[] };
+type ProductWithPrices = Product & { prices: Price[]; chipSize: ChipSize | null };
 type ProductGroupWithPrices = ProductGroup & { products: ProductWithPrices[] };
 
 function unitLabel(unit: PriceUnitEnum, quantity: number): string {
@@ -81,7 +81,7 @@ export function PriceListTable({
     }))
     .filter((group) => group.products.length > 0);
 
-  const cols = "grid-cols-[2fr_120px_80px_1fr_1fr]";
+  const cols = "grid-cols-[2fr_120px_80px_80px_1fr_1fr]";
 
   return (
     <>
@@ -99,6 +99,7 @@ export function PriceListTable({
           <div>Товар</div>
           <div className="text-center">Размер сетки</div>
           <div className="text-center">Толщина</div>
+          <div className="text-center">Чип</div>
           <div className="text-center">Дилерская цена / м²</div>
           <div className="text-center">Розничная цена / м²</div>
         </div>
@@ -121,11 +122,12 @@ export function PriceListTable({
               return (
                 <div
                   key={product.id}
-                  className={`grid ${cols} gap-6 px-3 py-2 rounded-md bg-slate-100 items-center`}
+                  className={`grid ${cols} gap-6 px-3 py-2 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors items-center`}
                 >
                   <div className="text-sm font-medium">{product.sku}</div>
                   <div className="text-center text-sm text-slate-500">{product.width_mm}×{product.length_mm}мм</div>
                   <div className="text-center text-sm text-slate-500">{product.thickness_mm} мм</div>
+                  <div className="text-center text-sm text-slate-500">{product.chipSize?.name ?? "—"}</div>
                   <PriceCell price={dealer} mainRate={mainRate} />
                   <PriceCell price={retail} mainRate={mainRate} />
                 </div>

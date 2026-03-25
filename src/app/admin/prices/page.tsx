@@ -9,7 +9,7 @@ export default async function PricesPage() {
       include: {
         products: {
           orderBy: [{ displayOrder: "asc" }, { sku: "asc" }],
-          include: { prices: true },
+          include: { prices: true, chipSize: true },
         },
       },
     }),
