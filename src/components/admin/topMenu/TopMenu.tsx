@@ -42,6 +42,12 @@ const topMenuList: TopMenuItem[] = [
   },
 
   {
+    type: "link",
+    name: "Прайс-лист",
+    link: "/admin/prices",
+  },
+
+  {
     name: "Товары",
     type: "dropdown",
     adminOnly: false,
