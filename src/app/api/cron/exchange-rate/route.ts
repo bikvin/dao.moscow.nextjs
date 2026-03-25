@@ -13,22 +13,36 @@ export async function GET(request: NextRequest) {
 
   const $ = cheerio.load(xml, { xmlMode: true });
 
-  const usdValute = $("Valute").filter((_, el) => {
-    return $(el).find("CharCode").text() === "USD";
-  });
+  function parseRate(charCode: string): number | null {
+    const valute = $("Valute").filter((_, el) => $(el).find("CharCode").text() === charCode);
+    const rawValue = valute.find("Value").text();
+    const nominal = parseInt(valute.find("Nominal").text() || "1", 10);
+    if (!rawValue) return null;
+    return parseFloat(rawValue.replace(",", ".")) / nominal;
+  }
 
-  const rawValue = usdValute.find("Value").text();
-  if (!rawValue) {
+  const usdRate = parseRate("USD");
+  const rmbRate = parseRate("CNY");
+
+  if (!usdRate) {
     return NextResponse.json({ error: "USD rate not found in CBR response" }, { status: 500 });
   }
 
-  const rate = parseFloat(rawValue.replace(",", "."));
-
   await db.settings.upsert({
     where: { field: "usdOfficialRate" },
-    update: { value: rate.toString() },
-    create: { field: "usdOfficialRate", value: rate.toString() },
+    update: { value: usdRate.toString() },
+    create: { field: "usdOfficialRate", value: usdRate.toString() },
   });
+
+  if (rmbRate) {
+    await db.settings.upsert({
+      where: { field: "rmbOfficialRate" },
+      update: { value: rmbRate.toString() },
+      create: { field: "rmbOfficialRate", value: rmbRate.toString() },
+    });
+  }
+
+  const rate = usdRate;
 
   const [modeSetting, markupSetting] = await Promise.all([
     db.settings.findUnique({ where: { field: "usdMainRateMode" } }),
@@ -53,5 +67,5 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  return NextResponse.json({ rate, mode });
+  return NextResponse.json({ usdRate, rmbRate, mode });
 }
