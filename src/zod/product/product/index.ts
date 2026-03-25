@@ -17,8 +17,12 @@ const baseProductSchema = z.object({
   thickness_mm: z.coerce.number().int().min(1, { message: "Укажите толщину" }),
   dealerPrice: z.coerce.number().positive({ message: "Укажите цену > 0" }).optional().or(z.literal("")),
   dealerCurrency: z.enum(["USD", "RUB"]).optional(),
+  dealerUnit: z.enum(["M2", "ITEM"]).optional(),
+  dealerQuantity: z.coerce.number().int().min(1, { message: "Минимум 1" }).optional(),
   retailPrice: z.coerce.number().positive({ message: "Укажите цену > 0" }).optional().or(z.literal("")),
   retailCurrency: z.enum(["USD", "RUB"]).optional(),
+  retailUnit: z.enum(["M2", "ITEM"]).optional(),
+  retailQuantity: z.coerce.number().int().min(1, { message: "Минимум 1" }).optional(),
 });
 
 export const createProductSchema = baseProductSchema;

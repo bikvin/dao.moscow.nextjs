@@ -14,8 +14,12 @@ export interface ProductFormState {
     thickness_mm?: string[];
     dealerPrice?: string[];
     dealerCurrency?: string[];
+    dealerUnit?: string[];
+    dealerQuantity?: string[];
     retailPrice?: string[];
     retailCurrency?: string[];
+    retailUnit?: string[];
+    retailQuantity?: string[];
     _form?: string[];
   };
 }

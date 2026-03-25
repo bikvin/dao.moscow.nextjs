@@ -5,6 +5,7 @@ import FormButton from "@/components/common/formButton/formButton";
 import {
   Price,
   PriceTypeEnum,
+  PriceUnitEnum,
   ProductGroup,
   ProductStatusEnum,
   ProductVariant,
@@ -77,8 +78,20 @@ export default function ProductForm({
   const [dealerCurrency, setDealerCurrency] = useState<"USD" | "RUB">(
     (existingDealerPrice?.currency as "USD" | "RUB") ?? "USD"
   );
+  const [dealerUnit, setDealerUnit] = useState<"M2" | "ITEM">(
+    existingDealerPrice?.unit ?? PriceUnitEnum.M2
+  );
+  const [dealerQuantity, setDealerQuantity] = useState(
+    existingDealerPrice?.quantity ?? 1
+  );
   const [retailCurrency, setRetailCurrency] = useState<"USD" | "RUB">(
     (existingRetailPrice?.currency as "USD" | "RUB") ?? "USD"
+  );
+  const [retailUnit, setRetailUnit] = useState<"M2" | "ITEM">(
+    existingRetailPrice?.unit ?? PriceUnitEnum.M2
+  );
+  const [retailQuantity, setRetailQuantity] = useState(
+    existingRetailPrice?.quantity ?? 1
   );
 
   const [formState, action] = useFormState(usedAction, {
@@ -208,7 +221,7 @@ export default function ProductForm({
         <div className="flex flex-col md:flex-row gap-3 md:gap-8">
           <div>
             <label className="text-sm text-slate-500">Дилерская цена</label>
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center flex-wrap">
               <input
                 className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 !w-28"
                 name="dealerPrice"
@@ -226,12 +239,32 @@ export default function ProductForm({
                 <option value="USD">USD</option>
                 <option value="RUB">RUB</option>
               </select>
+              <select
+                className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 w-24"
+                name="dealerUnit"
+                value={dealerUnit}
+                onChange={(e) => setDealerUnit(e.target.value as "M2" | "ITEM")}
+              >
+                <option value="M2">за м²</option>
+                <option value="ITEM">за шт</option>
+              </select>
+              {dealerUnit === "ITEM" && (
+                <input
+                  className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 !w-16"
+                  name="dealerQuantity"
+                  type="number"
+                  min="1"
+                  value={dealerQuantity}
+                  onChange={(e) => setDealerQuantity(Number(e.target.value))}
+                />
+              )}
             </div>
             <FormFieldError errors={formState.errors?.dealerPrice} />
+            <FormFieldError errors={formState.errors?.dealerQuantity} />
           </div>
           <div>
             <label className="text-sm text-slate-500">Розничная цена</label>
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center flex-wrap">
               <input
                 className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 !w-28"
                 name="retailPrice"
@@ -249,8 +282,28 @@ export default function ProductForm({
                 <option value="USD">USD</option>
                 <option value="RUB">RUB</option>
               </select>
+              <select
+                className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 w-24"
+                name="retailUnit"
+                value={retailUnit}
+                onChange={(e) => setRetailUnit(e.target.value as "M2" | "ITEM")}
+              >
+                <option value="M2">за м²</option>
+                <option value="ITEM">за шт</option>
+              </select>
+              {retailUnit === "ITEM" && (
+                <input
+                  className="border border-slate-300 focus:border-slate-600 focus:outline-none rounded-md py-1 px-2 !w-16"
+                  name="retailQuantity"
+                  type="number"
+                  min="1"
+                  value={retailQuantity}
+                  onChange={(e) => setRetailQuantity(Number(e.target.value))}
+                />
+              )}
             </div>
             <FormFieldError errors={formState.errors?.retailPrice} />
+            <FormFieldError errors={formState.errors?.retailQuantity} />
           </div>
         </div>
       </div>

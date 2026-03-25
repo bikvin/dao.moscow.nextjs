@@ -29,8 +29,12 @@ export async function createProduct(
       thickness_mm: formData.get("thickness_mm"),
       dealerPrice: formData.get("dealerPrice") || undefined,
       dealerCurrency: formData.get("dealerCurrency") || undefined,
+      dealerUnit: formData.get("dealerUnit") || undefined,
+      dealerQuantity: formData.get("dealerQuantity") || undefined,
       retailPrice: formData.get("retailPrice") || undefined,
       retailCurrency: formData.get("retailCurrency") || undefined,
+      retailUnit: formData.get("retailUnit") || undefined,
+      retailQuantity: formData.get("retailQuantity") || undefined,
     });
 
     if (!result.success) {
@@ -63,20 +67,24 @@ export async function createProduct(
 
     const priceUpserts = [];
     if (result.data.dealerPrice && result.data.dealerCurrency) {
+      const dealerUnit = (result.data.dealerUnit ?? "M2") as "M2" | "ITEM";
+      const dealerQuantity = dealerUnit === "ITEM" ? (result.data.dealerQuantity ?? 1) : 1;
       priceUpserts.push(
         db.price.upsert({
           where: { productId_type: { productId: product.id, type: PriceTypeEnum.DEALER } },
-          update: { priceInCents: Math.round(Number(result.data.dealerPrice) * 100), currency: result.data.dealerCurrency as CurrencyEnum },
-          create: { productId: product.id, type: PriceTypeEnum.DEALER, priceInCents: Math.round(Number(result.data.dealerPrice) * 100), currency: result.data.dealerCurrency as CurrencyEnum },
+          update: { priceInCents: Math.round(Number(result.data.dealerPrice) * 100), currency: result.data.dealerCurrency as CurrencyEnum, unit: dealerUnit, quantity: dealerQuantity },
+          create: { productId: product.id, type: PriceTypeEnum.DEALER, priceInCents: Math.round(Number(result.data.dealerPrice) * 100), currency: result.data.dealerCurrency as CurrencyEnum, unit: dealerUnit, quantity: dealerQuantity },
         })
       );
     }
     if (result.data.retailPrice && result.data.retailCurrency) {
+      const retailUnit = (result.data.retailUnit ?? "M2") as "M2" | "ITEM";
+      const retailQuantity = retailUnit === "ITEM" ? (result.data.retailQuantity ?? 1) : 1;
       priceUpserts.push(
         db.price.upsert({
           where: { productId_type: { productId: product.id, type: PriceTypeEnum.RETAIL } },
-          update: { priceInCents: Math.round(Number(result.data.retailPrice) * 100), currency: result.data.retailCurrency as CurrencyEnum },
-          create: { productId: product.id, type: PriceTypeEnum.RETAIL, priceInCents: Math.round(Number(result.data.retailPrice) * 100), currency: result.data.retailCurrency as CurrencyEnum },
+          update: { priceInCents: Math.round(Number(result.data.retailPrice) * 100), currency: result.data.retailCurrency as CurrencyEnum, unit: retailUnit, quantity: retailQuantity },
+          create: { productId: product.id, type: PriceTypeEnum.RETAIL, priceInCents: Math.round(Number(result.data.retailPrice) * 100), currency: result.data.retailCurrency as CurrencyEnum, unit: retailUnit, quantity: retailQuantity },
         })
       );
     }
