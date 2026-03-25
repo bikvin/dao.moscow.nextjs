@@ -14,10 +14,12 @@ export function ProductListFilters({
   current,
   typeOptions,
   allTypeValue = "",
+  showDates = true,
 }: {
   current: FilterState;
   typeOptions: { value: string; label: string }[];
   allTypeValue?: string;
+  showDates?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -75,21 +77,25 @@ export function ProductListFilters({
         onChange={(e) => setSkuInput(e.target.value)}
         className={`${inputClass} w-36`}
       />
-      <input
-        type="date"
-        value={current.dateFrom}
-        onChange={(e) => update({ dateFrom: e.target.value })}
-        className={inputClass}
-        title="С"
-      />
-      <span className="text-slate-400 text-sm">—</span>
-      <input
-        type="date"
-        value={current.dateTo}
-        onChange={(e) => update({ dateTo: e.target.value })}
-        className={inputClass}
-        title="По"
-      />
+      {showDates && (
+        <>
+          <input
+            type="date"
+            value={current.dateFrom}
+            onChange={(e) => update({ dateFrom: e.target.value })}
+            className={inputClass}
+            title="С"
+          />
+          <span className="text-slate-400 text-sm">—</span>
+          <input
+            type="date"
+            value={current.dateTo}
+            onChange={(e) => update({ dateTo: e.target.value })}
+            className={inputClass}
+            title="По"
+          />
+        </>
+      )}
       {typeOptions.length > 0 && (
         <select
           value={current.type}
