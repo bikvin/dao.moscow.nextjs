@@ -46,6 +46,19 @@ enum OzonSyncStatusEnum {
   ERROR
 }
 
+enum CurrencyEnum {
+  RUB
+  USD
+  RMB
+}
+
+enum PriceTypeEnum {
+  DEALER
+  RETAIL
+  YANDEX
+  OZON
+}
+
 model Settings {
   id        String   @id @default(uuid())
   field     String   @unique
@@ -96,6 +109,7 @@ model Product {
   productVariants      ProductVariant[]
   yandexMarketMappings YandexMarketMapping[]
   ozonMappings         OzonMapping[]
+  prices               Price[]
 }
 
 model ProductVariant {
@@ -224,4 +238,20 @@ model ProductReserve {
   productVariantId String
 
   @@index([productVariantId])
+}
+
+model Price {
+  id       String        @id @default(uuid())
+  type     PriceTypeEnum
+  priceInCents    Int
+  currency CurrencyEnum
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, type])
+  @@index([productId])
 }
