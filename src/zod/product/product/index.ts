@@ -15,6 +15,7 @@ const baseProductSchema = z.object({
   length_mm: z.coerce.number().int().min(1, { message: "Укажите длину" }),
   width_mm: z.coerce.number().int().min(1, { message: "Укажите ширину" }),
   thickness_mm: z.coerce.number().int().min(1, { message: "Укажите толщину" }),
+  chipSizeId: z.string().uuid().optional().or(z.literal("")),
   dealerPrice: z.coerce.number().positive({ message: "Укажите цену > 0" }).optional().or(z.literal("")),
   dealerCurrency: z.enum(["USD", "RUB"]).optional(),
   dealerUnit: z.enum(["M2", "ITEM"]).optional(),

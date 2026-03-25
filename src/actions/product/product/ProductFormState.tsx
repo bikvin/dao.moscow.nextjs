@@ -12,6 +12,7 @@ export interface ProductFormState {
     length_mm?: string[];
     width_mm?: string[];
     thickness_mm?: string[];
+    chipSizeId?: string[];
     dealerPrice?: string[];
     dealerCurrency?: string[];
     dealerUnit?: string[];

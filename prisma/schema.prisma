@@ -64,6 +64,16 @@ enum PriceUnitEnum {
   ITEM
 }
 
+model ChipSize {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  displayOrder Int?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  products Product[]
+}
+
 model Settings {
   id        String   @id @default(uuid())
   field     String   @unique
@@ -110,6 +120,9 @@ model Product {
 
   productGroupId String
   productGroup   ProductGroup? @relation(fields: [productGroupId], references: [id])
+
+  chipSizeId String?
+  chipSize   ChipSize? @relation(fields: [chipSizeId], references: [id])
 
   productVariants      ProductVariant[]
   yandexMarketMappings YandexMarketMapping[]

@@ -3,6 +3,7 @@ import { useFormState } from "react-dom";
 
 import FormButton from "@/components/common/formButton/formButton";
 import {
+  ChipSize,
   Price,
   PriceTypeEnum,
   PriceUnitEnum,
@@ -39,6 +40,8 @@ export default function ProductForm({
   width_mm,
   thickness_mm,
   productGroups,
+  chipSizes = [],
+  chipSizeId,
   imageData = [],
   productVariants,
   prices = [],
@@ -56,6 +59,8 @@ export default function ProductForm({
   width_mm?: number;
   thickness_mm?: number;
   productGroups: ProductGroup[];
+  chipSizes?: ChipSize[];
+  chipSizeId?: string;
   imageData?: ImageObj[];
   productVariants?: ProductVariant[];
   prices?: Price[];
@@ -144,6 +149,17 @@ export default function ProductForm({
         />
 
         <FormFieldError errors={formState.errors?.productGroupId} />
+      </div>
+
+      <div className="form-item">
+        <label htmlFor="chipSizeId">Размер чипа</label>
+        <select className="admin-form-input" name="chipSizeId" defaultValue={chipSizeId ?? ""}>
+          <option value="">— не выбрано —</option>
+          {chipSizes.map((cs) => (
+            <option key={cs.id} value={cs.id}>{cs.name}</option>
+          ))}
+        </select>
+        <FormFieldError errors={formState.errors?.chipSizeId} />
       </div>
 
       <div className="form-item">

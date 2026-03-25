@@ -78,6 +78,11 @@ const topMenuList: TopMenuItem[] = [
         name: "Резервы",
         link: "/admin/products/product-reserves",
       },
+      {
+        type: "link",
+        name: "Размеры чипа",
+        link: "/admin/products/chip-sizes",
+      },
     ],
   },
 

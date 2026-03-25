@@ -2,7 +2,7 @@ import ProductForm from "@/components/admin/product/product/productForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { ProductWithVariants } from "@/types/product/productWithVariants";
-import { Price, ProductGroup } from "@prisma/client";
+import { ChipSize, Price, ProductGroup } from "@prisma/client";
 
 export default async function UpdateProductPage({
   params,
@@ -12,24 +12,26 @@ export default async function UpdateProductPage({
   const productId = params.id;
 
   let productGroups: ProductGroup[] = [];
+  let chipSizes: ChipSize[] = [];
   let product: ProductWithVariants | null = null;
   let prices: Price[] = [];
 
   try {
-    const [productData, productGroupData] = await Promise.all([
+    const [productData, productGroupData, chipSizeData] = await Promise.all([
       db.product.findUnique({
         where: { id: productId },
         include: { productVariants: true, prices: true },
       }),
       db.productGroup.findMany({
-        orderBy: [
-          { displayOrder: "asc" }, // Primary sort by 'order' column
-          { createdAt: "desc" }, // Secondary sort by 'createdAt' column
-        ],
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+      }),
+      db.chipSize.findMany({
+        orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       }),
     ]);
 
     productGroups = productGroupData;
+    chipSizes = chipSizeData;
     product = productData;
     prices = productData?.prices ?? [];
   } catch (err) {
@@ -58,6 +60,8 @@ export default async function UpdateProductPage({
             status={product.status}
             productGroupId={product.productGroupId ?? undefined}
             productGroups={productGroups}
+            chipSizes={chipSizes}
+            chipSizeId={product.chipSizeId ?? undefined}
             displayOrder={product.displayOrder ?? undefined}
             length_mm={product.length_mm}
             width_mm={product.width_mm}

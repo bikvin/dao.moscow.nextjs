@@ -26,6 +26,7 @@ export async function updateProduct(
     length_mm: formData.get("length_mm"),
     width_mm: formData.get("width_mm"),
     thickness_mm: formData.get("thickness_mm"),
+    chipSizeId: formData.get("chipSizeId") || undefined,
     dealerPrice: formData.get("dealerPrice") || undefined,
     dealerCurrency: formData.get("dealerCurrency") || undefined,
     dealerUnit: formData.get("dealerUnit") || undefined,
@@ -59,6 +60,7 @@ export async function updateProduct(
         length_mm: result.data.length_mm,
         width_mm: result.data.width_mm,
         thickness_mm: result.data.thickness_mm,
+        chipSizeId: result.data.chipSizeId || null,
       },
     });
     await deleteUnusedFromS3(

@@ -1,26 +1,21 @@
 import ProductForm from "@/components/admin/product/product/productForm";
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { ProductGroup } from "@prisma/client";
+import { ChipSize, ProductGroup } from "@prisma/client";
 
 export default async function CreateProductPage() {
-  let productGroups: ProductGroup[];
+  let productGroups: ProductGroup[] = [];
+  let chipSizes: ChipSize[] = [];
 
   try {
-    const [productGroupData] = await Promise.all([
+    [productGroups, chipSizes] = await Promise.all([
       db.productGroup.findMany({
-        orderBy: [
-          { displayOrder: "asc" }, // Primary sort by 'order' column
-          { createdAt: "desc" }, // Secondary sort by 'createdAt' column
-        ],
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+      }),
+      db.chipSize.findMany({
+        orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       }),
     ]);
-
-    if (!productGroupData) {
-      return <div className="text-red-800">Данные не найдены.</div>;
-    }
-
-    productGroups = productGroupData;
   } catch (err) {
     console.log(err);
     return <div className="text-red-800">Ошибка при загрузке данных.</div>;
@@ -33,8 +28,7 @@ export default async function CreateProductPage() {
       <div className="max-w-screen-lg mx-auto ">
         <div className="w-[90%] md:w-2/3 mx-auto">
           <h1 className="admin-form-header mt-10">Добавить товар</h1>
-          {/* <UserForm /> */}
-          <ProductForm productGroups={productGroups} />
+          <ProductForm productGroups={productGroups} chipSizes={chipSizes} />
         </div>
       </div>
     </>
