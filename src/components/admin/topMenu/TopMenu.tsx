@@ -94,9 +94,20 @@ const topMenuList: TopMenuItem[] = [
   },
 
   {
-    type: "link",
     name: "Курс валют",
-    link: "/admin/exchange-rate",
+    type: "dropdown",
+    data: [
+      {
+        type: "link",
+        name: "Курс валют",
+        link: "/admin/exchange-rate",
+      },
+      {
+        type: "link",
+        name: "Настройки",
+        link: "/admin/exchange-rate/settings",
+      },
+    ],
   },
 
   {

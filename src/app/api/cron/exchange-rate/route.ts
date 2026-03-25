@@ -30,5 +30,28 @@ export async function GET(request: NextRequest) {
     create: { field: "usdOfficialRate", value: rate.toString() },
   });
 
-  return NextResponse.json({ rate });
+  const [modeSetting, markupSetting] = await Promise.all([
+    db.settings.findUnique({ where: { field: "usdMainRateMode" } }),
+    db.settings.findUnique({ where: { field: "usdMainRateMarkup" } }),
+  ]);
+
+  const mode = modeSetting?.value ?? "official";
+
+  if (mode === "official") {
+    await db.settings.upsert({
+      where: { field: "usdMainRate" },
+      update: { value: rate.toString() },
+      create: { field: "usdMainRate", value: rate.toString() },
+    });
+  } else if (mode === "markup") {
+    const markup = parseFloat(markupSetting?.value ?? "0");
+    const mainRate = rate * (1 + markup / 100);
+    await db.settings.upsert({
+      where: { field: "usdMainRate" },
+      update: { value: mainRate.toString() },
+      create: { field: "usdMainRate", value: mainRate.toString() },
+    });
+  }
+
+  return NextResponse.json({ rate, mode });
 }
