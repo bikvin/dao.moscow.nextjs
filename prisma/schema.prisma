@@ -59,6 +59,11 @@ enum PriceTypeEnum {
   OZON
 }
 
+enum PriceUnitEnum {
+  M2
+  ITEM
+}
+
 model Settings {
   id        String   @id @default(uuid())
   field     String   @unique
@@ -241,10 +246,12 @@ model ProductReserve {
 }
 
 model Price {
-  id       String        @id @default(uuid())
-  type     PriceTypeEnum
-  priceInCents    Int
-  currency CurrencyEnum
+  id           String        @id @default(uuid())
+  type         PriceTypeEnum
+  priceInCents Int
+  currency     CurrencyEnum
+  unit         PriceUnitEnum @default(M2)
+  quantity     Int           @default(1)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
