@@ -83,6 +83,11 @@ const topMenuList: TopMenuItem[] = [
         name: "Размеры чипа",
         link: "/admin/products/chip-sizes",
       },
+      {
+        type: "link",
+        name: "Импорт цен",
+        link: "/admin/import",
+      },
     ],
   },
 
