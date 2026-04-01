@@ -1,6 +1,8 @@
 import { db } from "@/db";
 import * as XLSX from "xlsx";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const products = await db.product.findMany({
     orderBy: [{ productGroup: { displayOrder: "asc" } }, { displayOrder: "asc" }, { sku: "asc" }],
