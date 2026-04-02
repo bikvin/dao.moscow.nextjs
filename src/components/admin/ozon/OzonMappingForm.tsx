@@ -16,6 +16,7 @@ export function OzonMappingForm({
   ozonOfferId,
   buffer,
   divisor,
+  priceMarkup,
   isEdit = false,
 }: {
   id?: string;
@@ -24,6 +25,7 @@ export function OzonMappingForm({
   ozonOfferId?: string;
   buffer?: number | null;
   divisor?: number | null;
+  priceMarkup?: number | null;
   isEdit?: boolean;
 }) {
   const action = isEdit ? updateOzonMapping : createOzonMapping;
@@ -74,6 +76,19 @@ export function OzonMappingForm({
           />
         </div>
         <FormFieldError errors={formState.errors?.divisor} />
+      </div>
+      <div className="form-item">
+        <label>Индивидуальная наценка к цене, % (необязательно)</label>
+        <div className="w-20">
+          <input
+            name="priceMarkup"
+            type="number"
+            className="admin-form-input"
+            defaultValue={priceMarkup ?? ""}
+            placeholder="—"
+          />
+        </div>
+        <FormFieldError errors={formState.errors?.priceMarkup} />
       </div>
       {isEdit && <input type="hidden" name="id" value={id} />}
       <FormButton>{isEdit ? "Сохранить" : "Создать"}</FormButton>

@@ -4,6 +4,7 @@ import { db } from "@/db";
 import * as XLSX from "xlsx";
 import { CurrencyEnum, PriceTypeEnum, PriceUnitEnum } from "@prisma/client";
 import { recalculateYandexPrice } from "@/lib/yandex/recalculateYandexPrice";
+import { recalculateOzonPrice } from "@/lib/ozon/recalculateOzonPrice";
 
 export interface ImportResult {
   errors: {
@@ -116,9 +117,12 @@ export async function importPrices(
     // 5. Run all writes in parallel
     await Promise.all([...productUpdates, ...priceUpserts]);
 
-    // 6. Recalculate Yandex prices for products whose retail price changed
+    // 6. Recalculate Yandex and Ozon prices for products whose retail price changed
     if (retailUpdatedProductIds.length > 0) {
-      await Promise.all(retailUpdatedProductIds.map(recalculateYandexPrice));
+      await Promise.all([
+        ...retailUpdatedProductIds.map(recalculateYandexPrice),
+        ...retailUpdatedProductIds.map(recalculateOzonPrice),
+      ]);
     }
 
     return { errors: {}, result: { updated, skipped } };

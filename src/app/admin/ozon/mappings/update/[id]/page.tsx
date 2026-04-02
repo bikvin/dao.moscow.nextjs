@@ -28,6 +28,7 @@ export default async function UpdateOzonMappingPage({
             ozonOfferId={mapping.ozonOfferId}
             buffer={mapping.buffer}
             divisor={mapping.divisor}
+            priceMarkup={mapping.priceMarkup}
             isEdit
           />
         </div>

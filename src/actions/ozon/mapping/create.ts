@@ -11,6 +11,7 @@ export interface OzonMappingFormState {
     ozonOfferId?: string[];
     buffer?: string[];
     divisor?: string[];
+    priceMarkup?: string[];
     _form?: string[];
   };
 }
@@ -24,6 +25,7 @@ export async function createOzonMapping(
     ozonOfferId: formData.get("ozonOfferId"),
     buffer: formData.get("buffer"),
     divisor: formData.get("divisor"),
+    priceMarkup: formData.get("priceMarkup"),
   });
 
   if (!result.success) {

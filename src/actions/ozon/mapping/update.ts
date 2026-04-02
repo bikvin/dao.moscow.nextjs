@@ -16,6 +16,7 @@ export async function updateOzonMapping(
     ozonOfferId: formData.get("ozonOfferId"),
     buffer: formData.get("buffer"),
     divisor: formData.get("divisor"),
+    priceMarkup: formData.get("priceMarkup"),
   });
 
   if (!result.success) {

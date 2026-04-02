@@ -209,10 +209,11 @@ model YandexMarketMapping {
 }
 
 model OzonMapping {
-  id          String   @id @default(uuid())
-  ozonOfferId String   @unique
+  id          String @id @default(uuid())
+  ozonOfferId String @unique
   buffer      Int?
   divisor     Int?
+  priceMarkup Int?
 
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)

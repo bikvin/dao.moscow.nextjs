@@ -4,20 +4,23 @@ import { OzonSyncButton } from "@/components/admin/ozon/OzonSyncButton";
 import { OzonDefaultBufferForm } from "@/components/admin/ozon/OzonDefaultBufferForm";
 import { OzonDefaultDivisorForm } from "@/components/admin/ozon/OzonDefaultDivisorForm";
 import { OzonWarehouseIdForm } from "@/components/admin/ozon/OzonWarehouseIdForm";
+import { OzonDefaultPriceMarkupForm } from "@/components/admin/ozon/OzonDefaultPriceMarkupForm";
 import Link from "next/link";
 import { OzonSyncStatusEnum } from "@prisma/client";
 
 export default async function OzonPage() {
-  const [lastLog, bufferSetting, divisorSetting, warehouseSetting] = await Promise.all([
+  const [lastLog, bufferSetting, divisorSetting, warehouseSetting, markupSetting] = await Promise.all([
     db.ozonSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.settings.findUnique({ where: { field: "ozonDefaultBuffer" } }),
     db.settings.findUnique({ where: { field: "ozonDefaultDivisor" } }),
     db.settings.findUnique({ where: { field: "ozonWarehouseId" } }),
+    db.settings.findUnique({ where: { field: "ozonDefaultPriceMarkup" } }),
   ]);
 
   const globalBuffer = bufferSetting ? parseInt(bufferSetting.value, 10) || 0 : 0;
   const globalDivisor = divisorSetting ? parseInt(divisorSetting.value, 10) : null;
   const warehouseId = warehouseSetting?.value ?? null;
+  const globalPriceMarkup = markupSetting ? parseInt(markupSetting.value, 10) || 0 : 0;
 
   return (
     <>
@@ -64,12 +67,13 @@ export default async function OzonPage() {
           <div className="border rounded-md p-4 mt-8 shadow-main">
             <h2 className="text-lg font-medium mb-3">Настройки</h2>
             <p className="text-sm text-slate-500 mb-3">
-              Формула: <code className="bg-slate-100 px-1 rounded">floor((количество − буфер) / делитель)</code>. Можно переопределить для каждого товара отдельно.
+              Количество: <code className="bg-slate-100 px-1 rounded">floor((количество − буфер) / делитель)</code>. Цена: розничная × (1 + наценка / 100). Можно переопределить для каждого товара отдельно.
             </p>
             <div className="flex flex-col gap-3">
               <OzonWarehouseIdForm current={warehouseId} />
               <OzonDefaultBufferForm current={globalBuffer} />
               <OzonDefaultDivisorForm current={globalDivisor} />
+              <OzonDefaultPriceMarkupForm current={globalPriceMarkup} />
             </div>
           </div>
 

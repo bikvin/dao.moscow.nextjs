@@ -9,6 +9,7 @@ import { ProductFormState } from "./ProductFormState";
 import { editProductSchema } from "@/zod/product/product";
 import { deleteUnusedFromS3 } from "@/lib/awsS3/deleteUnusedFromS3";
 import { recalculateYandexPrice } from "@/lib/yandex/recalculateYandexPrice";
+import { recalculateOzonPrice } from "@/lib/ozon/recalculateOzonPrice";
 
 export async function updateProduct(
   formState: ProductFormState,
@@ -95,7 +96,10 @@ export async function updateProduct(
     if (priceUpserts.length > 0) await Promise.all(priceUpserts);
 
     if (result.data.retailPrice && result.data.retailCurrency) {
-      await recalculateYandexPrice(result.data.id);
+      await Promise.all([
+        recalculateYandexPrice(result.data.id),
+        recalculateOzonPrice(result.data.id),
+      ]);
     }
   } catch (err: unknown) {
     if (

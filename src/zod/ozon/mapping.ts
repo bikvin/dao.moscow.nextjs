@@ -11,6 +11,10 @@ const baseMappingSchema = z.object({
     (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
     z.number().int().min(1).nullable().optional()
   ),
+  priceMarkup: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
+    z.number().int().nullable().optional()
+  ),
 });
 
 export const createOzonMappingSchema = baseMappingSchema;
