@@ -234,6 +234,16 @@ model OzonSyncLog {
   createdAt DateTime @default(now())
 }
 
+model OzonPriceSyncLog {
+  id        String             @id @default(uuid())
+  status    OzonSyncStatusEnum
+  trigger   String
+  message   String?
+  skuCount  Int?
+
+  createdAt DateTime @default(now())
+}
+
 model YandexSyncLog {
   id        String               @id @default(uuid())
   status    YandexSyncStatusEnum
