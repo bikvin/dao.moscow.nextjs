@@ -50,8 +50,8 @@ function PriceCell({
             </span>
           )}
           {rubDisplay && (
-            <span className="text-slate-500">
-              ({rubDisplay}{isNonStandardUnit && <span className="text-slate-400 text-xs"> / {unit}</span>})
+            <span className={usdDisplay ? "text-slate-500" : "font-medium"}>
+              {usdDisplay ? "(" : ""}{rubDisplay}{isNonStandardUnit && <span className="text-slate-400 text-xs"> / {unit}</span>}{usdDisplay ? ")" : ""}
             </span>
           )}
         </div>
