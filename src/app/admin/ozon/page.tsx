@@ -82,7 +82,7 @@ export default async function OzonPage() {
             <Link className="link-button link-button-green" href="/admin/ozon/mappings">
               Маппинг товаров
             </Link>
-            <Link className="link-button" href="/admin/ozon/sync-history">
+            <Link className="link-button link-button-gray" href="/admin/ozon/sync-history">
               История синхронизаций
             </Link>
           </div>

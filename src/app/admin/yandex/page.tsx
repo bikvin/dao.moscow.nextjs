@@ -78,7 +78,7 @@ export default async function YandexPage() {
             <Link className="link-button link-button-green" href="/admin/yandex/mappings">
               Маппинг товаров
             </Link>
-            <Link className="link-button" href="/admin/yandex/sync-history">
+            <Link className="link-button link-button-gray" href="/admin/yandex/sync-history">
               История синхронизаций
             </Link>
           </div>
