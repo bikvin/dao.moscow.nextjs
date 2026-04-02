@@ -46,9 +46,11 @@ export default async function YandexMappingsPage() {
                       />
                     </div>
                   </div>
-                  {m.buffer != null && (
-                    <div className="text-sm text-slate-400 mt-0.5">
-                      буфер: {m.buffer} шт.
+                  {(m.buffer != null || m.divisor != null || m.priceMarkup != null) && (
+                    <div className="text-sm text-slate-400 mt-0.5 flex gap-3">
+                      {m.buffer != null && <span>буфер: {m.buffer} шт.</span>}
+                      {m.divisor != null && <span>делитель: {m.divisor}</span>}
+                      {m.priceMarkup != null && <span>наценка: {m.priceMarkup}%</span>}
                     </div>
                   )}
                 </div>

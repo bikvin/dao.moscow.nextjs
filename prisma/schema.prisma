@@ -193,10 +193,11 @@ model ProductIssue {
 }
 
 model YandexMarketMapping {
-  id        String   @id @default(uuid())
-  yandexSku String   @unique
-  buffer    Int?
-  divisor   Int?
+  id           String @id @default(uuid())
+  yandexSku    String @unique
+  buffer       Int?
+  divisor      Int?
+  priceMarkup  Int?
 
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)

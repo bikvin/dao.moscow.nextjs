@@ -3,18 +3,21 @@ import { db } from "@/db";
 import { YandexSyncButton } from "@/components/admin/yandex/YandexSyncButton";
 import { DefaultBufferForm } from "@/components/admin/yandex/DefaultBufferForm";
 import { DefaultDivisorForm } from "@/components/admin/yandex/DefaultDivisorForm";
+import { DefaultPriceMarkupForm } from "@/components/admin/yandex/DefaultPriceMarkupForm";
 import Link from "next/link";
 import { YandexSyncStatusEnum } from "@prisma/client";
 
 export default async function YandexPage() {
-  const [lastLog, bufferSetting, divisorSetting] = await Promise.all([
+  const [lastLog, bufferSetting, divisorSetting, markupSetting] = await Promise.all([
     db.yandexSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.settings.findUnique({ where: { field: "yandexDefaultBuffer" } }),
     db.settings.findUnique({ where: { field: "yandexDefaultDivisor" } }),
+    db.settings.findUnique({ where: { field: "yandexDefaultPriceMarkup" } }),
   ]);
 
   const globalBuffer = bufferSetting ? parseInt(bufferSetting.value, 10) || 0 : 0;
   const globalDivisor = divisorSetting ? parseInt(divisorSetting.value, 10) : null;
+  const globalPriceMarkup = markupSetting ? parseInt(markupSetting.value, 10) || 0 : 0;
 
   return (
     <>
@@ -61,11 +64,12 @@ export default async function YandexPage() {
           <div className="border rounded-md p-4 mt-8 shadow-main">
             <h2 className="text-lg font-medium mb-3">Настройки</h2>
             <p className="text-sm text-slate-500 mb-3">
-              Формула: <code className="bg-slate-100 px-1 rounded">floor((количество − буфер) / делитель)</code>. Можно переопределить для каждого товара отдельно.
+              Количество: <code className="bg-slate-100 px-1 rounded">floor((количество − буфер) / делитель)</code>. Цена: розничная × (1 + наценка / 100). Можно переопределить для каждого товара отдельно.
             </p>
             <div className="flex flex-col gap-3">
               <DefaultBufferForm current={globalBuffer} />
               <DefaultDivisorForm current={globalDivisor} />
+              <DefaultPriceMarkupForm current={globalPriceMarkup} />
             </div>
           </div>
 

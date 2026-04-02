@@ -11,6 +11,7 @@ export interface MappingFormState {
     yandexSku?: string[];
     buffer?: string[];
     divisor?: string[];
+    priceMarkup?: string[];
     _form?: string[];
   };
 }
@@ -24,6 +25,7 @@ export async function createYandexMapping(
     yandexSku: formData.get("yandexSku"),
     buffer: formData.get("buffer"),
     divisor: formData.get("divisor"),
+    priceMarkup: formData.get("priceMarkup"),
   });
 
   if (!result.success) {
