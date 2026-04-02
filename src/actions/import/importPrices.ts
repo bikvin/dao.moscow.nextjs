@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import * as XLSX from "xlsx";
 import { CurrencyEnum, PriceTypeEnum, PriceUnitEnum } from "@prisma/client";
+import { recalculateYandexPrice } from "@/lib/yandex/recalculateYandexPrice";
 
 export interface ImportResult {
   errors: {
@@ -58,6 +59,7 @@ export async function importPrices(
     const skipped: string[] = [];
     const priceUpserts: Promise<unknown>[] = [];
     const productUpdates: Promise<unknown>[] = [];
+    const retailUpdatedProductIds: string[] = [];
     let updated = 0;
 
     for (const row of rows) {
@@ -105,6 +107,7 @@ export async function importPrices(
           update: retailData,
           create: { productId: product.id, type: PriceTypeEnum.RETAIL, ...retailData },
         }));
+        retailUpdatedProductIds.push(product.id);
       }
 
       updated++;
@@ -112,6 +115,11 @@ export async function importPrices(
 
     // 5. Run all writes in parallel
     await Promise.all([...productUpdates, ...priceUpserts]);
+
+    // 6. Recalculate Yandex prices for products whose retail price changed
+    if (retailUpdatedProductIds.length > 0) {
+      await Promise.all(retailUpdatedProductIds.map(recalculateYandexPrice));
+    }
 
     return { errors: {}, result: { updated, skipped } };
   } catch (err) {

@@ -4,10 +4,15 @@ import Link from "next/link";
 import DeleteDialog from "@/components/common/delete/DeleteDialog";
 import { deleteYandexMapping } from "@/actions/yandex/mapping/delete";
 import { RiEdit2Line } from "react-icons/ri";
+import { RecalculateYandexPricesButton } from "@/components/admin/yandex/RecalculateYandexPricesButton";
 
 export default async function YandexMappingsPage() {
   const mappings = await db.yandexMarketMapping.findMany({
-    include: { product: true },
+    include: {
+      product: {
+        include: { prices: { where: { type: "YANDEX" } } },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -17,7 +22,8 @@ export default async function YandexMappingsPage() {
       <div className="max-w-screen-lg mx-auto">
         <div className="w-[90%] md:w-2/3 mx-auto">
           <h1 className="admin-form-header mt-10">Маппинг товаров</h1>
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end items-center gap-3">
+            <RecalculateYandexPricesButton />
             <Link className="link-button link-button-green" href="/admin/yandex/mappings/create">
               Добавить маппинг
             </Link>
@@ -27,7 +33,9 @@ export default async function YandexMappingsPage() {
             {mappings.length === 0 ? (
               <p className="text-slate-400 text-sm">Маппингов пока нет</p>
             ) : (
-              mappings.map((m) => (
+              mappings.map((m) => {
+                const yandexPrice = m.product.prices[0];
+                return (
                 <div key={m.id} className="border rounded-md mb-1 p-3 shadow-main">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4 font-medium">
@@ -46,15 +54,22 @@ export default async function YandexMappingsPage() {
                       />
                     </div>
                   </div>
-                  {(m.buffer != null || m.divisor != null || m.priceMarkup != null) && (
-                    <div className="text-sm text-slate-400 mt-0.5 flex gap-3">
-                      {m.buffer != null && <span>буфер: {m.buffer} шт.</span>}
-                      {m.divisor != null && <span>делитель: {m.divisor}</span>}
-                      {m.priceMarkup != null && <span>наценка: {m.priceMarkup}%</span>}
-                    </div>
-                  )}
+                  <div className="text-sm text-slate-400 mt-0.5 flex gap-3 flex-wrap">
+                    {yandexPrice ? (
+                      <span className="text-emerald-700 font-medium">
+                        {Math.round(yandexPrice.priceInCents / 100).toLocaleString("ru-RU")} ₽
+                        {yandexPrice.quantity > 1 && ` / ${yandexPrice.quantity} шт.`}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">цена не рассчитана</span>
+                    )}
+                    {m.buffer != null && <span>буфер: {m.buffer} шт.</span>}
+                    {m.divisor != null && <span>делитель: {m.divisor}</span>}
+                    {m.priceMarkup != null && <span>наценка: {m.priceMarkup}%</span>}
+                  </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

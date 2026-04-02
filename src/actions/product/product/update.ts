@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { ProductFormState } from "./ProductFormState";
 import { editProductSchema } from "@/zod/product/product";
 import { deleteUnusedFromS3 } from "@/lib/awsS3/deleteUnusedFromS3";
+import { recalculateYandexPrice } from "@/lib/yandex/recalculateYandexPrice";
 
 export async function updateProduct(
   formState: ProductFormState,
@@ -92,6 +93,10 @@ export async function updateProduct(
       );
     }
     if (priceUpserts.length > 0) await Promise.all(priceUpserts);
+
+    if (result.data.retailPrice && result.data.retailCurrency) {
+      await recalculateYandexPrice(result.data.id);
+    }
   } catch (err: unknown) {
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
