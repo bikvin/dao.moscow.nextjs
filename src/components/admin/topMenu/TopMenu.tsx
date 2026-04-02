@@ -133,13 +133,18 @@ const topMenuList: TopMenuItem[] = [
     data: [
       {
         type: "link",
-        name: "Синхронизация",
+        name: "Настройки",
         link: "/admin/yandex",
       },
       {
         type: "link",
-        name: "История",
+        name: "Синхронизации остатков",
         link: "/admin/yandex/sync-history",
+      },
+      {
+        type: "link",
+        name: "Синхронизации цен",
+        link: "/admin/yandex/price-sync-history",
       },
       {
         type: "link",

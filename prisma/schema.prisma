@@ -244,6 +244,16 @@ model YandexSyncLog {
   createdAt DateTime @default(now())
 }
 
+model YandexPriceSyncLog {
+  id        String               @id @default(uuid())
+  status    YandexSyncStatusEnum
+  trigger   String
+  message   String?
+  skuCount  Int?
+
+  createdAt DateTime @default(now())
+}
+
 model ProductReserve {
   id          String                   @id @default(uuid())
   quantity    Int
