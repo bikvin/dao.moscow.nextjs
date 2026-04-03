@@ -17,6 +17,9 @@ export async function syncOzonPrices(trigger: "AUTO" | "MANUAL"): Promise<void> 
     "Content-Type": "application/json",
   };
 
+  const crossedMarkupSetting = await db.settings.findUnique({ where: { field: "ozonCrossedPriceMarkup" } });
+  const crossedPriceMarkup = crossedMarkupSetting ? parseInt(crossedMarkupSetting.value, 10) || 0 : 0;
+
   // Fetch all mappings with the product's OZON price
   const mappings = await db.ozonMapping.findMany({
     include: {
@@ -37,10 +40,13 @@ export async function syncOzonPrices(trigger: "AUTO" | "MANUAL"): Promise<void> 
 
   const prices = offersWithPrice.map((m) => {
     const priceValue = String(Math.round(m.product.prices[0].priceInCents / 100));
+    const oldPriceValue = crossedPriceMarkup > 0
+      ? String(Math.round(m.product.prices[0].priceInCents / 100 * (1 + crossedPriceMarkup / 100)))
+      : "0";
     return {
       offer_id: m.ozonOfferId,
       price: priceValue,
-      old_price: "0",
+      old_price: oldPriceValue,
       min_price: priceValue,
       auto_action_enabled: "DISABLED",
       auto_add_to_ozon_actions_list_enabled: "DISABLED",

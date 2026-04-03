@@ -7,23 +7,26 @@ import { OzonDefaultBufferForm } from "@/components/admin/ozon/OzonDefaultBuffer
 import { OzonDefaultDivisorForm } from "@/components/admin/ozon/OzonDefaultDivisorForm";
 import { OzonWarehouseIdForm } from "@/components/admin/ozon/OzonWarehouseIdForm";
 import { OzonDefaultPriceMarkupForm } from "@/components/admin/ozon/OzonDefaultPriceMarkupForm";
+import { OzonDefaultCrossedPriceMarkupForm } from "@/components/admin/ozon/OzonDefaultCrossedPriceMarkupForm";
 import Link from "next/link";
 import { OzonSyncStatusEnum } from "@prisma/client";
 
 export default async function OzonPage() {
-  const [lastLog, lastPriceLog, bufferSetting, divisorSetting, warehouseSetting, markupSetting] = await Promise.all([
+  const [lastLog, lastPriceLog, bufferSetting, divisorSetting, warehouseSetting, markupSetting, crossedMarkupSetting] = await Promise.all([
     db.ozonSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.ozonPriceSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.settings.findUnique({ where: { field: "ozonDefaultBuffer" } }),
     db.settings.findUnique({ where: { field: "ozonDefaultDivisor" } }),
     db.settings.findUnique({ where: { field: "ozonWarehouseId" } }),
     db.settings.findUnique({ where: { field: "ozonDefaultPriceMarkup" } }),
+    db.settings.findUnique({ where: { field: "ozonCrossedPriceMarkup" } }),
   ]);
 
   const globalBuffer = bufferSetting ? parseInt(bufferSetting.value, 10) || 0 : 0;
   const globalDivisor = divisorSetting ? parseInt(divisorSetting.value, 10) : null;
   const warehouseId = warehouseSetting?.value ?? null;
   const globalPriceMarkup = markupSetting ? parseInt(markupSetting.value, 10) || 0 : 0;
+  const crossedPriceMarkup = crossedMarkupSetting ? parseInt(crossedMarkupSetting.value, 10) || 0 : 0;
 
   return (
     <>
@@ -116,6 +119,7 @@ export default async function OzonPage() {
               <OzonDefaultBufferForm current={globalBuffer} />
               <OzonDefaultDivisorForm current={globalDivisor} />
               <OzonDefaultPriceMarkupForm current={globalPriceMarkup} />
+              <OzonDefaultCrossedPriceMarkupForm current={crossedPriceMarkup} />
             </div>
           </div>
 
