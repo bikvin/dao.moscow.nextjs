@@ -2,6 +2,7 @@ import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { OzonSyncButton } from "@/components/admin/ozon/OzonSyncButton";
 import { OzonPriceSyncButton } from "@/components/admin/ozon/OzonPriceSyncButton";
+import { OzonRemovePromotionsButton } from "@/components/admin/ozon/OzonRemovePromotionsButton";
 import { OzonDefaultBufferForm } from "@/components/admin/ozon/OzonDefaultBufferForm";
 import { OzonDefaultDivisorForm } from "@/components/admin/ozon/OzonDefaultDivisorForm";
 import { OzonWarehouseIdForm } from "@/components/admin/ozon/OzonWarehouseIdForm";
@@ -97,6 +98,11 @@ export default async function OzonPage() {
           {/* Price sync button */}
           <div className="mt-6">
             <OzonPriceSyncButton />
+          </div>
+
+          {/* Remove from promotions */}
+          <div className="mt-4">
+            <OzonRemovePromotionsButton />
           </div>
 
           {/* Global settings */}

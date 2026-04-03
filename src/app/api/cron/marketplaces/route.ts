@@ -2,6 +2,7 @@ import { syncYandexStock } from "@/lib/yandex/syncYandexStock";
 import { syncOzonStock } from "@/lib/ozon/syncOzonStock";
 import { syncYandexPrices } from "@/lib/yandex/syncYandexPrices";
 import { syncOzonPrices } from "@/lib/ozon/syncOzonPrices";
+import { removeOzonPromotions } from "@/lib/ozon/removeOzonPromotions";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -38,6 +39,13 @@ export async function GET(request: NextRequest) {
     results.ozonPrices = "ok";
   } catch (err: unknown) {
     results.ozonPrices = err instanceof Error ? err.message : "error";
+  }
+
+  try {
+    const { removed, promotions } = await removeOzonPromotions();
+    results.ozonPromotions = removed === 0 ? "no active promotions" : `removed ${removed} products from ${promotions} promotions`;
+  } catch (err: unknown) {
+    results.ozonPromotions = err instanceof Error ? err.message : "error";
   }
 
   return NextResponse.json(results);
