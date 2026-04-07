@@ -46,6 +46,17 @@ enum OzonSyncStatusEnum {
   ERROR
 }
 
+enum PartnerStatusEnum {
+  PROSPECT
+  ACTIVE
+  INACTIVE
+}
+
+enum AddressTypeEnum {
+  SHOP
+  OFFICE
+}
+
 enum CurrencyEnum {
   RUB
   USD
@@ -296,4 +307,143 @@ model Price {
 
   @@unique([productId, type])
   @@index([productId])
+}
+
+model City {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  partners Partner[]
+}
+
+model TransportCompany {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  partners Partner[]
+}
+
+model SampleType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses PartnerAddress[]
+}
+
+model Partner {
+  id             String              @id @default(uuid())
+  status         PartnerStatusEnum   @default(ACTIVE)
+  prospectNotes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cities             City[]
+  transportCompanies TransportCompany[]
+  names              PartnerName[]
+  emails             PartnerEmail[]
+  phones             PartnerPhone[]
+  websites           PartnerWebsite[]
+  addresses          PartnerAddress[]
+  legalEntities      PartnerLegalEntity[]
+  contactPersons     PartnerContactPerson[]
+}
+
+model PartnerName {
+  id        String   @id @default(uuid())
+  name      String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+}
+
+model PartnerEmail {
+  id        String   @id @default(uuid())
+  email     String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+}
+
+model PartnerPhone {
+  id        String   @id @default(uuid())
+  phone     String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+}
+
+model PartnerWebsite {
+  id        String   @id @default(uuid())
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+}
+
+model PartnerAddress {
+  id         String          @id @default(uuid())
+  type       AddressTypeEnum
+  address    String
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  partnerId   String
+  partner     Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  sampleTypes SampleType[]
+
+  @@index([partnerId])
+}
+
+model PartnerLegalEntity {
+  id        String   @id @default(uuid())
+  name      String
+  inn       String?
+  kpp       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+}
+
+model PartnerContactPerson {
+  id        String   @id @default(uuid())
+  name      String
+  role      String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
 }

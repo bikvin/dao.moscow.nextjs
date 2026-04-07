@@ -127,6 +127,28 @@ const topMenuList: TopMenuItem[] = [
   },
 
   {
+    name: "Партнёры",
+    type: "dropdown",
+    data: [
+      {
+        type: "link",
+        name: "Все партнёры",
+        link: "/admin/partners",
+      },
+      {
+        type: "link",
+        name: "Добавить партнёра",
+        link: "/admin/partners/create",
+      },
+      {
+        type: "link",
+        name: "Типы образцов",
+        link: "/admin/partners/sample-types",
+      },
+    ],
+  },
+
+  {
     name: "Яндекс",
     type: "dropdown",
     adminOnly: true,
