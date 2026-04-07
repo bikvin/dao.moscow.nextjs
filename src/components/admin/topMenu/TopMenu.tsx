@@ -142,6 +142,11 @@ const topMenuList: TopMenuItem[] = [
       },
       {
         type: "link",
+        name: "Города",
+        link: "/admin/partners/cities",
+      },
+      {
+        type: "link",
         name: "Типы образцов",
         link: "/admin/partners/sample-types",
       },

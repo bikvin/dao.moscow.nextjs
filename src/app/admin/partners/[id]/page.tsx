@@ -45,7 +45,7 @@ function SectionBox({ children }: { children: React.ReactNode }) {
 }
 
 export default async function PartnerDetailPage({ params }: { params: { id: string } }) {
-  const [partner, allSampleTypes] = await Promise.all([
+  const [partner, allSampleTypes, allCities] = await Promise.all([
     db.partner.findUnique({
       where: { id: params.id },
       include: {
@@ -64,6 +64,7 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
       },
     }),
     db.sampleType.findMany({ orderBy: { name: "asc" } }),
+    db.city.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   if (!partner) notFound();
@@ -306,7 +307,11 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
             ) : (
               <p className="text-sm text-slate-400 mb-1">Нет городов</p>
             )}
-            <AddCityForm partnerId={partner.id} />
+            <AddCityForm
+              partnerId={partner.id}
+              allCities={allCities}
+              existingIds={partner.cities.map((c) => c.id)}
+            />
           </SectionBox>
 
           {/* Transport companies */}

@@ -5,8 +5,7 @@ import { revalidatePath } from "next/cache";
 import { SubItemFormState } from "./PartnerFormState";
 import { addCitySchema } from "@/zod/partner/partner";
 
-export async function addPartnerCity(
-  partnerId: string,
+export async function createCity(
   formState: SubItemFormState,
   formData: FormData
 ): Promise<SubItemFormState> {
@@ -17,15 +16,36 @@ export async function addPartnerCity(
   }
 
   try {
-    const city = await db.city.upsert({
-      where: { name: result.data.name },
-      update: {},
-      create: { name: result.data.name },
-    });
+    await db.city.create({ data: { name: result.data.name } });
+  } catch (err: unknown) {
+    return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };
+  }
 
+  revalidatePath("/admin/partners/cities");
+  return { success: { message: "Добавлено" } };
+}
+
+export async function deleteCity(formData: FormData): Promise<void> {
+  const id = formData.get("id") as string;
+  await db.city.delete({ where: { id } });
+  revalidatePath("/admin/partners/cities");
+}
+
+export async function addPartnerCity(
+  partnerId: string,
+  formState: SubItemFormState,
+  formData: FormData
+): Promise<SubItemFormState> {
+  const cityId = formData.get("cityId") as string;
+
+  if (!cityId) {
+    return { errors: { _form: ["Выберите город"] } };
+  }
+
+  try {
     await db.partner.update({
       where: { id: partnerId },
-      data: { cities: { connect: { id: city.id } } },
+      data: { cities: { connect: { id: cityId } } },
     });
   } catch (err: unknown) {
     return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };
