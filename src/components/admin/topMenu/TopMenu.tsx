@@ -147,6 +147,11 @@ const topMenuList: TopMenuItem[] = [
       },
       {
         type: "link",
+        name: "Транспортные компании",
+        link: "/admin/partners/transport-companies",
+      },
+      {
+        type: "link",
         name: "Типы образцов",
         link: "/admin/partners/sample-types",
       },
