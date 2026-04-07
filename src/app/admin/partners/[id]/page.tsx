@@ -7,7 +7,7 @@ import { AddPhoneForm } from "@/components/admin/partner/AddPhoneForm";
 import { AddEmailForm } from "@/components/admin/partner/AddEmailForm";
 import { AddWebsiteForm } from "@/components/admin/partner/AddWebsiteForm";
 import { AddAddressForm } from "@/components/admin/partner/AddAddressForm";
-import { AddLegalEntityForm } from "@/components/admin/partner/AddLegalEntityForm";
+import { AddLegalEntityForm, EditLegalEntityForm } from "@/components/admin/partner/AddLegalEntityForm";
 import { AddContactPersonForm } from "@/components/admin/partner/AddContactPersonForm";
 import { AddCityForm } from "@/components/admin/partner/AddCityForm";
 import { AddTransportCompanyForm } from "@/components/admin/partner/AddTransportCompanyForm";
@@ -250,14 +250,15 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
             {partner.legalEntities.length > 0 ? (
               <ul className="flex flex-col gap-1 mb-1">
                 {partner.legalEntities.map((le) => (
-                  <li key={le.id} className="flex items-center gap-3 text-sm">
-                    <span className="font-medium">{le.name}</span>
-                    {le.inn && <span className="text-slate-500">ИНН: {le.inn}</span>}
-                    {le.kpp && <span className="text-slate-500">КПП: {le.kpp}</span>}
-                    <DeleteItemButton
-                      action={deletePartnerLegalEntity}
-                      fields={{ id: le.id, partnerId: partner.id }}
-                    />
+                  <li key={le.id} className="border border-slate-200 rounded-md p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium">{le.name}</span>
+                      <DeleteItemButton
+                        action={deletePartnerLegalEntity}
+                        fields={{ id: le.id, partnerId: partner.id }}
+                      />
+                    </div>
+                    <EditLegalEntityForm partnerId={partner.id} legalEntity={le} />
                   </li>
                 ))}
               </ul>

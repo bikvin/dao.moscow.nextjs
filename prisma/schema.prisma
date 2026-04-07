@@ -421,10 +421,18 @@ model PartnerAddress {
 }
 
 model PartnerLegalEntity {
-  id        String   @id @default(uuid())
-  name      String
-  inn       String?
-  kpp       String?
+  id                  String   @id @default(uuid())
+  name                String
+  inn                 String?
+  kpp                 String?
+  ogrn                String?
+  legalAddress        String?
+  actualAddress       String?
+  phones              String?
+  bankName            String?
+  bik                 String?
+  checkingAccount     String?
+  correspondentAccount String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
