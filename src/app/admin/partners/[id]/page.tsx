@@ -252,7 +252,7 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
                 {partner.legalEntities.map((le) => (
                   <li key={le.id} className="border border-slate-200 rounded-md p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium">{le.name}</span>
+                      <span className="text-base font-semibold">{le.name}</span>
                       <DeleteItemButton
                         action={deletePartnerLegalEntity}
                         fields={{ id: le.id, partnerId: partner.id }}

@@ -87,9 +87,13 @@ export function AddLegalEntityForm({ partnerId }: { partnerId: string }) {
   const boundAction = addPartnerLegalEntity.bind(null, partnerId);
   const [formState, action] = useFormState<SubItemFormState, FormData>(boundAction, {});
   const [values, setValues] = useState<FieldValues>(EMPTY);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (formState.success) setValues(EMPTY);
+    if (formState.success) {
+      setValues(EMPTY);
+      setOpen(false);
+    }
   }, [formState.success]);
 
   function onChange(field: keyof FieldValues, value: string) {
@@ -97,19 +101,35 @@ export function AddLegalEntityForm({ partnerId }: { partnerId: string }) {
   }
 
   return (
-    <form action={action} className="flex flex-col gap-3 mt-3 border border-slate-200 rounded-md p-4">
-      <p className="text-sm font-medium text-slate-600 mb-1">Новое юридическое лицо</p>
-      <LegalEntityFields values={values} onChange={onChange} />
-      <div className="flex items-center gap-3 mt-1">
-        <FormButton color="green" small>Добавить</FormButton>
-        {formState.errors?._form && (
-          <span className="text-red-600 text-sm">{formState.errors._form.join(", ")}</span>
-        )}
-        {formState.success && (
-          <span className="text-emerald-600 text-sm">{formState.success.message}</span>
-        )}
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="text-sm text-emerald-600 hover:underline"
+      >
+        {open ? "Свернуть" : "+ Добавить юридическое лицо"}
+      </button>
+
+      <div
+        className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+        style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          <div className="border border-slate-200 rounded-md p-4 mt-3">
+            <p className="text-sm font-medium text-slate-600 mb-3">Новое юридическое лицо</p>
+            <form action={action} className="flex flex-col gap-3">
+              <LegalEntityFields values={values} onChange={onChange} />
+              <div className="flex items-center gap-3 mt-1">
+                <FormButton color="green" small>Добавить</FormButton>
+                {formState.errors?._form && (
+                  <span className="text-red-600 text-sm">{formState.errors._form.join(", ")}</span>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
-    </form>
+    </div>
   );
 }
 
