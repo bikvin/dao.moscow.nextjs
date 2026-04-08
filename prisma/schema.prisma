@@ -327,6 +327,15 @@ model TransportCompany {
   partners Partner[]
 }
 
+model PartnerType {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  partners Partner[]
+}
+
 model SampleType {
   id        String   @id @default(uuid())
   name      String   @unique
@@ -346,6 +355,7 @@ model Partner {
 
   cities             City[]
   transportCompanies TransportCompany[]
+  partnerTypes       PartnerType[]
   names              PartnerName[]
   emails             PartnerEmail[]
   phones             PartnerPhone[]

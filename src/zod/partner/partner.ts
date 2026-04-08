@@ -60,6 +60,10 @@ export const addCitySchema = z.object({
   name: z.string().min(1, "Укажите город"),
 });
 
+export const partnerTypeSchema = z.object({
+  name: z.string().min(1, "Укажите название"),
+});
+
 export const addTransportCompanySchema = z.object({
   name: z.string().min(1, "Укажите название"),
 });

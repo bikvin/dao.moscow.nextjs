@@ -11,6 +11,7 @@ import { AddLegalEntityForm, EditLegalEntityForm } from "@/components/admin/part
 import { AddContactPersonForm } from "@/components/admin/partner/AddContactPersonForm";
 import { AddCityForm } from "@/components/admin/partner/AddCityForm";
 import { AddTransportCompanyForm } from "@/components/admin/partner/AddTransportCompanyForm";
+import { AddPartnerTypeForm } from "@/components/admin/partner/AddPartnerTypeForm";
 import { AddSampleTypeToAddressForm } from "@/components/admin/partner/AddSampleTypeToAddressForm";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deletePartnerName, setPrimaryPartnerName } from "@/actions/partner/names";
@@ -22,6 +23,7 @@ import { deletePartnerLegalEntity } from "@/actions/partner/legalEntities";
 import { deletePartnerContactPerson } from "@/actions/partner/contactPersons";
 import { removePartnerCity } from "@/actions/partner/cities";
 import { removePartnerTransportCompany } from "@/actions/partner/transportCompanies";
+import { removePartnerType } from "@/actions/partner/partnerTypes";
 import { removeSampleTypeFromAddress } from "@/actions/partner/sampleTypes";
 import { deletePartner } from "@/actions/partner/delete";
 import { AddressTypeEnum } from "@prisma/client";
@@ -45,7 +47,7 @@ function SectionBox({ children }: { children: React.ReactNode }) {
 }
 
 export default async function PartnerDetailPage({ params }: { params: { id: string } }) {
-  const [partner, allSampleTypes, allCities, allTransportCompanies] = await Promise.all([
+  const [partner, allSampleTypes, allCities, allTransportCompanies, allPartnerTypes] = await Promise.all([
     db.partner.findUnique({
       where: { id: params.id },
       include: {
@@ -61,11 +63,13 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
         contactPersons: { orderBy: { createdAt: "asc" } },
         cities: { orderBy: { name: "asc" } },
         transportCompanies: { orderBy: { name: "asc" } },
+        partnerTypes: { orderBy: { name: "asc" } },
       },
     }),
     db.sampleType.findMany({ orderBy: { name: "asc" } }),
     db.city.findMany({ orderBy: { name: "asc" } }),
     db.transportCompany.findMany({ orderBy: { name: "asc" } }),
+    db.partnerType.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   if (!partner) notFound();
@@ -83,16 +87,6 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
             </Link>
           </div>
           <h1 className="admin-form-header mt-2">{displayName}</h1>
-
-          {/* Basic info */}
-          <SectionBox>
-            <SectionHeader title="Основная информация" />
-            <PartnerBasicForm
-              id={partner.id}
-              status={partner.status}
-              prospectNotes={partner.prospectNotes}
-            />
-          </SectionBox>
 
           {/* Names */}
           <SectionBox>
@@ -124,6 +118,31 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
               <p className="text-sm text-slate-400 mb-1">Нет названий</p>
             )}
             <AddNameForm partnerId={partner.id} />
+          </SectionBox>
+
+          {/* Partner types */}
+          <SectionBox>
+            <SectionHeader title="Типы партнёра" />
+            {partner.partnerTypes.length > 0 ? (
+              <div className="flex flex-wrap gap-2 mb-1">
+                {partner.partnerTypes.map((pt) => (
+                  <span key={pt.id} className="flex items-center gap-1 text-sm bg-slate-100 px-2 py-0.5 rounded">
+                    {pt.name}
+                    <DeleteItemButton
+                      action={removePartnerType}
+                      fields={{ partnerId: partner.id, partnerTypeId: pt.id }}
+                    />
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 mb-1">Нет типов</p>
+            )}
+            <AddPartnerTypeForm
+              partnerId={partner.id}
+              allPartnerTypes={allPartnerTypes}
+              existingIds={partner.partnerTypes.map((pt) => pt.id)}
+            />
           </SectionBox>
 
           {/* Phones */}
@@ -338,6 +357,16 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
               partnerId={partner.id}
               allTransportCompanies={allTransportCompanies}
               existingIds={partner.transportCompanies.map((tc) => tc.id)}
+            />
+          </SectionBox>
+
+          {/* Basic info */}
+          <SectionBox>
+            <SectionHeader title="Основная информация" />
+            <PartnerBasicForm
+              id={partner.id}
+              status={partner.status}
+              prospectNotes={partner.prospectNotes}
             />
           </SectionBox>
 

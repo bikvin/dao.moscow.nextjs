@@ -155,6 +155,11 @@ const topMenuList: TopMenuItem[] = [
         name: "Типы образцов",
         link: "/admin/partners/sample-types",
       },
+      {
+        type: "link",
+        name: "Типы партнёров",
+        link: "/admin/partners/partner-types",
+      },
     ],
   },
 
