@@ -38,7 +38,7 @@ export function PartnerBasicForm({
       </div>
 
       <div className="flex items-start gap-3">
-        <label className="text-sm text-slate-600 w-40 pt-1">Заметки (prospect):</label>
+        <label className="text-sm text-slate-600 w-40 pt-1">Заметки:</label>
         <textarea
           name="prospectNotes"
           defaultValue={prospectNotes ?? ""}
