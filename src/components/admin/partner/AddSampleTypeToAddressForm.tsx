@@ -4,6 +4,7 @@ import { useFormState } from "react-dom";
 import { addSampleTypeToAddress } from "@/actions/partner/sampleTypes";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { SampleType } from "@prisma/client";
+import { CollapsibleAddSection } from "./CollapsibleAddSection";
 import FormButton from "@/components/common/formButton/formButton";
 
 export function AddSampleTypeToAddressForm({
@@ -25,18 +26,20 @@ export function AddSampleTypeToAddressForm({
   if (available.length === 0) return null;
 
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2 mt-2">
-      <input type="hidden" name="addressId" value={addressId} />
-      <select name="sampleTypeId" className="admin-form-input text-sm w-48">
-        <option value="">— выберите образец —</option>
-        {available.map((st) => (
-          <option key={st.id} value={st.id}>{st.name}</option>
-        ))}
-      </select>
-      <FormButton color="green" small>Добавить</FormButton>
-      {formState.errors?._form && (
-        <span className="text-red-600 text-sm">{formState.errors._form.join(", ")}</span>
-      )}
-    </form>
+    <CollapsibleAddSection label="Добавить образец" success={!!formState.success}>
+      <form action={action} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="addressId" value={addressId} />
+        <select name="sampleTypeId" className="admin-form-input text-sm w-48">
+          <option value="">— выберите образец —</option>
+          {available.map((st) => (
+            <option key={st.id} value={st.id}>{st.name}</option>
+          ))}
+        </select>
+        <FormButton color="green" small>Добавить</FormButton>
+        {formState.errors?._form && (
+          <span className="text-red-600 text-sm">{formState.errors._form.join(", ")}</span>
+        )}
+      </form>
+    </CollapsibleAddSection>
   );
 }
