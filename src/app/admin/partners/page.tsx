@@ -3,6 +3,7 @@ import { db } from "@/db";
 import Link from "next/link";
 import { Pagination } from "@/components/admin/Pagination";
 import { PartnerStatusEnum } from "@prisma/client";
+import { PartnerCard } from "@/components/admin/partner/PartnerCard";
 
 const PAGE_SIZE = 25;
 
@@ -12,11 +13,6 @@ const STATUS_LABELS: Record<PartnerStatusEnum, string> = {
   INACTIVE: "Неактивный",
 };
 
-const STATUS_COLORS: Record<PartnerStatusEnum, string> = {
-  PROSPECT: "bg-amber-100 text-amber-700",
-  ACTIVE: "bg-emerald-100 text-emerald-700",
-  INACTIVE: "bg-slate-100 text-slate-500",
-};
 
 export default async function PartnersPage({
   searchParams,
@@ -41,7 +37,12 @@ export default async function PartnersPage({
       where,
       include: {
         names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
-        cities: true,
+        phones: { orderBy: { createdAt: "asc" } },
+        emails: { orderBy: { createdAt: "asc" } },
+        cities: { orderBy: { name: "asc" } },
+        partnerTypes: { orderBy: { name: "asc" } },
+        contactPersons: { orderBy: { createdAt: "asc" } },
+        addresses: { orderBy: { createdAt: "asc" } },
       },
       orderBy: { createdAt: "desc" },
       skip: (currentPage - 1) * PAGE_SIZE,
@@ -87,33 +88,21 @@ export default async function PartnersPage({
             {partners.length === 0 && (
               <p className="text-slate-400 text-sm">Партнёры не найдены</p>
             )}
-            {partners.map((p) => {
-              const primaryName = p.names.find((n) => n.isPrimary) ?? p.names[0];
-              const secondaryNames = p.names.filter((n) => n !== primaryName);
-              return (
-                <Link
-                  key={p.id}
-                  href={`/admin/partners/${p.id}`}
-                  className="border rounded-md p-3 shadow-main hover:bg-slate-50 flex flex-wrap items-center gap-x-4 gap-y-1"
-                >
-                  <span className="font-semibold text-sm">{primaryName?.name ?? "—"}</span>
-                  {secondaryNames.map((n) => (
-                    <span key={n.id} className="text-sm text-slate-500">{n.name}</span>
-                  ))}
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[p.status]}`}>
-                    {STATUS_LABELS[p.status]}
-                  </span>
-                  {p.cities.length > 0 && (
-                    <span className="text-xs text-slate-500">
-                      {p.cities.map((c) => c.name).join(", ")}
-                    </span>
-                  )}
-                  <span className="text-xs text-slate-400 ml-auto">
-                    {new Date(p.createdAt).toLocaleDateString("ru-RU")}
-                  </span>
-                </Link>
-              );
-            })}
+            {partners.map((p) => (
+              <PartnerCard
+                key={p.id}
+                id={p.id}
+                status={p.status}
+                createdAt={p.createdAt}
+                names={p.names}
+                phones={p.phones}
+                emails={p.emails}
+                cities={p.cities}
+                partnerTypes={p.partnerTypes}
+                contactPersons={p.contactPersons}
+                addresses={p.addresses}
+              />
+            ))}
           </div>
 
           <Pagination
