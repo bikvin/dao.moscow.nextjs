@@ -25,6 +25,27 @@ export async function createSampleType(
   return { success: { message: "Добавлено" } };
 }
 
+export async function updateSampleType(
+  id: string,
+  _formState: SubItemFormState,
+  formData: FormData
+): Promise<SubItemFormState> {
+  const result = sampleTypeSchema.safeParse({ name: formData.get("name") });
+
+  if (!result.success) {
+    return { errors: { _form: result.error.flatten().formErrors } };
+  }
+
+  try {
+    await db.sampleType.update({ where: { id }, data: { name: result.data.name } });
+  } catch (err: unknown) {
+    return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };
+  }
+
+  revalidatePath("/admin/partners/sample-types");
+  return { success: { message: "Сохранено" } };
+}
+
 export async function deleteSampleType(formData: FormData): Promise<void> {
   const id = formData.get("id") as string;
   await db.sampleType.delete({ where: { id } });
@@ -33,7 +54,7 @@ export async function deleteSampleType(formData: FormData): Promise<void> {
 
 export async function addSampleTypeToAddress(
   partnerId: string,
-  formState: SubItemFormState,
+  _formState: SubItemFormState,
   formData: FormData
 ): Promise<SubItemFormState> {
   const addressId = formData.get("addressId") as string;

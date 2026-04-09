@@ -2,6 +2,7 @@ import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import Link from "next/link";
 import { CreateSampleTypeForm } from "@/components/admin/partner/CreateSampleTypeForm";
+import { EditSampleTypeForm } from "@/components/admin/partner/EditSampleTypeForm";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deleteSampleType } from "@/actions/partner/sampleTypes";
 
@@ -30,10 +31,10 @@ export default async function SampleTypesPage() {
             {sampleTypes.length === 0 ? (
               <p className="text-sm text-slate-400">Нет типов образцов</p>
             ) : (
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-3">
                 {sampleTypes.map((st) => (
-                  <li key={st.id} className="flex items-center gap-3 text-sm">
-                    <span>{st.name}</span>
+                  <li key={st.id} className="flex items-center gap-3">
+                    <EditSampleTypeForm sampleType={st} />
                     <DeleteItemButton action={deleteSampleType} fields={{ id: st.id }} />
                   </li>
                 ))}
