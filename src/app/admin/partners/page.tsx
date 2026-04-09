@@ -13,17 +13,23 @@ const STATUS_LABELS: Record<PartnerStatusEnum, string> = {
   INACTIVE: "Неактивный",
 };
 
-
 export default async function PartnersPage({
   searchParams,
 }: {
-  searchParams: { page?: string; search?: string; status?: string };
+  searchParams: { page?: string; search?: string; status?: string; cityId?: string; partnerTypeId?: string };
 }) {
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const search = searchParams.search ?? "";
   const statusFilter = searchParams.status !== undefined
     ? (searchParams.status as PartnerStatusEnum | "")
     : PartnerStatusEnum.ACTIVE;
+  const cityId = searchParams.cityId ?? "";
+  const partnerTypeId = searchParams.partnerTypeId ?? "";
+
+  const [allCities, allPartnerTypes] = await Promise.all([
+    db.city.findMany({ orderBy: { name: "asc" } }),
+    db.partnerType.findMany({ orderBy: { name: "asc" } }),
+  ]);
 
   const where = {
     ...(search && {
@@ -38,6 +44,8 @@ export default async function PartnersPage({
       ],
     }),
     ...(statusFilter && { status: statusFilter }),
+    ...(cityId && { cities: { some: { id: cityId } } }),
+    ...(partnerTypeId && { partnerTypes: { some: { id: partnerTypeId } } }),
   };
 
   const [partners, total] = await Promise.all([
@@ -81,6 +89,18 @@ export default async function PartnersPage({
                 <option value="">Все статусы</option>
                 {Object.values(PartnerStatusEnum).map((s) => (
                   <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+              <select name="cityId" defaultValue={cityId} className="admin-form-input text-sm w-40">
+                <option value="">Все города</option>
+                {allCities.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <select name="partnerTypeId" defaultValue={partnerTypeId} className="admin-form-input text-sm w-40">
+                <option value="">Все типы</option>
+                {allPartnerTypes.map((pt) => (
+                  <option key={pt.id} value={pt.id}>{pt.name}</option>
                 ))}
               </select>
               <button type="submit" className="link-button link-button-gray text-sm">
