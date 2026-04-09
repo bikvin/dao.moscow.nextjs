@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { addPartnerLegalEntity, updatePartnerLegalEntity } from "@/actions/partner/legalEntities";
 import { CollapsibleAddSection } from "./CollapsibleAddSection";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
@@ -88,6 +88,10 @@ export function AddLegalEntityForm({ partnerId }: { partnerId: string }) {
   const boundAction = addPartnerLegalEntity.bind(null, partnerId);
   const [formState, action] = useFormState<SubItemFormState, FormData>(boundAction, {});
   const [values, setValues] = useState<FieldValues>(EMPTY);
+
+  useEffect(() => {
+    if (formState.success) setValues(EMPTY);
+  }, [formState.success]);
 
   function onChange(field: keyof FieldValues, value: string) {
     setValues((prev) => ({ ...prev, [field]: value }));
