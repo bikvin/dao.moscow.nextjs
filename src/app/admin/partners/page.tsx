@@ -27,7 +27,15 @@ export default async function PartnersPage({
 
   const where = {
     ...(search && {
-      names: { some: { name: { contains: search, mode: "insensitive" as const } } },
+      OR: [
+        { names: { some: { name: { contains: search, mode: "insensitive" as const } } } },
+        { emails: { some: { email: { contains: search, mode: "insensitive" as const } } } },
+        { phones: { some: { phone: { contains: search, mode: "insensitive" as const } } } },
+        { addresses: { some: { address: { contains: search, mode: "insensitive" as const } } } },
+        { websites: { some: { url: { contains: search, mode: "insensitive" as const } } } },
+        { legalEntities: { some: { name: { contains: search, mode: "insensitive" as const } } } },
+        { contactPersons: { some: { name: { contains: search, mode: "insensitive" as const } } } },
+      ],
     }),
     ...(statusFilter && { status: statusFilter }),
   };
@@ -66,7 +74,7 @@ export default async function PartnersPage({
                 name="search"
                 type="text"
                 defaultValue={search}
-                placeholder="Поиск по названию"
+                placeholder="Поиск"
                 className="admin-form-input text-sm w-56"
               />
               <select name="status" defaultValue={statusFilter} className="admin-form-input text-sm w-44">
