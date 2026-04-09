@@ -6,7 +6,7 @@ import { AddNameForm } from "@/components/admin/partner/AddNameForm";
 import { AddPhoneForm } from "@/components/admin/partner/AddPhoneForm";
 import { AddEmailForm } from "@/components/admin/partner/AddEmailForm";
 import { AddWebsiteForm } from "@/components/admin/partner/AddWebsiteForm";
-import { AddAddressForm } from "@/components/admin/partner/AddAddressForm";
+import { AddAddressForm, EditAddressForm } from "@/components/admin/partner/AddAddressForm";
 import { AddLegalEntityForm, EditLegalEntityForm } from "@/components/admin/partner/AddLegalEntityForm";
 import { AddContactPersonForm } from "@/components/admin/partner/AddContactPersonForm";
 import { AddCityForm } from "@/components/admin/partner/AddCityForm";
@@ -229,6 +229,7 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
                         fields={{ id: a.id, partnerId: partner.id }}
                       />
                     </div>
+                    <EditAddressForm partnerId={partner.id} address={a} />
                     {/* Sample types for this address */}
                     <div className="pl-1">
                       <p className="text-xs text-slate-500 mb-1">Образцы:</p>
