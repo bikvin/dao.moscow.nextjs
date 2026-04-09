@@ -376,12 +376,12 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
             <p className="text-sm text-slate-500 mb-3">
               Это действие необратимо. Все данные партнёра будут удалены.
             </p>
-            <form action={deletePartner}>
-              <input type="hidden" name="id" value={partner.id} />
-              <button type="submit" className="link-button link-button-red text-sm">
-                Удалить партнёра
-              </button>
-            </form>
+            <DeleteItemButton
+              action={deletePartner}
+              fields={{ id: partner.id }}
+              message="Удалить партнёра и все его данные? Это действие необратимо."
+              label="Удалить партнёра"
+            />
           </div>
         </div>
       </div>

@@ -14,10 +14,12 @@ export function DeleteItemButton({
   action,
   fields,
   message = "Вы уверены, что хотите удалить?",
+  label,
 }: {
   action: (formData: FormData) => Promise<void>;
   fields: Record<string, string>;
   message?: string;
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -36,9 +38,13 @@ export function DeleteItemButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="text-slate-300 hover:text-red-500 transition-colors">
-          <RxCross2 className="w-4 h-4" />
-        </button>
+        {label ? (
+          <button className="link-button link-button-red text-sm">{label}</button>
+        ) : (
+          <button className="text-slate-300 hover:text-red-500 transition-colors">
+            <RxCross2 className="w-4 h-4" />
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="font-open-sans">
         <DialogTitle>{message}</DialogTitle>
