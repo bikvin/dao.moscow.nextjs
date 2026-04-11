@@ -420,6 +420,7 @@ model PartnerAddress {
   id         String          @id @default(uuid())
   type       AddressTypeEnum
   address    String
+  comment    String?
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 

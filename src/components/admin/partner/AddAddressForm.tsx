@@ -16,13 +16,17 @@ const TYPE_LABELS: Record<AddressTypeEnum, string> = {
 function AddressFields({
   type,
   address,
+  comment,
   onTypeChange,
   onAddressChange,
+  onCommentChange,
 }: {
   type: AddressTypeEnum;
   address: string;
+  comment: string;
   onTypeChange: (v: AddressTypeEnum) => void;
   onAddressChange: (v: string) => void;
+  onCommentChange: (v: string) => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -32,6 +36,7 @@ function AddressFields({
         ))}
       </select>
       <input name="address" type="text" placeholder="Адрес" value={address} onChange={(e) => onAddressChange(e.target.value)} className="admin-form-input text-sm w-72" />
+      <input name="comment" type="text" placeholder="Комментарий" value={comment} onChange={(e) => onCommentChange(e.target.value)} className="admin-form-input text-sm w-56" />
     </div>
   );
 }
@@ -41,15 +46,16 @@ export function AddAddressForm({ partnerId }: { partnerId: string }) {
   const [formState, action] = useFormState<SubItemFormState, FormData>(boundAction, {});
   const [type, setType] = useState<AddressTypeEnum>(AddressTypeEnum.SHOP);
   const [address, setAddress] = useState("");
+  const [comment, setComment] = useState("");
 
   useEffect(() => {
-    if (formState.success) { setType(AddressTypeEnum.SHOP); setAddress(""); }
+    if (formState.success) { setType(AddressTypeEnum.SHOP); setAddress(""); setComment(""); }
   }, [formState.success]);
 
   return (
     <CollapsibleAddSection label="Добавить адрес" success={!!formState.success}>
       <form action={action} className="flex flex-col gap-2">
-        <AddressFields type={type} address={address} onTypeChange={setType} onAddressChange={setAddress} />
+        <AddressFields type={type} address={address} comment={comment} onTypeChange={setType} onAddressChange={setAddress} onCommentChange={setComment} />
         <div className="flex items-center gap-3">
           <FormButton color="green" small>Добавить</FormButton>
           {formState.errors?._form && (
@@ -72,10 +78,11 @@ export function EditAddressForm({
   const [formState, action] = useFormState<SubItemFormState, FormData>(boundAction, {});
   const [type, setType] = useState<AddressTypeEnum>(address.type);
   const [addressValue, setAddressValue] = useState(address.address);
+  const [comment, setComment] = useState(address.comment ?? "");
 
   return (
     <form action={action} className="flex flex-col gap-2 mt-2">
-      <AddressFields type={type} address={addressValue} onTypeChange={setType} onAddressChange={setAddressValue} />
+      <AddressFields type={type} address={addressValue} comment={comment} onTypeChange={setType} onAddressChange={setAddressValue} onCommentChange={setComment} />
       <div className="flex items-center gap-3">
         <FormButton color="blue" small>Сохранить</FormButton>
         {formState.errors?._form && (

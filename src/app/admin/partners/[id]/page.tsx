@@ -224,6 +224,7 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
                         {ADDRESS_TYPE_LABELS[a.type]}
                       </span>
                       <span className="font-medium">{a.address}</span>
+                      {a.comment && <span className="text-slate-500">{a.comment}</span>}
                       <DeleteItemButton
                         action={deletePartnerAddress}
                         fields={{ id: a.id, partnerId: partner.id }}

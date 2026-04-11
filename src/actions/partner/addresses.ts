@@ -13,6 +13,7 @@ export async function addPartnerAddress(
   const result = addAddressSchema.safeParse({
     type: formData.get("type"),
     address: formData.get("address"),
+    comment: formData.get("comment") || undefined,
   });
 
   if (!result.success) {
@@ -21,7 +22,7 @@ export async function addPartnerAddress(
 
   try {
     await db.partnerAddress.create({
-      data: { partnerId, type: result.data.type, address: result.data.address },
+      data: { partnerId, type: result.data.type, address: result.data.address, comment: result.data.comment ?? null },
     });
   } catch (err: unknown) {
     return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };
@@ -40,6 +41,7 @@ export async function updatePartnerAddress(
   const result = addAddressSchema.safeParse({
     type: formData.get("type"),
     address: formData.get("address"),
+    comment: formData.get("comment") || undefined,
   });
 
   if (!result.success) {
@@ -49,7 +51,7 @@ export async function updatePartnerAddress(
   try {
     await db.partnerAddress.update({
       where: { id: addressId },
-      data: { type: result.data.type, address: result.data.address },
+      data: { type: result.data.type, address: result.data.address, comment: result.data.comment ?? null },
     });
   } catch (err: unknown) {
     return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };

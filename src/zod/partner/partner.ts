@@ -34,6 +34,7 @@ export const addWebsiteSchema = z.object({
 export const addAddressSchema = z.object({
   type: z.nativeEnum(AddressTypeEnum),
   address: z.string().min(1, "Укажите адрес"),
+  comment: z.string().optional(),
 });
 
 export const addLegalEntitySchema = z.object({
