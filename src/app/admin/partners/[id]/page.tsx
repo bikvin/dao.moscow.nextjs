@@ -6,15 +6,24 @@ import { AddNameForm } from "@/components/admin/partner/AddNameForm";
 import { AddPhoneForm } from "@/components/admin/partner/AddPhoneForm";
 import { AddEmailForm } from "@/components/admin/partner/AddEmailForm";
 import { AddWebsiteForm } from "@/components/admin/partner/AddWebsiteForm";
-import { AddAddressForm, EditAddressForm } from "@/components/admin/partner/AddAddressForm";
-import { AddLegalEntityForm, EditLegalEntityForm } from "@/components/admin/partner/AddLegalEntityForm";
+import {
+  AddAddressForm,
+  EditAddressForm,
+} from "@/components/admin/partner/AddAddressForm";
+import {
+  AddLegalEntityForm,
+  EditLegalEntityForm,
+} from "@/components/admin/partner/AddLegalEntityForm";
 import { AddContactPersonForm } from "@/components/admin/partner/AddContactPersonForm";
 import { AddCityForm } from "@/components/admin/partner/AddCityForm";
 import { AddTransportCompanyForm } from "@/components/admin/partner/AddTransportCompanyForm";
 import { AddPartnerTypeForm } from "@/components/admin/partner/AddPartnerTypeForm";
 import { AddSampleTypeToAddressForm } from "@/components/admin/partner/AddSampleTypeToAddressForm";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
-import { deletePartnerName, setPrimaryPartnerName } from "@/actions/partner/names";
+import {
+  deletePartnerName,
+  setPrimaryPartnerName,
+} from "@/actions/partner/names";
 import { deletePartnerPhone } from "@/actions/partner/phones";
 import { deletePartnerEmail } from "@/actions/partner/emails";
 import { deletePartnerWebsite } from "@/actions/partner/websites";
@@ -26,28 +35,34 @@ import { removePartnerTransportCompany } from "@/actions/partner/transportCompan
 import { removePartnerType } from "@/actions/partner/partnerTypes";
 import { removeSampleTypeFromAddress } from "@/actions/partner/sampleTypes";
 import { deletePartner } from "@/actions/partner/delete";
-import { AddressTypeEnum } from "@prisma/client";
 import Link from "next/link";
 
-const ADDRESS_TYPE_LABELS: Record<AddressTypeEnum, string> = {
-  SHOP: "Магазин",
-  OFFICE: "Офис",
-};
-
 function SectionHeader({ title }: { title: string }) {
-  return <h2 className="text-base font-semibold text-slate-700 mb-2">{title}</h2>;
+  return (
+    <h2 className="text-base font-semibold text-slate-700 mb-2">{title}</h2>
+  );
 }
 
 function SectionBox({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border rounded-md p-4 shadow-main mt-5">
+    <div className="border rounded-md p-4 shadow-main mt-5 border-slate-300">
       {children}
     </div>
   );
 }
 
-export default async function PartnerDetailPage({ params }: { params: { id: string } }) {
-  const [partner, allSampleTypes, allCities, allTransportCompanies, allPartnerTypes] = await Promise.all([
+export default async function PartnerDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const [
+    partner,
+    allSampleTypes,
+    allCities,
+    allTransportCompanies,
+    allPartnerTypes,
+  ] = await Promise.all([
     db.partner.findUnique({
       where: { id: params.id },
       include: {
@@ -74,7 +89,10 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
 
   if (!partner) notFound();
 
-  const displayName = partner.names.find((n) => n.isPrimary)?.name ?? partner.names[0]?.name ?? "—";
+  const displayName =
+    partner.names.find((n) => n.isPrimary)?.name ??
+    partner.names[0]?.name ??
+    "—";
 
   return (
     <>
@@ -82,7 +100,10 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
       <div className="max-w-screen-lg mx-auto">
         <div className="w-[90%] md:w-2/3 mx-auto pb-16">
           <div className="flex items-center gap-3 mt-10">
-            <Link href="/admin/partners" className="text-sm text-slate-500 hover:underline">
+            <Link
+              href="/admin/partners"
+              className="text-sm text-slate-500 hover:underline"
+            >
               ← Партнёры
             </Link>
           </div>
@@ -95,14 +116,25 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
               <ul className="flex flex-col gap-1 mb-1">
                 {partner.names.map((n) => (
                   <li key={n.id} className="flex items-center gap-3 text-sm">
-                    <span className={n.isPrimary ? "font-medium" : ""}>{n.name}</span>
+                    <span className={n.isPrimary ? "font-medium" : ""}>
+                      {n.name}
+                    </span>
                     {n.isPrimary ? (
-                      <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">основное</span>
+                      <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">
+                        основное
+                      </span>
                     ) : (
                       <form action={setPrimaryPartnerName} className="inline">
                         <input type="hidden" name="id" value={n.id} />
-                        <input type="hidden" name="partnerId" value={partner.id} />
-                        <button type="submit" className="text-xs text-slate-400 hover:text-blue-600 hover:underline">
+                        <input
+                          type="hidden"
+                          name="partnerId"
+                          value={partner.id}
+                        />
+                        <button
+                          type="submit"
+                          className="text-xs text-slate-400 hover:text-blue-600 hover:underline"
+                        >
                           сделать основным
                         </button>
                       </form>
@@ -126,7 +158,10 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
             {partner.partnerTypes.length > 0 ? (
               <div className="flex flex-wrap gap-2 mb-1">
                 {partner.partnerTypes.map((pt) => (
-                  <span key={pt.id} className="flex items-center gap-1 text-sm bg-slate-100 px-2 py-0.5 rounded">
+                  <span
+                    key={pt.id}
+                    className="flex items-center gap-1 text-sm bg-slate-100 px-2 py-0.5 rounded"
+                  >
                     {pt.name}
                     <DeleteItemButton
                       action={removePartnerType}
@@ -153,7 +188,9 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
                 {partner.phones.map((p) => (
                   <li key={p.id} className="flex items-center gap-3 text-sm">
                     <span>{p.phone}</span>
-                    {p.notes && <span className="text-slate-500">{p.notes}</span>}
+                    {p.notes && (
+                      <span className="text-slate-500">{p.notes}</span>
+                    )}
                     <DeleteItemButton
                       action={deletePartnerPhone}
                       fields={{ id: p.id, partnerId: partner.id }}
@@ -175,7 +212,9 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
                 {partner.emails.map((e) => (
                   <li key={e.id} className="flex items-center gap-3 text-sm">
                     <span>{e.email}</span>
-                    {e.notes && <span className="text-slate-500">{e.notes}</span>}
+                    {e.notes && (
+                      <span className="text-slate-500">{e.notes}</span>
+                    )}
                     <DeleteItemButton
                       action={deletePartnerEmail}
                       fields={{ id: e.id, partnerId: partner.id }}
@@ -196,7 +235,12 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
               <ul className="flex flex-col gap-1 mb-1">
                 {partner.websites.map((w) => (
                   <li key={w.id} className="flex items-center gap-3 text-sm">
-                    <a href={w.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    <a
+                      href={w.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
                       {w.url}
                     </a>
                     <DeleteItemButton
@@ -218,36 +262,43 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
             {partner.addresses.length > 0 ? (
               <div className="flex flex-col gap-4 mb-2">
                 {partner.addresses.map((a) => (
-                  <div key={a.id} className="border border-slate-200 rounded-md p-3">
-                    <div className="flex items-center gap-3 text-sm mb-2">
-                      <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                        {ADDRESS_TYPE_LABELS[a.type]}
-                      </span>
-                      <span className="font-medium">{a.address}</span>
-                      {a.comment && <span className="text-slate-500">{a.comment}</span>}
+                  <div
+                    key={a.id}
+                    className="border border-slate-300 rounded-md p-3 shadow-md bg-slate-200"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <EditAddressForm partnerId={partner.id} address={a} />
                       <DeleteItemButton
                         action={deletePartnerAddress}
                         fields={{ id: a.id, partnerId: partner.id }}
                       />
                     </div>
-                    <EditAddressForm partnerId={partner.id} address={a} />
                     {/* Sample types for this address */}
                     <div className="pl-1">
                       <p className="text-xs text-slate-500 mb-1">Образцы:</p>
                       {a.sampleTypes.length > 0 ? (
                         <div className="flex flex-wrap gap-1 mb-1">
                           {a.sampleTypes.map((st) => (
-                            <span key={st.id} className="flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200">
+                            <span
+                              key={st.id}
+                              className="flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200"
+                            >
                               {st.name}
                               <DeleteItemButton
                                 action={removeSampleTypeFromAddress}
-                                fields={{ partnerId: partner.id, addressId: a.id, sampleTypeId: st.id }}
+                                fields={{
+                                  partnerId: partner.id,
+                                  addressId: a.id,
+                                  sampleTypeId: st.id,
+                                }}
                               />
                             </span>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-slate-400 mb-1">Нет образцов</p>
+                        <p className="text-xs text-slate-400 mb-1">
+                          Нет образцов
+                        </p>
                       )}
                       <AddSampleTypeToAddressForm
                         partnerId={partner.id}
@@ -271,7 +322,10 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
             {partner.legalEntities.length > 0 ? (
               <ul className="flex flex-col gap-1 mb-1">
                 {partner.legalEntities.map((le) => (
-                  <li key={le.id} className="border border-slate-200 rounded-md p-4">
+                  <li
+                    key={le.id}
+                    className="border border-slate-300 rounded-md p-4 shadow-md bg-slate-200"
+                  >
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-base font-semibold">{le.name}</span>
                       <DeleteItemButton
@@ -279,7 +333,10 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
                         fields={{ id: le.id, partnerId: partner.id }}
                       />
                     </div>
-                    <EditLegalEntityForm partnerId={partner.id} legalEntity={le} />
+                    <EditLegalEntityForm
+                      partnerId={partner.id}
+                      legalEntity={le}
+                    />
                   </li>
                 ))}
               </ul>
@@ -297,8 +354,12 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
                 {partner.contactPersons.map((cp) => (
                   <li key={cp.id} className="flex items-center gap-3 text-sm">
                     <span className="font-medium">{cp.name}</span>
-                    {cp.role && <span className="text-slate-500">{cp.role}</span>}
-                    {cp.notes && <span className="text-slate-400 italic">{cp.notes}</span>}
+                    {cp.role && (
+                      <span className="text-slate-500">{cp.role}</span>
+                    )}
+                    {cp.notes && (
+                      <span className="text-slate-400 italic">{cp.notes}</span>
+                    )}
                     <DeleteItemButton
                       action={deletePartnerContactPerson}
                       fields={{ id: cp.id, partnerId: partner.id }}
@@ -318,7 +379,10 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
             {partner.cities.length > 0 ? (
               <div className="flex flex-wrap gap-2 mb-1">
                 {partner.cities.map((c) => (
-                  <span key={c.id} className="flex items-center gap-1 text-sm bg-slate-100 px-2 py-0.5 rounded">
+                  <span
+                    key={c.id}
+                    className="flex items-center gap-1 text-sm bg-slate-100 px-2 py-0.5 rounded"
+                  >
                     {c.name}
                     <DeleteItemButton
                       action={removePartnerCity}
@@ -343,7 +407,10 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
             {partner.transportCompanies.length > 0 ? (
               <div className="flex flex-wrap gap-2 mb-1">
                 {partner.transportCompanies.map((tc) => (
-                  <span key={tc.id} className="flex items-center gap-1 text-sm bg-slate-100 px-2 py-0.5 rounded">
+                  <span
+                    key={tc.id}
+                    className="flex items-center gap-1 text-sm bg-slate-100 px-2 py-0.5 rounded"
+                  >
                     {tc.name}
                     <DeleteItemButton
                       action={removePartnerTransportCompany}
@@ -353,7 +420,9 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-400 mb-1">Нет транспортных компаний</p>
+              <p className="text-sm text-slate-400 mb-1">
+                Нет транспортных компаний
+              </p>
             )}
             <AddTransportCompanyForm
               partnerId={partner.id}
@@ -374,7 +443,9 @@ export default async function PartnerDetailPage({ params }: { params: { id: stri
 
           {/* Delete partner */}
           <div className="mt-8 border border-red-200 rounded-md p-4">
-            <h2 className="text-base font-semibold text-red-600 mb-2">Удалить партнёра</h2>
+            <h2 className="text-base font-semibold text-red-600 mb-2">
+              Удалить партнёра
+            </h2>
             <p className="text-sm text-slate-500 mb-3">
               Это действие необратимо. Все данные партнёра будут удалены.
             </p>
