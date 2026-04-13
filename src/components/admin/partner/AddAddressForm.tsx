@@ -81,7 +81,7 @@ export function EditAddressForm({
   const [comment, setComment] = useState(address.comment ?? "");
 
   return (
-    <form action={action} className="flex flex-col gap-2 mt-2">
+    <form action={action} className="flex flex-col gap-2">
       <AddressFields type={type} address={addressValue} comment={comment} onTypeChange={setType} onAddressChange={setAddressValue} onCommentChange={setComment} />
       <div className="flex items-center gap-3">
         <FormButton color="blue" small>Сохранить</FormButton>
