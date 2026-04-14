@@ -416,6 +416,15 @@ model PartnerWebsite {
   @@index([partnerId])
 }
 
+model ShoppingMall {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses PartnerAddress[]
+}
+
 model PartnerAddress {
   id         String          @id @default(uuid())
   type       AddressTypeEnum
@@ -424,9 +433,12 @@ model PartnerAddress {
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 
-  partnerId   String
-  partner     Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  sampleTypes SampleType[]
+  partnerId      String
+  partner        Partner       @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  sampleTypes    SampleType[]
+
+  shoppingMallId String?
+  shoppingMall   ShoppingMall? @relation(fields: [shoppingMallId], references: [id])
 
   @@index([partnerId])
 }

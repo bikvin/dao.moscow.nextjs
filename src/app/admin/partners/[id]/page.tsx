@@ -62,6 +62,7 @@ export default async function PartnerDetailPage({
     allCities,
     allTransportCompanies,
     allPartnerTypes,
+    allShoppingMalls,
   ] = await Promise.all([
     db.partner.findUnique({
       where: { id: params.id },
@@ -85,6 +86,7 @@ export default async function PartnerDetailPage({
     db.city.findMany({ orderBy: { name: "asc" } }),
     db.transportCompany.findMany({ orderBy: { name: "asc" } }),
     db.partnerType.findMany({ orderBy: { name: "asc" } }),
+    db.shoppingMall.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   if (!partner) notFound();
@@ -267,7 +269,7 @@ export default async function PartnerDetailPage({
                     className="border border-slate-300 rounded-md p-3 shadow-md bg-slate-200"
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <EditAddressForm partnerId={partner.id} address={a} />
+                      <EditAddressForm partnerId={partner.id} address={a} allShoppingMalls={allShoppingMalls} />
                       <DeleteItemButton
                         action={deletePartnerAddress}
                         fields={{ id: a.id, partnerId: partner.id }}
@@ -313,7 +315,7 @@ export default async function PartnerDetailPage({
             ) : (
               <p className="text-sm text-slate-400 mb-2">Нет адресов</p>
             )}
-            <AddAddressForm partnerId={partner.id} />
+            <AddAddressForm partnerId={partner.id} allShoppingMalls={allShoppingMalls} />
           </SectionBox>
 
           {/* Legal entities */}

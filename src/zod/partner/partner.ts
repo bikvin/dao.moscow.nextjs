@@ -35,6 +35,7 @@ export const addAddressSchema = z.object({
   type: z.nativeEnum(AddressTypeEnum),
   address: z.string().min(1, "Укажите адрес"),
   comment: z.string().optional(),
+  shoppingMallId: z.string().optional(),
 });
 
 export const addLegalEntitySchema = z.object({
@@ -62,6 +63,10 @@ export const addCitySchema = z.object({
 });
 
 export const partnerTypeSchema = z.object({
+  name: z.string().min(1, "Укажите название"),
+});
+
+export const shoppingMallSchema = z.object({
   name: z.string().min(1, "Укажите название"),
 });
 

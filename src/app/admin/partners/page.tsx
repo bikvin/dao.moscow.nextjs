@@ -16,7 +16,7 @@ const STATUS_LABELS: Record<PartnerStatusEnum, string> = {
 export default async function PartnersPage({
   searchParams,
 }: {
-  searchParams: { page?: string; search?: string; status?: string; cityId?: string; partnerTypeId?: string };
+  searchParams: { page?: string; search?: string; status?: string; cityId?: string; partnerTypeId?: string; shoppingMallId?: string };
 }) {
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const search = searchParams.search ?? "";
@@ -25,10 +25,12 @@ export default async function PartnersPage({
     : PartnerStatusEnum.ACTIVE;
   const cityId = searchParams.cityId ?? "";
   const partnerTypeId = searchParams.partnerTypeId ?? "";
+  const shoppingMallId = searchParams.shoppingMallId ?? "";
 
-  const [allCities, allPartnerTypes] = await Promise.all([
+  const [allCities, allPartnerTypes, allShoppingMalls] = await Promise.all([
     db.city.findMany({ orderBy: { name: "asc" } }),
     db.partnerType.findMany({ orderBy: { name: "asc" } }),
+    db.shoppingMall.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const where = {
@@ -46,6 +48,7 @@ export default async function PartnersPage({
     ...(statusFilter && { status: statusFilter }),
     ...(cityId && { cities: { some: { id: cityId } } }),
     ...(partnerTypeId && { partnerTypes: { some: { id: partnerTypeId } } }),
+    ...(shoppingMallId && { addresses: { some: { shoppingMallId } } }),
   };
 
   const [partners, total] = await Promise.all([
@@ -101,6 +104,12 @@ export default async function PartnersPage({
                 <option value="">Все типы</option>
                 {allPartnerTypes.map((pt) => (
                   <option key={pt.id} value={pt.id}>{pt.name}</option>
+                ))}
+              </select>
+              <select name="shoppingMallId" defaultValue={shoppingMallId} className="admin-form-input text-sm w-40">
+                <option value="">Все ТЦ</option>
+                {allShoppingMalls.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
               <button type="submit" className="link-button link-button-gray text-sm">
