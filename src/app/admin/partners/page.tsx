@@ -60,8 +60,17 @@ export default async function PartnersPage({
         emails: { orderBy: { createdAt: "asc" } },
         cities: { orderBy: { name: "asc" } },
         partnerTypes: { orderBy: { name: "asc" } },
+        websites: { orderBy: { createdAt: "asc" } },
+        transportCompanies: { orderBy: { name: "asc" } },
+        legalEntities: { orderBy: { createdAt: "asc" } },
         contactPersons: { orderBy: { createdAt: "asc" } },
-        addresses: { orderBy: { createdAt: "asc" } },
+        addresses: {
+          orderBy: { createdAt: "asc" },
+          include: {
+            sampleTypes: { orderBy: { name: "asc" } },
+            shoppingMall: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       skip: (currentPage - 1) * PAGE_SIZE,
@@ -130,12 +139,14 @@ export default async function PartnersPage({
                 key={p.id}
                 id={p.id}
                 status={p.status}
-                createdAt={p.createdAt}
                 names={p.names}
                 phones={p.phones}
                 emails={p.emails}
                 cities={p.cities}
                 partnerTypes={p.partnerTypes}
+                websites={p.websites}
+                transportCompanies={p.transportCompanies}
+                legalEntities={p.legalEntities}
                 contactPersons={p.contactPersons}
                 addresses={p.addresses}
               />
