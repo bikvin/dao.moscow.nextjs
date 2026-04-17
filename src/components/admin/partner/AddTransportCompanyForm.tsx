@@ -1,7 +1,8 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { addPartnerTransportCompany } from "@/actions/partner/transportCompanies";
+import { useState, useEffect } from "react";
+import { addPartnerTransportCompany, updatePartnerTransportCompanyComment } from "@/actions/partner/transportCompanies";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { TransportCompany } from "@prisma/client";
 import { CollapsibleAddSection } from "./CollapsibleAddSection";
@@ -18,6 +19,11 @@ export function AddTransportCompanyForm({
 }) {
   const boundAction = addPartnerTransportCompany.bind(null, partnerId);
   const [formState, action] = useFormState<SubItemFormState, FormData>(boundAction, {});
+  const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    if (formState.success) setComment("");
+  }, [formState.success]);
 
   const available = allTransportCompanies.filter((tc) => !existingIds.includes(tc.id));
 
@@ -32,11 +38,39 @@ export function AddTransportCompanyForm({
             <option key={tc.id} value={tc.id}>{tc.name}</option>
           ))}
         </select>
+        <input name="comment" type="text" placeholder="Комментарий" value={comment} onChange={(e) => setComment(e.target.value)} className="admin-form-input text-sm w-56" />
         <FormButton color="green" small>Добавить</FormButton>
         {formState.errors?._form && (
           <span className="text-red-600 text-sm">{formState.errors._form.join(", ")}</span>
         )}
       </form>
     </CollapsibleAddSection>
+  );
+}
+
+export function EditTransportCompanyCommentForm({
+  partnerId,
+  linkId,
+  comment: initialComment,
+}: {
+  partnerId: string;
+  linkId: string;
+  comment: string | null;
+}) {
+  const boundAction = updatePartnerTransportCompanyComment.bind(null, partnerId, linkId);
+  const [formState, action] = useFormState<SubItemFormState, FormData>(boundAction, {});
+  const [comment, setComment] = useState(initialComment ?? "");
+
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <input name="comment" type="text" placeholder="Комментарий" value={comment} onChange={(e) => setComment(e.target.value)} className="admin-form-input text-sm w-56" />
+      <FormButton color="blue" small>Сохранить</FormButton>
+      {formState.errors?._form && (
+        <span className="text-red-600 text-sm">{formState.errors._form.join(", ")}</span>
+      )}
+      {formState.success && (
+        <span className="text-emerald-600 text-sm">{formState.success.message}</span>
+      )}
+    </form>
   );
 }

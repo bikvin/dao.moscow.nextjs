@@ -34,7 +34,7 @@ type PartnerCardProps = {
   cities: { id: string; name: string }[];
   partnerTypes: { id: string; name: string }[];
   websites: { id: string; url: string }[];
-  transportCompanies: { id: string; name: string }[];
+  transportCompanies: { id: string; comment: string | null; transportCompany: { id: string; name: string } }[];
   legalEntities: {
     id: string; name: string; inn: string | null; kpp: string | null; ogrn: string | null;
     legalAddress: string | null; actualAddress: string | null; phones: string | null;
@@ -171,7 +171,8 @@ export function PartnerCard({
               <DetailRow label="Транспорт">
                 {transportCompanies.map((tc) => (
                   <span key={tc.id} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                    {tc.name}
+                    {tc.transportCompany.name}
+                    {tc.comment && <span className="text-slate-400 ml-1">({tc.comment})</span>}
                   </span>
                 ))}
               </DetailRow>

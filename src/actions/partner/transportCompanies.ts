@@ -33,19 +33,19 @@ export async function deleteTransportCompany(formData: FormData): Promise<void> 
 
 export async function addPartnerTransportCompany(
   partnerId: string,
-  formState: SubItemFormState,
+  _formState: SubItemFormState,
   formData: FormData
 ): Promise<SubItemFormState> {
   const tcId = formData.get("tcId") as string;
+  const comment = (formData.get("comment") as string) || null;
 
   if (!tcId) {
     return { errors: { _form: ["Выберите транспортную компанию"] } };
   }
 
   try {
-    await db.partner.update({
-      where: { id: partnerId },
-      data: { transportCompanies: { connect: { id: tcId } } },
+    await db.partnerTransportCompany.create({
+      data: { partnerId, transportCompanyId: tcId, comment },
     });
   } catch (err: unknown) {
     return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };
@@ -55,12 +55,30 @@ export async function addPartnerTransportCompany(
   return { success: { message: "Добавлено" } };
 }
 
+export async function updatePartnerTransportCompanyComment(
+  partnerId: string,
+  linkId: string,
+  _formState: SubItemFormState,
+  formData: FormData
+): Promise<SubItemFormState> {
+  const comment = (formData.get("comment") as string) || null;
+
+  try {
+    await db.partnerTransportCompany.update({
+      where: { id: linkId },
+      data: { comment },
+    });
+  } catch (err: unknown) {
+    return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };
+  }
+
+  revalidatePath(`/admin/partners/${partnerId}`);
+  return { success: { message: "Сохранено" } };
+}
+
 export async function removePartnerTransportCompany(formData: FormData): Promise<void> {
   const partnerId = formData.get("partnerId") as string;
-  const tcId = formData.get("tcId") as string;
-  await db.transportCompany.update({
-    where: { id: tcId },
-    data: { partners: { disconnect: { id: partnerId } } },
-  });
+  const linkId = formData.get("linkId") as string;
+  await db.partnerTransportCompany.delete({ where: { id: linkId } });
   revalidatePath(`/admin/partners/${partnerId}`);
 }

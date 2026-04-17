@@ -16,7 +16,7 @@ import {
 } from "@/components/admin/partner/AddLegalEntityForm";
 import { AddContactPersonForm } from "@/components/admin/partner/AddContactPersonForm";
 import { AddCityForm } from "@/components/admin/partner/AddCityForm";
-import { AddTransportCompanyForm } from "@/components/admin/partner/AddTransportCompanyForm";
+import { AddTransportCompanyForm, EditTransportCompanyCommentForm } from "@/components/admin/partner/AddTransportCompanyForm";
 import { AddPartnerTypeForm } from "@/components/admin/partner/AddPartnerTypeForm";
 import { AddSampleTypeToAddressForm } from "@/components/admin/partner/AddSampleTypeToAddressForm";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
@@ -78,7 +78,7 @@ export default async function PartnerDetailPage({
         legalEntities: { orderBy: { createdAt: "asc" } },
         contactPersons: { orderBy: { createdAt: "asc" } },
         cities: { orderBy: { name: "asc" } },
-        transportCompanies: { orderBy: { name: "asc" } },
+        transportCompanies: { include: { transportCompany: true }, orderBy: { createdAt: "asc" } },
         partnerTypes: { orderBy: { name: "asc" } },
       },
     }),
@@ -407,18 +407,25 @@ export default async function PartnerDetailPage({
           <SectionBox>
             <SectionHeader title="Транспортные компании" />
             {partner.transportCompanies.length > 0 ? (
-              <div className="flex flex-wrap gap-2 mb-1">
-                {partner.transportCompanies.map((tc) => (
-                  <span
-                    key={tc.id}
-                    className="flex items-center gap-1 text-sm bg-slate-100 px-2 py-0.5 rounded"
+              <div className="flex flex-col gap-3 mb-2">
+                {partner.transportCompanies.map((link) => (
+                  <div
+                    key={link.id}
+                    className="border border-slate-300 rounded-md p-3 bg-slate-200 shadow-md"
                   >
-                    {tc.name}
-                    <DeleteItemButton
-                      action={removePartnerTransportCompany}
-                      fields={{ partnerId: partner.id, tcId: tc.id }}
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-sm font-semibold">{link.transportCompany.name}</span>
+                      <DeleteItemButton
+                        action={removePartnerTransportCompany}
+                        fields={{ partnerId: partner.id, linkId: link.id }}
+                      />
+                    </div>
+                    <EditTransportCompanyCommentForm
+                      partnerId={partner.id}
+                      linkId={link.id}
+                      comment={link.comment}
                     />
-                  </span>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -429,7 +436,7 @@ export default async function PartnerDetailPage({
             <AddTransportCompanyForm
               partnerId={partner.id}
               allTransportCompanies={allTransportCompanies}
-              existingIds={partner.transportCompanies.map((tc) => tc.id)}
+              existingIds={partner.transportCompanies.map((link) => link.transportCompanyId)}
             />
           </SectionBox>
 

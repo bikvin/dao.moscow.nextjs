@@ -324,7 +324,23 @@ model TransportCompany {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  partners Partner[]
+  partnerLinks PartnerTransportCompany[]
+}
+
+model PartnerTransportCompany {
+  id                 String           @id @default(uuid())
+  comment            String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  partnerId          String
+  partner            Partner          @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  transportCompanyId String
+  transportCompany   TransportCompany @relation(fields: [transportCompanyId], references: [id])
+
+  @@unique([partnerId, transportCompanyId])
+  @@index([partnerId])
 }
 
 model PartnerType {
@@ -354,7 +370,7 @@ model Partner {
   updatedAt DateTime @updatedAt
 
   cities             City[]
-  transportCompanies TransportCompany[]
+  transportCompanies PartnerTransportCompany[]
   partnerTypes       PartnerType[]
   names              PartnerName[]
   emails             PartnerEmail[]

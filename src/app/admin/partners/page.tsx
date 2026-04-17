@@ -61,7 +61,7 @@ export default async function PartnersPage({
         cities: { orderBy: { name: "asc" } },
         partnerTypes: { orderBy: { name: "asc" } },
         websites: { orderBy: { createdAt: "asc" } },
-        transportCompanies: { orderBy: { name: "asc" } },
+        transportCompanies: { include: { transportCompany: true }, orderBy: { createdAt: "asc" } },
         legalEntities: { orderBy: { createdAt: "asc" } },
         contactPersons: { orderBy: { createdAt: "asc" } },
         addresses: {
