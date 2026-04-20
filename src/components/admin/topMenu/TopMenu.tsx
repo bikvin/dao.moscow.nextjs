@@ -36,9 +36,30 @@ type TopMenuDropDown = TopMenuItemBase & {
 type TopMenuItem = TopMenuItemLink | TopMenuDropDown;
 const topMenuList: TopMenuItem[] = [
   {
+    name: "Заказы",
+    type: "dropdown",
+    data: [
+      {
+        type: "link",
+        name: "Все заказы",
+        link: "/admin",
+      },
+      {
+        type: "link",
+        name: "Способы доставки",
+        link: "/admin/orders/delivery-methods",
+      },
+      {
+        type: "link",
+        name: "Способы оплаты",
+        link: "/admin/orders/payment-methods",
+      },
+    ],
+  },
+  {
     type: "link",
     name: "Склад",
-    link: "/admin",
+    link: "/admin/warehouse",
   },
 
   {

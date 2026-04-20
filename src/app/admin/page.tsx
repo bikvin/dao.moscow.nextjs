@@ -1,46 +1,172 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
-import WarehouseTable from "@/components/admin/warehouse/WarehouseTable";
 import { db } from "@/db";
-import Link from "next/link";
-import { OzonSyncStatusEnum, YandexSyncStatusEnum } from "@prisma/client";
+import { OrderStatusEnum, OrderTypeEnum, ProductStatusEnum } from "@prisma/client";
+import { Pagination } from "@/components/admin/Pagination";
+import { OrdersGrid } from "@/components/admin/order/OrdersGrid";
+import { CreateOrderForm } from "@/components/admin/order/CreateOrderForm";
 
-export default async function ProfilePage() {
-  const [lastYandexLog, lastOzonLog] = await Promise.all([
-    db.yandexSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
-    db.ozonSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
+const PAGE_SIZE = 50;
+
+const STATUS_LABELS: Record<OrderStatusEnum, string> = {
+  ACTIVE: "Активен",
+  FULFILLED: "Выполнен",
+  CANCELLED: "Отменён",
+};
+
+const ORDER_TYPE_LABELS: Record<OrderTypeEnum, string> = {
+  SALE: "Продажа",
+  RETURN: "Возврат",
+};
+
+export default async function OrdersPage({
+  searchParams,
+}: {
+  searchParams: {
+    page?: string;
+    search?: string;
+    status?: string;
+    orderType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  };
+}) {
+  const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const search = searchParams.search ?? "";
+  const statusFilter = searchParams.status ?? "";
+  const orderTypeFilter = searchParams.orderType ?? "";
+  const dateFrom = searchParams.dateFrom ?? "";
+  const dateTo = searchParams.dateTo ?? "";
+
+  const where = {
+    ...(search && {
+      partner: {
+        names: { some: { name: { contains: search, mode: "insensitive" as const } } },
+      },
+    }),
+    ...(statusFilter && { status: statusFilter as OrderStatusEnum }),
+    ...(orderTypeFilter && { orderType: orderTypeFilter as OrderTypeEnum }),
+    ...((dateFrom || dateTo) && {
+      orderDate: {
+        ...(dateFrom && { gte: new Date(dateFrom) }),
+        ...(dateTo && { lte: new Date(dateTo + "T23:59:59.999Z") }),
+      },
+    }),
+  };
+
+  const [orders, total, allPartners, deliveryMethods, paymentMethods, products] = await Promise.all([
+    db.order.findMany({
+      where,
+      include: {
+        partner: {
+          include: {
+            names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
+          },
+        },
+        deliveryMethod: true,
+        items: {
+          include: {
+            product: { select: { sku: true } },
+            productVariant: { select: { variantName: true } },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+      orderBy: [{ year: "desc" }, { sequenceNumber: "desc" }],
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    db.order.count({ where }),
+    db.partner.findMany({
+      include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.deliveryMethod.findMany({ orderBy: { name: "asc" } }),
+    db.paymentMethod.findMany({ orderBy: { name: "asc" } }),
+    db.product.findMany({
+      where: { status: ProductStatusEnum.ACTIVE },
+      select: {
+        id: true,
+        sku: true,
+        length_mm: true,
+        width_mm: true,
+        productVariants: {
+          select: { id: true, variantName: true },
+          orderBy: { variantName: "asc" },
+        },
+      },
+      orderBy: { sku: "asc" },
+    }),
   ]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const partnerOptions = allPartners.map((p) => ({
+    id: p.id,
+    name: p.names[0]?.name ?? "—",
+  }));
 
   return (
     <>
       <TopMenu />
+      <div className="max-w-screen-xl mx-auto">
+        <div className="w-[95%] mx-auto pb-16">
+          <h1 className="admin-form-header mt-10">Заказы</h1>
 
-      <div className="max-w-screen-lg mx-auto">
-        <div className="w-[90%] mx-auto">
-          {/* Marketplace sync banners — only shown on error */}
-          <div className="mt-4 mb-2 flex flex-col gap-1">
-            {lastYandexLog && lastYandexLog.status !== YandexSyncStatusEnum.SUCCESS && (
-              <div className="text-sm flex items-center gap-3 text-slate-500">
-                <span>Яндекс Маркет:</span>
-                <span>{new Date(lastYandexLog.createdAt).toLocaleString("ru-RU")} UTC</span>
-                <span className="text-red-600 font-medium">Ошибка: {lastYandexLog.message}</span>
-                <Link href="/admin/yandex" className="text-sky-600 hover:underline">
-                  Синхронизировать
-                </Link>
-              </div>
-            )}
-            {lastOzonLog && lastOzonLog.status !== OzonSyncStatusEnum.SUCCESS && (
-              <div className="text-sm flex items-center gap-3 text-slate-500">
-                <span>Ozon:</span>
-                <span>{new Date(lastOzonLog.createdAt).toLocaleString("ru-RU")} UTC</span>
-                <span className="text-red-600 font-medium">Ошибка: {lastOzonLog.message}</span>
-                <Link href="/admin/ozon" className="text-sky-600 hover:underline">
-                  Синхронизировать
-                </Link>
-              </div>
-            )}
-          </div>
+          {/* Create order form */}
+          <CreateOrderForm
+            partners={partnerOptions}
+            deliveryMethods={deliveryMethods}
+            paymentMethods={paymentMethods}
+            products={products}
+          />
 
-          <WarehouseTable />
+          {/* Filters */}
+          <form className="mt-6 flex flex-wrap gap-2 items-center">
+            <input
+              name="search"
+              type="text"
+              defaultValue={search}
+              placeholder="Партнёр"
+              className="admin-form-input text-sm w-48"
+            />
+            <select name="status" defaultValue={statusFilter} className="admin-form-input text-sm w-36">
+              <option value="">Все статусы</option>
+              {Object.values(OrderStatusEnum).map((s) => (
+                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+            <select name="orderType" defaultValue={orderTypeFilter} className="admin-form-input text-sm w-32">
+              <option value="">Все типы</option>
+              {Object.values(OrderTypeEnum).map((t) => (
+                <option key={t} value={t}>{ORDER_TYPE_LABELS[t]}</option>
+              ))}
+            </select>
+            <input
+              name="dateFrom"
+              type="date"
+              defaultValue={dateFrom}
+              className="admin-form-input text-sm w-36"
+            />
+            <span className="text-slate-400 text-sm">—</span>
+            <input
+              name="dateTo"
+              type="date"
+              defaultValue={dateTo}
+              className="admin-form-input text-sm w-36"
+            />
+            <button type="submit" className="link-button link-button-gray text-sm">
+              Найти
+            </button>
+          </form>
+
+          <OrdersGrid orders={orders} products={products} />
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            basePath="/admin"
+            searchParams={searchParams}
+          />
         </div>
       </div>
     </>

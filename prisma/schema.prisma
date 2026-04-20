@@ -75,6 +75,27 @@ enum PriceUnitEnum {
   ITEM
 }
 
+enum OrderTypeEnum {
+  SALE
+  RETURN
+}
+
+enum OrderStatusEnum {
+  ACTIVE
+  FULFILLED
+  CANCELLED
+}
+
+enum DeliveryStatusEnum {
+  DELIVERED
+  NOT_DELIVERED
+}
+
+enum PaymentStatusEnum {
+  PAID
+  NOT_PAID
+}
+
 model ChipSize {
   id           String    @id @default(uuid())
   name         String    @unique
@@ -139,6 +160,7 @@ model Product {
   yandexMarketMappings YandexMarketMapping[]
   ozonMappings         OzonMapping[]
   prices               Price[]
+  orderItems           OrderItem[]
 }
 
 model ProductVariant {
@@ -156,6 +178,7 @@ model ProductVariant {
   productReceipts ProductReceipt[]
   productIssues   ProductIssue[]
   productReserves ProductReserve[]
+  orderItems      OrderItem[]
 
   @@index([productId])
 }
@@ -379,6 +402,7 @@ model Partner {
   addresses          PartnerAddress[]
   legalEntities      PartnerLegalEntity[]
   contactPersons     PartnerContactPerson[]
+  orders             Order[]
 }
 
 model PartnerName {
@@ -493,4 +517,83 @@ model PartnerContactPerson {
   partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId])
+}
+
+model DeliveryMethod {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  defaultPriceRub Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orders Order[]
+}
+
+model PaymentMethod {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Order {
+  id             String             @id @default(uuid())
+  year           Int
+  sequenceNumber Int
+  orderDate      DateTime
+  orderType      OrderTypeEnum      @default(SALE)
+  status         OrderStatusEnum    @default(ACTIVE)
+  deliveryStatus DeliveryStatusEnum @default(NOT_DELIVERED)
+  paymentStatus  PaymentStatusEnum  @default(NOT_PAID)
+  deliveryDate   DateTime?
+  paymentDate    DateTime?
+  note           String?
+
+  deliveryPriceRub Int   @default(0)
+  discountPercent  Float @default(0)
+  totalRub         Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id])
+
+  deliveryMethodId String?
+  deliveryMethod   DeliveryMethod? @relation(fields: [deliveryMethodId], references: [id])
+
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+
+  items OrderItem[]
+
+  @@unique([year, sequenceNumber])
+  @@index([partnerId])
+}
+
+model OrderItem {
+  id            String        @id @default(uuid())
+  quantity      Int
+  quantityM2    Float?
+  priceUnit     PriceUnitEnum
+  priceInCents  Int
+  priceCurrency CurrencyEnum
+  priceRub      Int
+  totalRub      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@index([orderId])
 }
