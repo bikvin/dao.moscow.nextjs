@@ -6,10 +6,12 @@ import { PlusCircle, ChevronUp } from "lucide-react";
 export function CollapsibleAddSection({
   label,
   success,
+  showLabel,
   children,
 }: {
   label: string;
   success?: boolean;
+  showLabel?: boolean;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -23,10 +25,26 @@ export function CollapsibleAddSection({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="mt-4 text-emerald-600 hover:text-emerald-700"
+        className={
+          showLabel
+            ? open
+              ? "mt-4 link-button link-button-gray text-sm"
+              : "mt-4 link-button link-button-green text-sm"
+            : "mt-4 text-emerald-600 hover:text-emerald-700"
+        }
         title={open ? "Свернуть" : label}
       >
-        {open ? <ChevronUp className="w-6 h-6 stroke-[2.5]" /> : <PlusCircle className="w-6 h-6 stroke-[2.5]" />}
+        {showLabel ? (
+          open ? (
+            "Свернуть"
+          ) : (
+            label
+          )
+        ) : open ? (
+          <ChevronUp className="w-6 h-6 stroke-[2.5]" />
+        ) : (
+          <PlusCircle className="w-6 h-6 stroke-[2.5]" />
+        )}
       </button>
 
       <div

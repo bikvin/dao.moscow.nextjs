@@ -4,7 +4,7 @@ import { OrderNoteForm } from "./OrderNoteForm";
 import { AddOrderItemForm, type ProductOption } from "./AddOrderItemForm";
 import { OrderStatusEnum, DeliveryStatusEnum, PaymentStatusEnum, OrderTypeEnum } from "@prisma/client";
 
-const COLS = "grid-cols-[72px_84px_156px_1fr_52px_72px_88px_96px_auto]";
+const COLS = "grid-cols-[72px_84px_156px_1fr_52px_72px_88px_96px_180px]";
 
 function formatRub(kopecks: number): string {
   return new Intl.NumberFormat("ru-RU").format(kopecks / 100) + " ₽";
@@ -83,7 +83,7 @@ function OrderNumber({ order }: { order: Order }) {
         href={`/admin/orders/${order.id}`}
         className="text-sm font-semibold text-blue-600 hover:underline"
       >
-        {order.year}-{order.sequenceNumber}
+        {order.sequenceNumber}
       </Link>
       <div className="mt-0.5">
         <Badge {...ORDER_TYPE_CONFIG[order.orderType]} />

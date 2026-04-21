@@ -1,6 +1,10 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { OrderStatusEnum, OrderTypeEnum, ProductStatusEnum } from "@prisma/client";
+import {
+  OrderStatusEnum,
+  OrderTypeEnum,
+  ProductStatusEnum,
+} from "@prisma/client";
 import { Pagination } from "@/components/admin/Pagination";
 import { OrdersGrid } from "@/components/admin/order/OrdersGrid";
 import { CreateOrderForm } from "@/components/admin/order/CreateOrderForm";
@@ -40,7 +44,9 @@ export default async function OrdersPage({
   const where = {
     ...(search && {
       partner: {
-        names: { some: { name: { contains: search, mode: "insensitive" as const } } },
+        names: {
+          some: { name: { contains: search, mode: "insensitive" as const } },
+        },
       },
     }),
     ...(statusFilter && { status: statusFilter as OrderStatusEnum }),
@@ -53,7 +59,14 @@ export default async function OrdersPage({
     }),
   };
 
-  const [orders, total, allPartners, deliveryMethods, paymentMethods, products] = await Promise.all([
+  const [
+    orders,
+    total,
+    allPartners,
+    deliveryMethods,
+    paymentMethods,
+    products,
+  ] = await Promise.all([
     db.order.findMany({
       where,
       include: {
@@ -71,13 +84,15 @@ export default async function OrdersPage({
           orderBy: { createdAt: "asc" },
         },
       },
-      orderBy: [{ year: "desc" }, { sequenceNumber: "desc" }],
+      orderBy: [{ year: "asc" }, { sequenceNumber: "asc" }],
       skip: (currentPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
     db.order.count({ where }),
     db.partner.findMany({
-      include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
+      include: {
+        names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
+      },
       orderBy: { createdAt: "desc" },
     }),
     db.deliveryMethod.findMany({ orderBy: { name: "asc" } }),
@@ -102,7 +117,7 @@ export default async function OrdersPage({
 
   const partnerOptions = allPartners.map((p) => ({
     id: p.id,
-    name: p.names[0]?.name ?? "—",
+    names: p.names.map((n) => n.name),
   }));
 
   return (
@@ -111,14 +126,6 @@ export default async function OrdersPage({
       <div className="max-w-screen-xl mx-auto">
         <div className="w-[95%] mx-auto pb-16">
           <h1 className="admin-form-header mt-10">Заказы</h1>
-
-          {/* Create order form */}
-          <CreateOrderForm
-            partners={partnerOptions}
-            deliveryMethods={deliveryMethods}
-            paymentMethods={paymentMethods}
-            products={products}
-          />
 
           {/* Filters */}
           <form className="mt-6 flex flex-wrap gap-2 items-center">
@@ -129,16 +136,28 @@ export default async function OrdersPage({
               placeholder="Партнёр"
               className="admin-form-input text-sm w-48"
             />
-            <select name="status" defaultValue={statusFilter} className="admin-form-input text-sm w-36">
+            <select
+              name="status"
+              defaultValue={statusFilter}
+              className="admin-form-input text-sm w-36"
+            >
               <option value="">Все статусы</option>
               {Object.values(OrderStatusEnum).map((s) => (
-                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                <option key={s} value={s}>
+                  {STATUS_LABELS[s]}
+                </option>
               ))}
             </select>
-            <select name="orderType" defaultValue={orderTypeFilter} className="admin-form-input text-sm w-32">
+            <select
+              name="orderType"
+              defaultValue={orderTypeFilter}
+              className="admin-form-input text-sm w-32"
+            >
               <option value="">Все типы</option>
               {Object.values(OrderTypeEnum).map((t) => (
-                <option key={t} value={t}>{ORDER_TYPE_LABELS[t]}</option>
+                <option key={t} value={t}>
+                  {ORDER_TYPE_LABELS[t]}
+                </option>
               ))}
             </select>
             <input
@@ -154,7 +173,10 @@ export default async function OrdersPage({
               defaultValue={dateTo}
               className="admin-form-input text-sm w-36"
             />
-            <button type="submit" className="link-button link-button-gray text-sm">
+            <button
+              type="submit"
+              className="link-button link-button-gray text-sm"
+            >
               Найти
             </button>
           </form>
@@ -167,6 +189,16 @@ export default async function OrdersPage({
             basePath="/admin"
             searchParams={searchParams}
           />
+
+          {/* Create order form */}
+          <div className="mt-20 mb-20">
+            <CreateOrderForm
+              partners={partnerOptions}
+              deliveryMethods={deliveryMethods}
+              paymentMethods={paymentMethods}
+              products={products}
+            />
+          </div>
         </div>
       </div>
     </>

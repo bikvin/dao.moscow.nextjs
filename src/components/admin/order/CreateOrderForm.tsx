@@ -7,10 +7,12 @@ import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAddSection";
 import FormButton from "@/components/common/formButton/formButton";
 import { OrderTypeEnum, PriceUnitEnum, CurrencyEnum } from "@prisma/client";
-import { PlusCircle, X } from "lucide-react";
+import { X } from "lucide-react";
 import { type ProductOption } from "./AddOrderItemForm";
+import { PartnerCombobox } from "./PartnerCombobox";
 
 type Option = { id: string; name: string };
+type PartnerOption = { id: string; names: string[] };
 
 type ItemState = {
   id: string;
@@ -228,7 +230,7 @@ export function CreateOrderForm({
   paymentMethods,
   products,
 }: {
-  partners: Option[];
+  partners: PartnerOption[];
   deliveryMethods: Option[];
   paymentMethods: Option[];
   products: ProductOption[];
@@ -260,22 +262,17 @@ export function CreateOrderForm({
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...update } : i)));
 
   return (
-    <CollapsibleAddSection label="Создать заказ" success={!!formState.success}>
+    <CollapsibleAddSection label="Создать новый заказ" success={!!formState.success} showLabel>
       <form action={action} className="flex flex-col gap-3">
 
         {/* Order header fields */}
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            name="partnerId"
+          <input type="hidden" name="partnerId" value={partnerId} />
+          <PartnerCombobox
+            partners={partners}
             value={partnerId}
-            onChange={(e) => setPartnerId(e.target.value)}
-            className="admin-form-input text-sm w-56"
-          >
-            <option value="">— партнёр —</option>
-            {partners.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            onChange={setPartnerId}
+          />
           <input
             name="orderDate"
             type="date"
@@ -345,12 +342,11 @@ export function CreateOrderForm({
           <button
             type="button"
             onClick={addRow}
-            className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+            className="text-sm text-blue-500 hover:underline"
           >
-            <PlusCircle className="w-4 h-4" />
             Добавить товар
           </button>
-          <FormButton color="green" small>Создать заказ</FormButton>
+          <FormButton color="green" small>Сохранить заказ</FormButton>
           {formState.errors?._form && (
             <span className="text-red-600 text-sm">{formState.errors._form.join(", ")}</span>
           )}
