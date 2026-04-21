@@ -90,7 +90,8 @@ export function AddOrderItemForm({
 
   const handleProductChange = (v: string) => {
     setProductId(v);
-    setVariantId("");
+    const variants = products.find((p) => p.id === v)?.productVariants ?? [];
+    setVariantId(variants.length === 1 ? variants[0].id : "");
   };
 
   return (

@@ -97,7 +97,10 @@ function ItemRow({
         <ProductCombobox
           products={products}
           value={item.productId}
-          onChange={(id) => onChange({ productId: id, variantId: "" })}
+          onChange={(id) => {
+            const variants = products.find((p) => p.id === id)?.productVariants ?? [];
+            onChange({ productId: id, variantId: variants.length === 1 ? variants[0].id : "" });
+          }}
         />
       </Field>
 
