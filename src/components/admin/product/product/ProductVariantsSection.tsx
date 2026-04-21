@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ProductVariant } from "@prisma/client";
+import { ProductVariant, VariantStatusEnum } from "@prisma/client";
 import { FormFieldError } from "@/components/common/formFieldError/FormFieldError";
 import {
   createVariant,
   VariantFormState,
 } from "@/actions/product/product-variant/create";
 import { deleteVariant } from "@/actions/product/product-variant/delete";
+import { toggleVariantStatus } from "@/actions/product/product-variant/updateStatus";
 import DeleteDialog from "@/components/common/delete/DeleteDialog";
 
 interface ProductVariantsSectionProps {
@@ -52,14 +53,32 @@ export default function ProductVariantsSection({
               key={productVariant.id}
               className="flex items-center justify-between text-sm"
             >
-              <span>
+              <span className={productVariant.status === VariantStatusEnum.INACTIVE ? "text-slate-400 line-through" : ""}>
                 {index + 1}. {productVariant.variantName}
+                {productVariant.isMain && (
+                  <span className="ml-2 text-xs text-slate-400">основной</span>
+                )}
               </span>
-              <DeleteDialog
-                id={productVariant.id}
-                action={deleteVariant}
-                message={`Вы уверены, что хотите удалить вариант "${productVariant.variantName}"?`}
-              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleVariantStatus(productVariant.id, productId)}
+                  className={`text-xs px-2 py-0.5 rounded font-medium ${
+                    productVariant.status === VariantStatusEnum.ACTIVE
+                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  }`}
+                >
+                  {productVariant.status === VariantStatusEnum.ACTIVE ? "Активен" : "Не активен"}
+                </button>
+                {!productVariant.isMain && (
+                  <DeleteDialog
+                    id={productVariant.id}
+                    action={deleteVariant}
+                    message={`Вы уверены, что хотите удалить вариант "${productVariant.variantName}"?`}
+                  />
+                )}
+              </div>
             </li>
           ))}
       </ul>

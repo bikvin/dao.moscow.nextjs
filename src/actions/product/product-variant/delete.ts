@@ -27,6 +27,10 @@ export async function deleteVariant(
     return { errors: { _form: ["Вариант не найден"] } };
   }
 
+  if (variant.isMain) {
+    return { errors: { _form: ["Нельзя удалить основной вариант"] } };
+  }
+
   const { productReceipts, productIssues, productReserves } = variant._count;
 
   if (productReceipts > 0 || productIssues > 0 || productReserves > 0) {
