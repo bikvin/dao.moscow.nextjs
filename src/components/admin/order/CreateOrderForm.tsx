@@ -10,6 +10,7 @@ import { OrderTypeEnum, PriceUnitEnum, CurrencyEnum } from "@prisma/client";
 import { X } from "lucide-react";
 import { type ProductOption } from "./AddOrderItemForm";
 import { PartnerCombobox } from "./PartnerCombobox";
+import { ProductCombobox } from "./ProductCombobox";
 
 type Option = { id: string; name: string };
 type PartnerOption = { id: string; names: string[] };
@@ -92,17 +93,12 @@ function ItemRow({
   return (
     <div className="flex flex-wrap items-end gap-2 pl-2 border-l-2 border-slate-200">
       <Field label="Товар">
-        <select
-          name="productId"
+        <input type="hidden" name="productId" value={item.productId} />
+        <ProductCombobox
+          products={products}
           value={item.productId}
-          onChange={(e) => onChange({ productId: e.target.value, variantId: "" })}
-          className="admin-form-input text-sm w-44"
-        >
-          <option value="">— выберите —</option>
-          {products.map((p) => (
-            <option key={p.id} value={p.id}>{p.sku}</option>
-          ))}
-        </select>
+          onChange={(id) => onChange({ productId: id, variantId: "" })}
+        />
       </Field>
 
       <Field label="Партия">

@@ -7,6 +7,7 @@ import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAddSection";
 import FormButton from "@/components/common/formButton/formButton";
 import { PriceUnitEnum, CurrencyEnum } from "@prisma/client";
+import { ProductCombobox } from "./ProductCombobox";
 
 export type ProductOption = {
   id: string;
@@ -97,17 +98,12 @@ export function AddOrderItemForm({
       <form action={action} className="flex flex-wrap items-end gap-2">
 
         <Field label="Товар">
-          <select
-            name="productId"
+          <input type="hidden" name="productId" value={productId} />
+          <ProductCombobox
+            products={products}
             value={productId}
-            onChange={(e) => handleProductChange(e.target.value)}
-            className="admin-form-input text-sm w-44"
-          >
-            <option value="">— выберите —</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>{p.sku}</option>
-            ))}
-          </select>
+            onChange={handleProductChange}
+          />
         </Field>
 
         <Field label="Партия">
