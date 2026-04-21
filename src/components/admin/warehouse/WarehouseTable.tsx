@@ -1,4 +1,5 @@
 import { db } from "@/db";
+import { VariantStatusEnum } from "@prisma/client";
 import { WarehouseTableClient } from "./WarehouseTableClient";
 
 export default async function WarehouseTable() {
@@ -9,6 +10,7 @@ export default async function WarehouseTable() {
         orderBy: [{ displayOrder: "asc" }, { sku: "asc" }],
         include: {
           productVariants: {
+            where: { status: VariantStatusEnum.ACTIVE },
             include: {
               productReserves: {
                 where: { status: "ACTIVE" },

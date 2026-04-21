@@ -1,4 +1,5 @@
 import { db } from "@/db";
+import { VariantStatusEnum } from "@prisma/client";
 import { PublicWarehouseTableClient } from "./PublicWarehouseTableClient";
 
 export default async function PublicWarehouseTable() {
@@ -8,7 +9,7 @@ export default async function PublicWarehouseTable() {
       products: {
         orderBy: [{ displayOrder: "asc" }, { sku: "asc" }],
         include: {
-          productVariants: true,
+          productVariants: { where: { status: VariantStatusEnum.ACTIVE } },
         },
       },
     },
