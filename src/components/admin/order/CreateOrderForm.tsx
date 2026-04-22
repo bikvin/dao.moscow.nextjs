@@ -247,7 +247,7 @@ export function CreateOrderForm({
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [deliveryPrice, setDeliveryPrice] = useState("");
   const [note, setNote] = useState("");
-  const [items, setItems] = useState<ItemState[]>([]);
+  const [items, setItems] = useState<ItemState[]>([emptyItem()]);
 
   useEffect(() => {
     if (formState.success) {
@@ -259,7 +259,7 @@ export function CreateOrderForm({
       setPaymentMethodId("");
       setDeliveryPrice("");
       setNote("");
-      setItems([]);
+      setItems([emptyItem()]);
     }
   }, [formState.success]);
 
