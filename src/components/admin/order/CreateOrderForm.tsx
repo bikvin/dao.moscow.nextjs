@@ -338,6 +338,19 @@ export function CreateOrderForm({
     return true;
   }
 
+  const grandTotal = items.reduce((sum, item) => {
+    const product = products.find((p) => p.id === item.productId);
+    const quantityM2 = product && item.quantity
+      ? (product.length_mm * product.width_mm * (parseInt(item.quantity) || 0)) / 1_000_000
+      : null;
+    const effectivePriceRub = item.currency === CurrencyEnum.RUB ? item.price : item.priceRub;
+    const priceRubNum = parseFloat(effectivePriceRub) || 0;
+    const itemTotal = item.priceUnit === PriceUnitEnum.M2 && quantityM2 !== null
+      ? quantityM2 * priceRubNum
+      : (parseInt(item.quantity) || 0) * priceRubNum;
+    return sum + itemTotal;
+  }, 0) + (parseFloat(deliveryPrice) || 0);
+
   const addRow = () => setItems((prev) => [...prev, emptyItem()]);
   const removeRow = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
   const updateRow = (id: string, update: Partial<ItemState>) =>
@@ -465,9 +478,14 @@ export function CreateOrderForm({
           />
         </div>
 
-        {/* Submit */}
+        {/* Total + Submit */}
         <div className="flex items-center gap-4">
           <FormButton color="green" small>Сохранить заказ</FormButton>
+          {grandTotal > 0 && (
+            <div className="text-sm text-slate-600">
+              Итого: <span className="font-medium">{new Intl.NumberFormat("ru-RU").format(grandTotal)} ₽</span>
+            </div>
+          )}
           {formState.errors?._form && (
             <span className="text-red-600 text-sm">{formState.errors._form.join(", ")}</span>
           )}
