@@ -23,10 +23,12 @@ export function ProductCombobox({
   products,
   value,
   onChange,
+  error,
 }: {
   products: ProductOption[];
   value: string;
   onChange: (id: string) => void;
+  error?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -40,7 +42,7 @@ export function ProductCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-44 justify-between text-sm font-normal h-8 px-2"
+          className={`w-44 justify-between text-sm font-normal h-8 px-2 ${error ? "border-red-500" : ""}`}
         >
           <span className="truncate">
             {selected ? selected.sku : "— выберите —"}

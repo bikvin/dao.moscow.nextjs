@@ -24,10 +24,12 @@ export function PartnerCombobox({
   partners,
   value,
   onChange,
+  error,
 }: {
   partners: PartnerOption[];
   value: string;
   onChange: (id: string) => void;
+  error?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -41,7 +43,7 @@ export function PartnerCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-56 justify-between text-sm font-normal h-8 px-2"
+          className={`w-56 justify-between text-sm font-normal h-8 px-2 ${error ? "border-red-500" : ""}`}
         >
           <span className="truncate">
             {selected ? selected.names[0] : "— партнёр —"}

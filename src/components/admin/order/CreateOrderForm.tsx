@@ -70,11 +70,13 @@ function ItemRow({
   products,
   onChange,
   onRemove,
+  touched,
 }: {
   item: ItemState;
   products: ProductOption[];
   onChange: (update: Partial<ItemState>) => void;
   onRemove: () => void;
+  touched: boolean;
 }) {
   const selectedProduct = products.find((p) => p.id === item.productId);
   const availableVariants = selectedProduct?.productVariants ?? [];
@@ -102,6 +104,7 @@ function ItemRow({
             const variants = products.find((p) => p.id === id)?.productVariants ?? [];
             onChange({ productId: id, variantId: variants.length === 1 ? variants[0].id : "" });
           }}
+          error={touched && !item.productId}
         />
       </Field>
 
@@ -110,7 +113,7 @@ function ItemRow({
           name="productVariantId"
           value={item.variantId}
           onChange={(e) => onChange({ variantId: e.target.value })}
-          className="admin-form-input text-sm w-36"
+          className={`admin-form-input text-sm w-36 ${touched && !item.variantId ? "border-red-500" : ""}`}
           disabled={availableVariants.length === 0}
         >
           <option value="">— партия —</option>
@@ -127,7 +130,7 @@ function ItemRow({
           placeholder="0"
           value={item.quantity}
           onChange={(e) => onChange({ quantity: e.target.value })}
-          className="admin-form-input text-sm w-20"
+          className={`admin-form-input text-sm w-20 ${touched && !(parseInt(item.quantity) > 0) ? "border-red-500" : ""}`}
           min="1"
         />
       </Field>
@@ -164,7 +167,7 @@ function ItemRow({
             const v = e.target.value;
             onChange({ price: v, ...(item.currency === CurrencyEnum.RUB && { priceRub: v }) });
           }}
-          className="admin-form-input text-sm w-28"
+          className={`admin-form-input text-sm w-28 ${touched && !(parseFloat(item.priceRub) > 0) ? "border-red-500" : ""}`}
           min="0"
           step="0.01"
         />
@@ -194,7 +197,7 @@ function ItemRow({
             placeholder="0"
             value={item.priceRub}
             onChange={(e) => onChange({ priceRub: e.target.value })}
-            className="admin-form-input text-sm w-28"
+            className={`admin-form-input text-sm w-28 ${touched && !(parseFloat(item.priceRub) > 0) ? "border-red-500" : ""}`}
             min="0"
             step="0.01"
           />
@@ -236,6 +239,7 @@ export function CreateOrderForm({
   products: ProductOption[];
 }) {
   const [formState, action] = useFormState<SubItemFormState, FormData>(createOrder, {});
+  const [touched, setTouched] = useState(false);
   const [partnerId, setPartnerId] = useState("");
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
   const [orderType, setOrderType] = useState<OrderTypeEnum>(OrderTypeEnum.SALE);
@@ -247,6 +251,7 @@ export function CreateOrderForm({
 
   useEffect(() => {
     if (formState.success) {
+      setTouched(false);
       setPartnerId("");
       setOrderDate(new Date().toISOString().split("T")[0]);
       setOrderType(OrderTypeEnum.SALE);
@@ -258,6 +263,14 @@ export function CreateOrderForm({
     }
   }, [formState.success]);
 
+  function isValid() {
+    if (!partnerId) return false;
+    for (const item of items) {
+      if (!item.productId || !item.variantId || !(parseInt(item.quantity) > 0) || !(parseFloat(item.priceRub) > 0)) return false;
+    }
+    return true;
+  }
+
   const addRow = () => setItems((prev) => [...prev, emptyItem()]);
   const removeRow = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
   const updateRow = (id: string, update: Partial<ItemState>) =>
@@ -265,7 +278,11 @@ export function CreateOrderForm({
 
   return (
     <CollapsibleAddSection label="Создать новый заказ" success={!!formState.success} showLabel>
-      <form action={action} className="flex flex-col gap-3">
+      <form
+        action={action}
+        onSubmit={(e) => { if (!isValid()) { e.preventDefault(); setTouched(true); } else { setTouched(true); } }}
+        className="flex flex-col gap-3"
+      >
 
         {/* Order header fields */}
         <div className="flex flex-wrap items-center gap-2">
@@ -274,6 +291,7 @@ export function CreateOrderForm({
             partners={partners}
             value={partnerId}
             onChange={setPartnerId}
+            error={touched && !partnerId}
           />
           <input
             name="orderDate"
@@ -353,6 +371,7 @@ export function CreateOrderForm({
                 products={products}
                 onChange={(update) => updateRow(item.id, update)}
                 onRemove={() => removeRow(item.id)}
+                touched={touched}
               />
             ))}
           </div>
