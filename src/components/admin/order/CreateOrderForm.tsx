@@ -6,7 +6,7 @@ import { createOrder } from "@/actions/order/orders";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAddSection";
 import FormButton from "@/components/common/formButton/formButton";
-import { OrderTypeEnum, PriceUnitEnum, CurrencyEnum } from "@prisma/client";
+import { OrderTypeEnum, PriceTypeEnum, PriceUnitEnum, CurrencyEnum } from "@prisma/client";
 import { X } from "lucide-react";
 import { type ProductOption } from "./AddOrderItemForm";
 import { PartnerCombobox } from "./PartnerCombobox";
@@ -71,12 +71,16 @@ function ItemRow({
   onChange,
   onRemove,
   touched,
+  usdRate,
+  rmbRate,
 }: {
   item: ItemState;
   products: ProductOption[];
   onChange: (update: Partial<ItemState>) => void;
   onRemove: () => void;
   touched: boolean;
+  usdRate: number | null;
+  rmbRate: number | null;
 }) {
   const selectedProduct = products.find((p) => p.id === item.productId);
   const availableVariants = selectedProduct?.productVariants ?? [];
@@ -87,7 +91,8 @@ function ItemRow({
         1_000_000
       : null;
 
-  const priceRubNum = parseFloat(item.priceRub) || 0;
+  const effectivePriceRub = item.currency === CurrencyEnum.RUB ? item.price : item.priceRub;
+  const priceRubNum = parseFloat(effectivePriceRub) || 0;
   const previewTotal =
     item.priceUnit === PriceUnitEnum.M2 && quantityM2 !== null
       ? quantityM2 * priceRubNum
@@ -165,12 +170,52 @@ function ItemRow({
           value={item.price}
           onChange={(e) => {
             const v = e.target.value;
-            onChange({ price: v, ...(item.currency === CurrencyEnum.RUB && { priceRub: v }) });
+            const num = parseFloat(v);
+            let priceRub = item.priceRub;
+            if (item.currency === CurrencyEnum.RUB) {
+              priceRub = v;
+            } else if (item.currency === CurrencyEnum.USD && usdRate != null && !isNaN(num)) {
+              priceRub = (num * usdRate).toFixed(2);
+            } else if (item.currency === CurrencyEnum.RMB && rmbRate != null && !isNaN(num)) {
+              priceRub = (num * rmbRate).toFixed(2);
+            }
+            onChange({ price: v, priceRub });
           }}
-          className={`admin-form-input text-sm w-28 ${touched && !(parseFloat(item.priceRub) > 0) ? "border-red-500" : ""}`}
+          className={`admin-form-input text-sm w-28 ${touched && !(parseFloat(effectivePriceRub) > 0) ? "border-red-500" : ""}`}
           min="0"
           step="0.01"
         />
+        {selectedProduct && selectedProduct.prices.length > 0 && (
+          <div className="flex gap-2 mt-0.5">
+            {[PriceTypeEnum.DEALER, PriceTypeEnum.RETAIL].map((type) => {
+              const p = selectedProduct.prices.find((pr) => pr.type === type);
+              if (!p) return null;
+              const val = (p.priceInCents / 100).toString();
+              const label = type === PriceTypeEnum.DEALER ? "Дилерская" : "Розничная";
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  className="text-xs text-blue-500 hover:underline"
+                  onClick={() => {
+                    const priceNum = parseFloat(val);
+                    let rubPrice = "";
+                    if (p.currency === CurrencyEnum.RUB) {
+                      rubPrice = val;
+                    } else if (p.currency === CurrencyEnum.USD && usdRate != null) {
+                      rubPrice = (priceNum * usdRate).toFixed(2);
+                    } else if (p.currency === CurrencyEnum.RMB && rmbRate != null) {
+                      rubPrice = (priceNum * rmbRate).toFixed(2);
+                    }
+                    onChange({ price: val, currency: p.currency, priceRub: rubPrice, priceUnit: p.unit });
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </Field>
 
       <Field label="Валюта">
@@ -179,7 +224,16 @@ function ItemRow({
           value={item.currency}
           onChange={(e) => {
             const c = e.target.value as CurrencyEnum;
-            onChange({ currency: c, priceRub: c === CurrencyEnum.RUB ? item.price : "" });
+            const num = parseFloat(item.price);
+            let priceRub = "";
+            if (c === CurrencyEnum.RUB) {
+              priceRub = item.price;
+            } else if (c === CurrencyEnum.USD && usdRate != null && !isNaN(num)) {
+              priceRub = (num * usdRate).toFixed(2);
+            } else if (c === CurrencyEnum.RMB && rmbRate != null && !isNaN(num)) {
+              priceRub = (num * rmbRate).toFixed(2);
+            }
+            onChange({ currency: c, priceRub });
           }}
           className="admin-form-input text-sm w-20"
         >
@@ -189,7 +243,7 @@ function ItemRow({
         </select>
       </Field>
 
-      {item.currency !== CurrencyEnum.RUB && (
+      {item.currency !== CurrencyEnum.RUB ? (
         <Field label="Цена (₽)">
           <input
             name="priceRub"
@@ -202,9 +256,17 @@ function ItemRow({
             step="0.01"
           />
         </Field>
-      )}
-      {item.currency === CurrencyEnum.RUB && (
-        <input type="hidden" name="priceRub" value={item.price} />
+      ) : (
+        <>
+          {item.price && (
+            <Field label="Цена (₽)">
+              <div className="text-sm py-1 px-2 bg-slate-100 rounded w-28 text-right border border-slate-200">
+                {item.price}
+              </div>
+            </Field>
+          )}
+          <input type="hidden" name="priceRub" value={item.price} />
+        </>
       )}
 
       <Field label="Итого">
@@ -232,11 +294,15 @@ export function CreateOrderForm({
   deliveryMethods,
   paymentMethods,
   products,
+  usdRate,
+  rmbRate,
 }: {
   partners: PartnerOption[];
   deliveryMethods: DeliveryMethodOption[];
   paymentMethods: Option[];
   products: ProductOption[];
+  usdRate: number | null;
+  rmbRate: number | null;
 }) {
   const [formState, action] = useFormState<SubItemFormState, FormData>(createOrder, {});
   const [touched, setTouched] = useState(false);
@@ -266,7 +332,8 @@ export function CreateOrderForm({
   function isValid() {
     if (!partnerId) return false;
     for (const item of items) {
-      if (!item.productId || !item.variantId || !(parseInt(item.quantity) > 0) || !(parseFloat(item.priceRub) > 0)) return false;
+      const effectivePriceRub = item.currency === CurrencyEnum.RUB ? item.price : item.priceRub;
+      if (!item.productId || !item.variantId || !(parseInt(item.quantity) > 0) || !(parseFloat(effectivePriceRub) > 0)) return false;
     }
     return true;
   }
@@ -372,6 +439,8 @@ export function CreateOrderForm({
                 onChange={(update) => updateRow(item.id, update)}
                 onRemove={() => removeRow(item.id)}
                 touched={touched}
+                usdRate={usdRate}
+                rmbRate={rmbRate}
               />
             ))}
           </div>

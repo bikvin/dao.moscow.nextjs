@@ -66,6 +66,8 @@ export default async function OrdersPage({
     deliveryMethods,
     paymentMethods,
     products,
+    usdRateSetting,
+    rmbRateSetting,
   ] = await Promise.all([
     db.order.findMany({
       where,
@@ -108,9 +110,15 @@ export default async function OrdersPage({
           select: { id: true, variantName: true },
           orderBy: { variantName: "asc" },
         },
+        prices: {
+          select: { type: true, priceInCents: true, currency: true, unit: true },
+          where: { type: { in: ["DEALER", "RETAIL"] } },
+        },
       },
       orderBy: { sku: "asc" },
     }),
+    db.settings.findUnique({ where: { field: "usdMainRate" } }),
+    db.settings.findUnique({ where: { field: "rmbOfficialRate" } }),
   ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -197,6 +205,8 @@ export default async function OrdersPage({
               deliveryMethods={deliveryMethods}
               paymentMethods={paymentMethods}
               products={products}
+              usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
+              rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
             />
           </div>
         </div>

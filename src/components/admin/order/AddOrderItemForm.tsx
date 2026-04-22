@@ -6,8 +6,15 @@ import { addOrderItem } from "@/actions/order/orderItems";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAddSection";
 import FormButton from "@/components/common/formButton/formButton";
-import { PriceUnitEnum, CurrencyEnum } from "@prisma/client";
+import { PriceUnitEnum, CurrencyEnum, PriceTypeEnum } from "@prisma/client";
 import { ProductCombobox } from "./ProductCombobox";
+
+export type ProductPrice = {
+  type: PriceTypeEnum;
+  priceInCents: number;
+  currency: CurrencyEnum;
+  unit: PriceUnitEnum;
+};
 
 export type ProductOption = {
   id: string;
@@ -15,6 +22,7 @@ export type ProductOption = {
   length_mm: number;
   width_mm: number;
   productVariants: { id: string; variantName: string }[];
+  prices: ProductPrice[];
 };
 
 const PRICE_UNIT_LABELS: Record<PriceUnitEnum, string> = {
