@@ -13,6 +13,7 @@ import { PartnerCombobox } from "./PartnerCombobox";
 import { ProductCombobox } from "./ProductCombobox";
 
 type Option = { id: string; name: string };
+type DeliveryMethodOption = { id: string; name: string; defaultPriceRub: number | null };
 type PartnerOption = { id: string; names: string[] };
 
 type ItemState = {
@@ -230,7 +231,7 @@ export function CreateOrderForm({
   products,
 }: {
   partners: PartnerOption[];
-  deliveryMethods: Option[];
+  deliveryMethods: DeliveryMethodOption[];
   paymentMethods: Option[];
   products: ProductOption[];
 }) {
@@ -240,6 +241,7 @@ export function CreateOrderForm({
   const [orderType, setOrderType] = useState<OrderTypeEnum>(OrderTypeEnum.SALE);
   const [deliveryMethodId, setDeliveryMethodId] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [deliveryPrice, setDeliveryPrice] = useState("");
   const [note, setNote] = useState("");
   const [items, setItems] = useState<ItemState[]>([]);
 
@@ -250,6 +252,7 @@ export function CreateOrderForm({
       setOrderType(OrderTypeEnum.SALE);
       setDeliveryMethodId("");
       setPaymentMethodId("");
+      setDeliveryPrice("");
       setNote("");
       setItems([]);
     }
@@ -292,7 +295,16 @@ export function CreateOrderForm({
           <select
             name="deliveryMethodId"
             value={deliveryMethodId}
-            onChange={(e) => setDeliveryMethodId(e.target.value)}
+            onChange={(e) => {
+              const id = e.target.value;
+              setDeliveryMethodId(id);
+              const method = deliveryMethods.find((m) => m.id === id);
+              setDeliveryPrice(
+                method?.defaultPriceRub != null
+                  ? (method.defaultPriceRub / 100).toString()
+                  : ""
+              );
+            }}
             className="admin-form-input text-sm w-44"
           >
             <option value="">— способ доставки —</option>
@@ -300,6 +312,16 @@ export function CreateOrderForm({
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
+          <input
+            name="deliveryPrice"
+            type="number"
+            placeholder="Стоимость доставки"
+            value={deliveryPrice}
+            onChange={(e) => setDeliveryPrice(e.target.value)}
+            className="admin-form-input text-sm w-40"
+            min="0"
+            step="0.01"
+          />
           <select
             name="paymentMethodId"
             value={paymentMethodId}
