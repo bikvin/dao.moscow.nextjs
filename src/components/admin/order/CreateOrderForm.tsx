@@ -99,8 +99,8 @@ function ItemRow({
       : (parseInt(item.quantity) || 0) * priceRubNum;
 
   return (
-    <div className="flex flex-wrap items-end gap-2 pl-2 border-l-2 border-slate-200">
-      <Field label="Товар">
+    <div className="flex flex-wrap items-start gap-2 pl-2 border-l-2 border-slate-200">
+      <Field label="Товар:">
         <input type="hidden" name="productId" value={item.productId} />
         <ProductCombobox
           products={products}
@@ -113,7 +113,7 @@ function ItemRow({
         />
       </Field>
 
-      <Field label="Партия">
+      <Field label="Вариант:">
         <select
           name="productVariantId"
           value={item.variantId}
@@ -121,14 +121,14 @@ function ItemRow({
           className={`admin-form-input text-sm w-36 ${touched && !item.variantId ? "border-red-500" : ""}`}
           disabled={availableVariants.length === 0}
         >
-          <option value="">— партия —</option>
+          <option value="">— вариант —</option>
           {availableVariants.map((v) => (
             <option key={v.id} value={v.id}>{v.variantName}</option>
           ))}
         </select>
       </Field>
 
-      <Field label="Кол-во">
+      <Field label="Кол-во:">
         <input
           name="quantity"
           type="number"
@@ -141,7 +141,7 @@ function ItemRow({
       </Field>
 
       {quantityM2 !== null && (
-        <Field label="М²">
+        <Field label="М²:">
           <div className="text-sm py-1 px-2 bg-slate-100 rounded w-20 text-right border border-slate-200">
             {quantityM2.toFixed(2)}
           </div>
@@ -149,20 +149,7 @@ function ItemRow({
       )}
       <input type="hidden" name="quantityM2" value={quantityM2 !== null ? quantityM2.toFixed(6) : ""} />
 
-      <Field label="Ед.">
-        <select
-          name="priceUnit"
-          value={item.priceUnit}
-          onChange={(e) => onChange({ priceUnit: e.target.value as PriceUnitEnum })}
-          className="admin-form-input text-sm w-20"
-        >
-          {Object.values(PriceUnitEnum).map((u) => (
-            <option key={u} value={u}>{PRICE_UNIT_LABELS[u]}</option>
-          ))}
-        </select>
-      </Field>
-
-      <Field label="Цена">
+      <Field label="Цена:">
         <input
           name="price"
           type="number"
@@ -218,7 +205,7 @@ function ItemRow({
         )}
       </Field>
 
-      <Field label="Валюта">
+      <Field label="Валюта:">
         <select
           name="priceCurrency"
           value={item.currency}
@@ -243,8 +230,21 @@ function ItemRow({
         </select>
       </Field>
 
+      <Field label="Цена за:">
+        <select
+          name="priceUnit"
+          value={item.priceUnit}
+          onChange={(e) => onChange({ priceUnit: e.target.value as PriceUnitEnum })}
+          className="admin-form-input text-sm w-20"
+        >
+          {Object.values(PriceUnitEnum).map((u) => (
+            <option key={u} value={u}>{PRICE_UNIT_LABELS[u]}</option>
+          ))}
+        </select>
+      </Field>
+
       {item.currency !== CurrencyEnum.RUB ? (
-        <Field label="Цена (₽)">
+        <Field label="Цена (₽):">
           <input
             name="priceRub"
             type="number"
@@ -259,7 +259,7 @@ function ItemRow({
       ) : (
         <>
           {item.price && (
-            <Field label="Цена (₽)">
+            <Field label="Цена (₽):">
               <div className="text-sm py-1 px-2 bg-slate-100 rounded w-28 text-right border border-slate-200">
                 {item.price}
               </div>
@@ -269,7 +269,7 @@ function ItemRow({
         </>
       )}
 
-      <Field label="Итого">
+      <Field label="Итого:">
         <div className="text-sm py-1 px-2 bg-slate-100 rounded w-28 text-right border border-slate-200">
           {previewTotal > 0
             ? new Intl.NumberFormat("ru-RU").format(previewTotal) + " ₽"
@@ -353,19 +353,19 @@ export function CreateOrderForm({
 
         {/* Order header fields */}
         <div className="flex flex-wrap items-center gap-2">
-          <input type="hidden" name="partnerId" value={partnerId} />
-          <PartnerCombobox
-            partners={partners}
-            value={partnerId}
-            onChange={setPartnerId}
-            error={touched && !partnerId}
-          />
           <input
             name="orderDate"
             type="date"
             value={orderDate}
             onChange={(e) => setOrderDate(e.target.value)}
             className="admin-form-input text-sm w-36"
+          />
+          <input type="hidden" name="partnerId" value={partnerId} />
+          <PartnerCombobox
+            partners={partners}
+            value={partnerId}
+            onChange={setPartnerId}
+            error={touched && !partnerId}
           />
           <select
             name="orderType"
@@ -377,6 +377,39 @@ export function CreateOrderForm({
               <option key={t} value={t}>{ORDER_TYPE_LABELS[t]}</option>
             ))}
           </select>
+        </div>
+
+        {/* Product rows */}
+        {items.length > 0 && (
+          <div className="flex flex-col gap-2 mt-1">
+            {items.map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                products={products}
+                onChange={(update) => updateRow(item.id, update)}
+                onRemove={() => removeRow(item.id)}
+                touched={touched}
+                usdRate={usdRate}
+                rmbRate={rmbRate}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Add product row */}
+        <div>
+          <button
+            type="button"
+            onClick={addRow}
+            className="text-sm text-blue-500 hover:underline"
+          >
+            Добавить товар
+          </button>
+        </div>
+
+        {/* Delivery */}
+        <div className="flex flex-wrap items-center gap-2">
           <select
             name="deliveryMethodId"
             value={deliveryMethodId}
@@ -407,6 +440,10 @@ export function CreateOrderForm({
             min="0"
             step="0.01"
           />
+        </div>
+
+        {/* Payment and note */}
+        <div className="flex flex-wrap items-center gap-2">
           <select
             name="paymentMethodId"
             value={paymentMethodId}
@@ -428,33 +465,8 @@ export function CreateOrderForm({
           />
         </div>
 
-        {/* Product rows */}
-        {items.length > 0 && (
-          <div className="flex flex-col gap-2 mt-1">
-            {items.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                products={products}
-                onChange={(update) => updateRow(item.id, update)}
-                onRemove={() => removeRow(item.id)}
-                touched={touched}
-                usdRate={usdRate}
-                rmbRate={rmbRate}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Add product row + submit */}
+        {/* Submit */}
         <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={addRow}
-            className="text-sm text-blue-500 hover:underline"
-          >
-            Добавить товар
-          </button>
           <FormButton color="green" small>Сохранить заказ</FormButton>
           {formState.errors?._form && (
             <span className="text-red-600 text-sm">{formState.errors._form.join(", ")}</span>
