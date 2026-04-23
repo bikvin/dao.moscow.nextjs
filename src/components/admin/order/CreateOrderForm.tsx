@@ -312,6 +312,7 @@ export function CreateOrderForm({
   const [deliveryMethodId, setDeliveryMethodId] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [deliveryPrice, setDeliveryPrice] = useState("");
+  const [discount, setDiscount] = useState("");
   const [note, setNote] = useState("");
   const [items, setItems] = useState<ItemState[]>([emptyItem()]);
 
@@ -324,6 +325,7 @@ export function CreateOrderForm({
       setDeliveryMethodId("");
       setPaymentMethodId("");
       setDeliveryPrice("");
+      setDiscount("");
       setNote("");
       setItems([emptyItem()]);
     }
@@ -338,7 +340,7 @@ export function CreateOrderForm({
     return true;
   }
 
-  const grandTotal = items.reduce((sum, item) => {
+  const itemsSubtotal = items.reduce((sum, item) => {
     const product = products.find((p) => p.id === item.productId);
     const quantityM2 = product && item.quantity
       ? (product.length_mm * product.width_mm * (parseInt(item.quantity) || 0)) / 1_000_000
@@ -349,7 +351,9 @@ export function CreateOrderForm({
       ? quantityM2 * priceRubNum
       : (parseInt(item.quantity) || 0) * priceRubNum;
     return sum + itemTotal;
-  }, 0) + (parseFloat(deliveryPrice) || 0);
+  }, 0);
+  const discountNum = parseFloat(discount) || 0;
+  const grandTotal = itemsSubtotal * (1 - discountNum / 100) + (parseFloat(deliveryPrice) || 0);
 
   const addRow = () => setItems((prev) => [...prev, emptyItem()]);
   const removeRow = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
@@ -422,52 +426,87 @@ export function CreateOrderForm({
         </div>
 
         {/* Delivery */}
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            name="deliveryMethodId"
-            value={deliveryMethodId}
-            onChange={(e) => {
-              const id = e.target.value;
-              setDeliveryMethodId(id);
-              const method = deliveryMethods.find((m) => m.id === id);
-              setDeliveryPrice(
-                method?.defaultPriceRub != null
-                  ? (method.defaultPriceRub / 100).toString()
-                  : ""
-              );
-            }}
-            className="admin-form-input text-sm w-44"
-          >
-            <option value="">— способ доставки —</option>
-            {deliveryMethods.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-          <input
-            name="deliveryPrice"
-            type="number"
-            placeholder="Стоимость доставки"
-            value={deliveryPrice}
-            onChange={(e) => setDeliveryPrice(e.target.value)}
-            className="admin-form-input text-sm w-40"
-            min="0"
-            step="0.01"
-          />
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Доставка:</label>
+            <select
+              name="deliveryMethodId"
+              value={deliveryMethodId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setDeliveryMethodId(id);
+                const method = deliveryMethods.find((m) => m.id === id);
+                setDeliveryPrice(
+                  method?.defaultPriceRub != null
+                    ? (method.defaultPriceRub / 100).toString()
+                    : ""
+                );
+              }}
+              className="admin-form-input text-sm w-44"
+            >
+              <option value="">— не выбрано —</option>
+              {deliveryMethods.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Стоимость доставки:</label>
+            <input
+              name="deliveryPrice"
+              type="number"
+              placeholder="0"
+              value={deliveryPrice}
+              onChange={(e) => setDeliveryPrice(e.target.value)}
+              className="admin-form-input text-sm w-40"
+              min="0"
+              step="0.01"
+            />
+          </div>
         </div>
 
-        {/* Payment and note */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Payment */}
+        <div className="flex flex-col gap-0.5">
+          <label className="text-xs text-slate-400">Способ оплаты:</label>
           <select
             name="paymentMethodId"
             value={paymentMethodId}
             onChange={(e) => setPaymentMethodId(e.target.value)}
             className="admin-form-input text-sm w-44"
           >
-            <option value="">— способ оплаты —</option>
+            <option value="">— не выбрано —</option>
             {paymentMethods.map((m) => (
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
+        </div>
+
+        {/* Discount */}
+        <div className="flex flex-col gap-0.5">
+          <label className="text-xs text-slate-400">Скидка (%):</label>
+          <div className="flex items-center gap-2">
+            <input
+              name="discountPercent"
+              type="number"
+              placeholder="0"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+              className="admin-form-input text-sm w-28"
+              min="0"
+              max="100"
+              step="0.1"
+            />
+            {discountNum > 0 && itemsSubtotal > 0 && (
+              <span className="text-sm text-slate-500">
+                − {new Intl.NumberFormat("ru-RU").format(itemsSubtotal * discountNum / 100)} ₽
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Note */}
+        <div className="flex flex-col gap-0.5">
+          <label className="text-xs text-slate-400">Комментарий:</label>
           <input
             name="note"
             type="text"
@@ -481,6 +520,11 @@ export function CreateOrderForm({
         {/* Total + Submit */}
         <div className="flex items-center gap-4">
           <FormButton color="green" small>Сохранить заказ</FormButton>
+          {grandTotal > 0 && discountNum > 0 && (
+            <div className="text-sm text-slate-400 line-through">
+              {new Intl.NumberFormat("ru-RU").format(itemsSubtotal + (parseFloat(deliveryPrice) || 0))} ₽
+            </div>
+          )}
           {grandTotal > 0 && (
             <div className="text-sm text-slate-600">
               Итого: <span className="font-medium">{new Intl.NumberFormat("ru-RU").format(grandTotal)} ₽</span>

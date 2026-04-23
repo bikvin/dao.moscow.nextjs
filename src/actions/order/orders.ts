@@ -35,6 +35,7 @@ export async function createOrder(
   const deliveryMethodId = (formData.get("deliveryMethodId") as string) || null;
   const paymentMethodId = (formData.get("paymentMethodId") as string) || null;
   const deliveryPriceRub = Math.round((parseFloat(formData.get("deliveryPrice") as string) || 0) * 100);
+  const discountPercent = parseFloat(formData.get("discountPercent") as string) || 0;
   const note = (formData.get("note") as string) || null;
 
   // Item arrays — one value per product row
@@ -66,6 +67,7 @@ export async function createOrder(
           deliveryMethodId,
           paymentMethodId,
           deliveryPriceRub,
+          discountPercent,
           note,
         },
       });
@@ -106,7 +108,7 @@ export async function createOrder(
         totalRub += itemTotal;
       }
 
-      const grandTotal = totalRub + deliveryPriceRub;
+      const grandTotal = Math.round(totalRub * (1 - discountPercent / 100)) + deliveryPriceRub;
       if (grandTotal > 0) {
         await tx.order.update({ where: { id: order.id }, data: { totalRub: grandTotal } });
       }
