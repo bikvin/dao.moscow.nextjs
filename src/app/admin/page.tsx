@@ -189,7 +189,15 @@ export default async function OrdersPage({
             </button>
           </form>
 
-          <OrdersGrid orders={orders} products={products} />
+          <OrdersGrid
+            orders={orders}
+            products={products}
+            partners={partnerOptions}
+            deliveryMethods={deliveryMethods}
+            paymentMethods={paymentMethods}
+            usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
+            rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
+          />
 
           <Pagination
             currentPage={currentPage}

@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { useState, useEffect } from "react";
 import { createOrder } from "@/actions/order/orders";
+import { updateOrder } from "@/actions/order/updateOrder";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAddSection";
 import FormButton from "@/components/common/formButton/formButton";
@@ -15,6 +16,27 @@ import { ProductCombobox } from "./ProductCombobox";
 type Option = { id: string; name: string };
 type DeliveryMethodOption = { id: string; name: string; defaultPriceRub: number | null };
 type PartnerOption = { id: string; names: string[] };
+
+export type InitialOrder = {
+  id: string;
+  orderDate: Date;
+  partnerId: string;
+  orderType: OrderTypeEnum;
+  deliveryMethodId: string | null;
+  deliveryPriceRub: number;
+  paymentMethodId: string | null;
+  discountPercent: number;
+  note: string | null;
+  items: Array<{
+    productId: string;
+    productVariantId: string;
+    quantity: number;
+    priceUnit: PriceUnitEnum;
+    priceInCents: number;
+    priceCurrency: CurrencyEnum;
+    priceRub: number;
+  }>;
+};
 
 type ItemState = {
   id: string;
@@ -296,6 +318,7 @@ export function CreateOrderForm({
   products,
   usdRate,
   rmbRate,
+  initialOrder,
 }: {
   partners: PartnerOption[];
   deliveryMethods: DeliveryMethodOption[];
@@ -303,33 +326,62 @@ export function CreateOrderForm({
   products: ProductOption[];
   usdRate: number | null;
   rmbRate: number | null;
+  initialOrder?: InitialOrder;
 }) {
-  const [formState, action] = useFormState<SubItemFormState, FormData>(createOrder, {});
+  const isEditMode = !!initialOrder;
+  const boundAction = isEditMode ? updateOrder.bind(null, initialOrder.id) : createOrder;
+  const [formState, action] = useFormState<SubItemFormState, FormData>(boundAction, {});
+  const [isOpen, setIsOpen] = useState(false);
   const [touched, setTouched] = useState(false);
-  const [partnerId, setPartnerId] = useState("");
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
-  const [orderType, setOrderType] = useState<OrderTypeEnum>(OrderTypeEnum.SALE);
-  const [deliveryMethodId, setDeliveryMethodId] = useState("");
-  const [paymentMethodId, setPaymentMethodId] = useState("");
-  const [deliveryPrice, setDeliveryPrice] = useState("");
-  const [discount, setDiscount] = useState("");
-  const [note, setNote] = useState("");
-  const [items, setItems] = useState<ItemState[]>([emptyItem()]);
+  const [partnerId, setPartnerId] = useState(initialOrder?.partnerId ?? "");
+  const [orderDate, setOrderDate] = useState(
+    initialOrder
+      ? new Date(initialOrder.orderDate).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0]
+  );
+  const [orderType, setOrderType] = useState<OrderTypeEnum>(initialOrder?.orderType ?? OrderTypeEnum.SALE);
+  const [deliveryMethodId, setDeliveryMethodId] = useState(initialOrder?.deliveryMethodId ?? "");
+  const [paymentMethodId, setPaymentMethodId] = useState(initialOrder?.paymentMethodId ?? "");
+  const [deliveryPrice, setDeliveryPrice] = useState(
+    initialOrder?.deliveryPriceRub ? (initialOrder.deliveryPriceRub / 100).toString() : ""
+  );
+  const [discount, setDiscount] = useState(
+    initialOrder?.discountPercent ? initialOrder.discountPercent.toString() : ""
+  );
+  const [note, setNote] = useState(initialOrder?.note ?? "");
+  const [items, setItems] = useState<ItemState[]>(
+    initialOrder?.items.length
+      ? initialOrder.items.map((item) => ({
+          id: crypto.randomUUID(),
+          productId: item.productId,
+          variantId: item.productVariantId,
+          quantity: item.quantity.toString(),
+          priceUnit: item.priceUnit,
+          price: (item.priceInCents / 100).toString(),
+          currency: item.priceCurrency,
+          priceRub: (item.priceRub / 100).toString(),
+        }))
+      : [emptyItem()]
+  );
 
   useEffect(() => {
     if (formState.success) {
       setTouched(false);
-      setPartnerId("");
-      setOrderDate(new Date().toISOString().split("T")[0]);
-      setOrderType(OrderTypeEnum.SALE);
-      setDeliveryMethodId("");
-      setPaymentMethodId("");
-      setDeliveryPrice("");
-      setDiscount("");
-      setNote("");
-      setItems([emptyItem()]);
+      if (isEditMode) {
+        setIsOpen(false);
+      } else {
+        setPartnerId("");
+        setOrderDate(new Date().toISOString().split("T")[0]);
+        setOrderType(OrderTypeEnum.SALE);
+        setDeliveryMethodId("");
+        setPaymentMethodId("");
+        setDeliveryPrice("");
+        setDiscount("");
+        setNote("");
+        setItems([emptyItem()]);
+      }
     }
-  }, [formState.success]);
+  }, [formState.success, isEditMode]);
 
   function isValid() {
     if (!partnerId) return false;
@@ -360,8 +412,7 @@ export function CreateOrderForm({
   const updateRow = (id: string, update: Partial<ItemState>) =>
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...update } : i)));
 
-  return (
-    <CollapsibleAddSection label="Создать новый заказ" success={!!formState.success} showLabel>
+  const formContent = (
       <form
         action={action}
         onSubmit={(e) => { if (!isValid()) { e.preventDefault(); setTouched(true); } else { setTouched(true); } }}
@@ -519,7 +570,7 @@ export function CreateOrderForm({
 
         {/* Total + Submit */}
         <div className="flex items-center gap-4">
-          <FormButton color="green" small>Сохранить заказ</FormButton>
+          <FormButton color="green" small>{isEditMode ? "Сохранить изменения" : "Сохранить заказ"}</FormButton>
           {grandTotal > 0 && discountNum > 0 && (
             <div className="text-sm text-slate-400 line-through">
               {new Intl.NumberFormat("ru-RU").format(itemsSubtotal + (parseFloat(deliveryPrice) || 0))} ₽
@@ -536,6 +587,33 @@ export function CreateOrderForm({
         </div>
 
       </form>
+  );
+
+  if (isEditMode) {
+    return (
+      <div className="mt-3">
+        <button
+          type="button"
+          onClick={() => setIsOpen((v) => !v)}
+          className="text-sm text-blue-500 hover:underline"
+        >
+          {isOpen ? "Свернуть" : "Редактировать"}
+        </button>
+        <div
+          className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+          style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
+        >
+          <div className="overflow-hidden">
+            <div className="pt-3">{formContent}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <CollapsibleAddSection label="Создать новый заказ" success={!!formState.success} showLabel>
+      {formContent}
     </CollapsibleAddSection>
   );
 }

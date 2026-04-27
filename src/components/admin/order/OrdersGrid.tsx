@@ -1,8 +1,9 @@
 import React from "react";
 import Link from "next/link";
 import { OrderNoteForm } from "./OrderNoteForm";
-import { AddOrderItemForm, type ProductOption } from "./AddOrderItemForm";
-import { OrderStatusEnum, DeliveryStatusEnum, PaymentStatusEnum, OrderTypeEnum } from "@prisma/client";
+import { CreateOrderForm } from "./CreateOrderForm";
+import { type ProductOption } from "./AddOrderItemForm";
+import { OrderStatusEnum, DeliveryStatusEnum, PaymentStatusEnum, OrderTypeEnum, PriceUnitEnum, CurrencyEnum } from "@prisma/client";
 
 const COLS = "grid-cols-[72px_84px_156px_1fr_52px_72px_88px_96px_180px]";
 
@@ -50,8 +51,13 @@ function E() {
 
 type OrderItem = {
   id: string;
+  productId: string;
+  productVariantId: string;
   quantity: number;
   quantityM2: number | null;
+  priceUnit: PriceUnitEnum;
+  priceInCents: number;
+  priceCurrency: CurrencyEnum;
   priceRub: number;
   totalRub: number;
   product: { sku: string };
@@ -64,17 +70,24 @@ type Order = {
   sequenceNumber: number;
   orderDate: Date;
   orderType: OrderTypeEnum;
+  partnerId: string;
   status: OrderStatusEnum;
   deliveryStatus: DeliveryStatusEnum;
   paymentStatus: PaymentStatusEnum;
   note: string | null;
+  deliveryMethodId: string | null;
   deliveryPriceRub: number;
+  paymentMethodId: string | null;
   discountPercent: number;
   totalRub: number;
   partner: { names: { name: string; isPrimary: boolean }[] };
   deliveryMethod: { name: string } | null;
   items: OrderItem[];
 };
+
+type Option = { id: string; name: string };
+type DeliveryMethodOption = { id: string; name: string; defaultPriceRub: number | null };
+type PartnerOption = { id: string; names: string[] };
 
 function OrderNumber({ order }: { order: Order }) {
   return (
@@ -92,7 +105,23 @@ function OrderNumber({ order }: { order: Order }) {
   );
 }
 
-export function OrdersGrid({ orders, products }: { orders: Order[]; products: ProductOption[] }) {
+export function OrdersGrid({
+  orders,
+  products,
+  partners,
+  deliveryMethods,
+  paymentMethods,
+  usdRate,
+  rmbRate,
+}: {
+  orders: Order[];
+  products: ProductOption[];
+  partners: PartnerOption[];
+  deliveryMethods: DeliveryMethodOption[];
+  paymentMethods: Option[];
+  usdRate: number | null;
+  rmbRate: number | null;
+}) {
   if (orders.length === 0) {
     return <p className="text-sm text-slate-400 mt-6">Заказы не найдены</p>;
   }
@@ -214,9 +243,36 @@ export function OrdersGrid({ orders, products }: { orders: Order[]; products: Pr
                 <OrderNoteForm orderId={order.id} initialNote={order.note} />
               </div>
 
-              {/* Add item form */}
+              {/* Edit order form */}
               <div className="px-2 pb-1">
-                <AddOrderItemForm orderId={order.id} products={products} />
+                <CreateOrderForm
+                  partners={partners}
+                  deliveryMethods={deliveryMethods}
+                  paymentMethods={paymentMethods}
+                  products={products}
+                  usdRate={usdRate}
+                  rmbRate={rmbRate}
+                  initialOrder={{
+                    id: order.id,
+                    orderDate: order.orderDate,
+                    partnerId: order.partnerId,
+                    orderType: order.orderType,
+                    deliveryMethodId: order.deliveryMethodId,
+                    deliveryPriceRub: order.deliveryPriceRub,
+                    paymentMethodId: order.paymentMethodId,
+                    discountPercent: order.discountPercent,
+                    note: order.note,
+                    items: order.items.map((item) => ({
+                      productId: item.productId,
+                      productVariantId: item.productVariantId,
+                      quantity: item.quantity,
+                      priceUnit: item.priceUnit,
+                      priceInCents: item.priceInCents,
+                      priceCurrency: item.priceCurrency,
+                      priceRub: item.priceRub,
+                    })),
+                  }}
+                />
               </div>
             </div>
           );
