@@ -1,6 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import { OrderNoteForm } from "./OrderNoteForm";
 import { CreateOrderForm } from "./CreateOrderForm";
 import { type ProductOption } from "./AddOrderItemForm";
 import { OrderStatusEnum, DeliveryStatusEnum, PaymentStatusEnum, OrderTypeEnum, PriceUnitEnum, CurrencyEnum } from "@prisma/client";
@@ -159,12 +158,15 @@ export function OrdersGrid({
                     <OrderNumber order={order} />
                     <div className="text-sm text-slate-600 py-1.5">{formatDate(order.orderDate)}</div>
                     <div className="text-sm py-1.5">{partnerName}</div>
-                    <div className="col-span-6 text-sm text-slate-400 italic py-1.5">
+                    <div className="col-span-5 text-sm text-slate-400 italic py-1.5">
                       Нет товаров —{" "}
                       <Link href={`/admin/orders/${order.id}`} className="text-blue-500 hover:underline">
                         добавить
                       </Link>
                     </div>
+                    {order.note ? (
+                      <div className="text-xs text-slate-400 italic py-1.5">{order.note}</div>
+                    ) : <E />}
                   </>
                 ) : (
                   <>
@@ -194,7 +196,18 @@ export function OrdersGrid({
                         </div>
                         <div className="text-sm text-right py-1.5">{formatRub(item.priceRub)}</div>
                         <div className="text-sm text-right py-1.5">{formatRub(item.totalRub)}</div>
-                        <E />
+                        {idx === 0 ? (
+                          <div className="flex flex-col gap-1 py-1.5">
+                            <div className="flex flex-wrap gap-1 items-start">
+                              <Badge {...ORDER_STATUS_CONFIG[order.status]} />
+                              <Badge {...DELIVERY_STATUS_CONFIG[order.deliveryStatus]} />
+                              <Badge {...PAYMENT_STATUS_CONFIG[order.paymentStatus]} />
+                            </div>
+                            {order.note && (
+                              <div className="text-xs text-slate-400 italic">{order.note}</div>
+                            )}
+                          </div>
+                        ) : <E />}
                       </React.Fragment>
                     ))}
 
@@ -228,19 +241,10 @@ export function OrdersGrid({
                       <div className="text-sm font-semibold text-right py-1 border-t border-slate-200">
                         {formatRub(order.totalRub)}
                       </div>
-                      <div className="flex flex-wrap gap-1 py-1 items-start border-t border-slate-200">
-                        <Badge {...ORDER_STATUS_CONFIG[order.status]} />
-                        <Badge {...DELIVERY_STATUS_CONFIG[order.deliveryStatus]} />
-                        <Badge {...PAYMENT_STATUS_CONFIG[order.paymentStatus]} />
-                      </div>
+                      <E />
                     </>
                   </>
                 )}
-              </div>
-
-              {/* Note form */}
-              <div className="px-2 pt-1">
-                <OrderNoteForm orderId={order.id} initialNote={order.note} />
               </div>
 
               {/* Edit order form */}
