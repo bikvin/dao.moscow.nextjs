@@ -21,7 +21,7 @@ export type ProductOption = {
   sku: string;
   length_mm: number;
   width_mm: number;
-  productVariants: { id: string; variantName: string }[];
+  productVariants: { id: string; variantName: string; isMain: boolean }[];
   prices: ProductPrice[];
 };
 
