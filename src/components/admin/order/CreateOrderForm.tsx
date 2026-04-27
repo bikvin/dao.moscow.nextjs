@@ -319,6 +319,8 @@ export function CreateOrderForm({
   usdRate,
   rmbRate,
   initialOrder,
+  isOpen: isOpenProp,
+  onToggle,
 }: {
   partners: PartnerOption[];
   deliveryMethods: DeliveryMethodOption[];
@@ -327,11 +329,15 @@ export function CreateOrderForm({
   usdRate: number | null;
   rmbRate: number | null;
   initialOrder?: InitialOrder;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }) {
   const isEditMode = !!initialOrder;
   const boundAction = isEditMode ? updateOrder.bind(null, initialOrder.id) : createOrder;
   const [formState, action] = useFormState<SubItemFormState, FormData>(boundAction, {});
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpenInternal, setIsOpenInternal] = useState(false);
+  const isOpen = isOpenProp !== undefined ? isOpenProp : isOpenInternal;
+  const setIsOpen = onToggle ? () => onToggle() : setIsOpenInternal;
   const [touched, setTouched] = useState(false);
   const [partnerId, setPartnerId] = useState(initialOrder?.partnerId ?? "");
   const [orderDate, setOrderDate] = useState(
@@ -591,21 +597,12 @@ export function CreateOrderForm({
 
   if (isEditMode) {
     return (
-      <div className="mt-3">
-        <button
-          type="button"
-          onClick={() => setIsOpen((v) => !v)}
-          className="text-sm text-blue-500 hover:underline"
-        >
-          {isOpen ? "Свернуть" : "Редактировать"}
-        </button>
-        <div
-          className="grid transition-[grid-template-rows] duration-300 ease-in-out"
-          style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
-        >
-          <div className="overflow-hidden">
-            <div className="pt-3">{formContent}</div>
-          </div>
+      <div
+        className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+        style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          <div className="px-3 pt-3 pb-2">{formContent}</div>
         </div>
       </div>
     );
