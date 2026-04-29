@@ -18,7 +18,7 @@ function formatDate(date: Date): string {
 }
 
 const ORDER_STATUS_CONFIG: Record<OrderStatusEnum, { label: string; cls: string }> = {
-  ACTIVE:    { label: "Активен",   cls: "bg-amber-100 text-amber-700" },
+  RESERVE:   { label: "Резерв",    cls: "bg-amber-100 text-amber-700" },
   FULFILLED: { label: "Выполнен",  cls: "bg-emerald-100 text-emerald-700" },
   CANCELLED: { label: "Отменён",   cls: "bg-red-100 text-red-600" },
 };

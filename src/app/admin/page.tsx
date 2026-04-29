@@ -12,7 +12,7 @@ import { CreateOrderForm } from "@/components/admin/order/CreateOrderForm";
 const PAGE_SIZE = 50;
 
 const STATUS_LABELS: Record<OrderStatusEnum, string> = {
-  ACTIVE: "Активен",
+  RESERVE: "Резерв",
   FULFILLED: "Выполнен",
   CANCELLED: "Отменён",
 };
