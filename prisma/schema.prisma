@@ -554,8 +554,9 @@ model Order {
   status         OrderStatusEnum    @default(RESERVE)
   deliveryStatus DeliveryStatusEnum @default(NOT_DELIVERED)
   paymentStatus  PaymentStatusEnum  @default(NOT_PAID)
-  deliveryDate   DateTime?
-  paymentDate    DateTime?
+  plannedDeliveryDate DateTime?
+  deliveryDate        DateTime?
+  paymentDate         DateTime?
   note           String?
 
   deliveryPriceRub Int   @default(0)

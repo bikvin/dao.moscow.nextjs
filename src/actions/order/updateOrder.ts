@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
-import { OrderTypeEnum, PriceUnitEnum, CurrencyEnum } from "@prisma/client";
+import { OrderTypeEnum, PriceUnitEnum, CurrencyEnum, DeliveryStatusEnum, PaymentStatusEnum } from "@prisma/client";
 import { z } from "zod";
 
 const schema = z.object({
@@ -37,6 +37,14 @@ export async function updateOrder(
   const deliveryPriceRub = Math.round((parseFloat(formData.get("deliveryPrice") as string) || 0) * 100);
   const discountPercent = parseFloat(formData.get("discountPercent") as string) || 0;
   const note = (formData.get("note") as string) || null;
+  const plannedDeliveryDateRaw = formData.get("plannedDeliveryDate") as string;
+  const deliveryDateRaw = formData.get("deliveryDate") as string;
+  const paymentDateRaw = formData.get("paymentDate") as string;
+  const plannedDeliveryDate = plannedDeliveryDateRaw ? new Date(plannedDeliveryDateRaw) : null;
+  const deliveryDate = deliveryDateRaw ? new Date(deliveryDateRaw) : null;
+  const paymentDate = paymentDateRaw ? new Date(paymentDateRaw) : null;
+  const deliveryStatus = (formData.get("deliveryStatus") as DeliveryStatusEnum) || DeliveryStatusEnum.NOT_DELIVERED;
+  const paymentStatus = (formData.get("paymentStatus") as PaymentStatusEnum) || PaymentStatusEnum.NOT_PAID;
 
   const productIds = formData.getAll("productId") as string[];
   const variantIds = formData.getAll("productVariantId") as string[];
@@ -60,6 +68,11 @@ export async function updateOrder(
           deliveryPriceRub,
           discountPercent,
           note,
+          plannedDeliveryDate,
+          deliveryDate,
+          deliveryStatus,
+          paymentDate,
+          paymentStatus,
         },
       });
 

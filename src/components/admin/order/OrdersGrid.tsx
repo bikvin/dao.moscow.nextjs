@@ -79,7 +79,10 @@ type Order = {
   note: string | null;
   deliveryMethodId: string | null;
   deliveryPriceRub: number;
+  plannedDeliveryDate: Date | null;
+  deliveryDate: Date | null;
   paymentMethodId: string | null;
+  paymentDate: Date | null;
   discountPercent: number;
   totalRub: number;
   partner: { names: { name: string; isPrimary: boolean }[] };
@@ -276,7 +279,12 @@ export function OrdersGrid({
                   orderType: order.orderType,
                   deliveryMethodId: order.deliveryMethodId,
                   deliveryPriceRub: order.deliveryPriceRub,
+                  deliveryStatus: order.deliveryStatus,
+                  plannedDeliveryDate: order.plannedDeliveryDate,
+                  deliveryDate: order.deliveryDate,
                   paymentMethodId: order.paymentMethodId,
+                  paymentStatus: order.paymentStatus,
+                  paymentDate: order.paymentDate,
                   discountPercent: order.discountPercent,
                   note: order.note,
                   items: order.items.map((item) => ({

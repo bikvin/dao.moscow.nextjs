@@ -7,7 +7,7 @@ import { updateOrder } from "@/actions/order/updateOrder";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAddSection";
 import FormButton from "@/components/common/formButton/formButton";
-import { OrderTypeEnum, PriceTypeEnum, PriceUnitEnum, CurrencyEnum } from "@prisma/client";
+import { OrderTypeEnum, PriceTypeEnum, PriceUnitEnum, CurrencyEnum, DeliveryStatusEnum, PaymentStatusEnum } from "@prisma/client";
 import { X } from "lucide-react";
 import { type ProductOption } from "./AddOrderItemForm";
 import { PartnerCombobox } from "./PartnerCombobox";
@@ -24,7 +24,12 @@ export type InitialOrder = {
   orderType: OrderTypeEnum;
   deliveryMethodId: string | null;
   deliveryPriceRub: number;
+  deliveryStatus: DeliveryStatusEnum;
+  plannedDeliveryDate: Date | null;
+  deliveryDate: Date | null;
   paymentMethodId: string | null;
+  paymentStatus: PaymentStatusEnum;
+  paymentDate: Date | null;
   discountPercent: number;
   note: string | null;
   items: Array<{
@@ -347,9 +352,20 @@ export function CreateOrderForm({
   );
   const [orderType, setOrderType] = useState<OrderTypeEnum>(initialOrder?.orderType ?? OrderTypeEnum.SALE);
   const [deliveryMethodId, setDeliveryMethodId] = useState(initialOrder?.deliveryMethodId ?? "");
+  const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatusEnum>(initialOrder?.deliveryStatus ?? DeliveryStatusEnum.NOT_DELIVERED);
   const [paymentMethodId, setPaymentMethodId] = useState(initialOrder?.paymentMethodId ?? "");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatusEnum>(initialOrder?.paymentStatus ?? PaymentStatusEnum.NOT_PAID);
   const [deliveryPrice, setDeliveryPrice] = useState(
     initialOrder?.deliveryPriceRub ? (initialOrder.deliveryPriceRub / 100).toString() : ""
+  );
+  const [plannedDeliveryDate, setPlannedDeliveryDate] = useState(
+    initialOrder?.plannedDeliveryDate ? new Date(initialOrder.plannedDeliveryDate).toISOString().split("T")[0] : ""
+  );
+  const [deliveryDate, setDeliveryDate] = useState(
+    initialOrder?.deliveryDate ? new Date(initialOrder.deliveryDate).toISOString().split("T")[0] : ""
+  );
+  const [paymentDate, setPaymentDate] = useState(
+    initialOrder?.paymentDate ? new Date(initialOrder.paymentDate).toISOString().split("T")[0] : ""
   );
   const [discount, setDiscount] = useState(
     initialOrder?.discountPercent ? initialOrder.discountPercent.toString() : ""
@@ -380,8 +396,13 @@ export function CreateOrderForm({
         setOrderDate(new Date().toISOString().split("T")[0]);
         setOrderType(OrderTypeEnum.SALE);
         setDeliveryMethodId("");
-        setPaymentMethodId("");
+        setDeliveryStatus(DeliveryStatusEnum.NOT_DELIVERED);
         setDeliveryPrice("");
+        setPlannedDeliveryDate("");
+        setDeliveryDate("");
+        setPaymentMethodId("");
+        setPaymentStatus(PaymentStatusEnum.NOT_PAID);
+        setPaymentDate("");
         setDiscount("");
         setNote("");
         setItems([emptyItem()]);
@@ -482,7 +503,7 @@ export function CreateOrderForm({
           </button>
         </div>
 
-        {/* Delivery */}
+        {/* Delivery row 1: method, price, planned date */}
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex flex-col gap-0.5">
             <label className="text-xs text-slate-400">Доставка:</label>
@@ -520,22 +541,86 @@ export function CreateOrderForm({
               step="0.01"
             />
           </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Плановая дата доставки:</label>
+            <input
+              name="plannedDeliveryDate"
+              type="date"
+              value={plannedDeliveryDate}
+              onChange={(e) => setPlannedDeliveryDate(e.target.value)}
+              className="admin-form-input text-sm w-36"
+            />
+          </div>
         </div>
 
-        {/* Payment */}
-        <div className="flex flex-col gap-0.5">
-          <label className="text-xs text-slate-400">Способ оплаты:</label>
-          <select
-            name="paymentMethodId"
-            value={paymentMethodId}
-            onChange={(e) => setPaymentMethodId(e.target.value)}
-            className="admin-form-input text-sm w-44"
-          >
-            <option value="">— не выбрано —</option>
-            {paymentMethods.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
+        {/* Delivery row 2: status toggle, actual date */}
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Статус доставки:</label>
+            <input type="hidden" name="deliveryStatus" value={deliveryStatus} />
+            <button
+              type="button"
+              onClick={() => setDeliveryStatus(deliveryStatus === DeliveryStatusEnum.DELIVERED ? DeliveryStatusEnum.NOT_DELIVERED : DeliveryStatusEnum.DELIVERED)}
+              className={`text-sm px-3 py-1 rounded border font-medium w-36 text-left ${deliveryStatus === DeliveryStatusEnum.DELIVERED ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}
+            >
+              {deliveryStatus === DeliveryStatusEnum.DELIVERED ? "Доставлен" : "Не доставлен"}
+            </button>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Фактическая дата доставки:</label>
+            <input
+              name="deliveryDate"
+              type="date"
+              value={deliveryDate}
+              onChange={(e) => setDeliveryDate(e.target.value)}
+              className="admin-form-input text-sm w-36 disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={deliveryStatus !== DeliveryStatusEnum.DELIVERED}
+            />
+          </div>
+        </div>
+
+        {/* Payment row 1: method */}
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Способ оплаты:</label>
+            <select
+              name="paymentMethodId"
+              value={paymentMethodId}
+              onChange={(e) => setPaymentMethodId(e.target.value)}
+              className="admin-form-input text-sm w-44"
+            >
+              <option value="">— не выбрано —</option>
+              {paymentMethods.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Payment row 2: status toggle, date */}
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Статус оплаты:</label>
+            <input type="hidden" name="paymentStatus" value={paymentStatus} />
+            <button
+              type="button"
+              onClick={() => setPaymentStatus(paymentStatus === PaymentStatusEnum.PAID ? PaymentStatusEnum.NOT_PAID : PaymentStatusEnum.PAID)}
+              className={`text-sm px-3 py-1 rounded border font-medium w-36 text-left ${paymentStatus === PaymentStatusEnum.PAID ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-orange-100 text-orange-700 border-orange-200"}`}
+            >
+              {paymentStatus === PaymentStatusEnum.PAID ? "Оплачен" : "Не оплачен"}
+            </button>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Дата оплаты:</label>
+            <input
+              name="paymentDate"
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              className="admin-form-input text-sm w-36 disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={paymentStatus !== PaymentStatusEnum.PAID}
+            />
+          </div>
         </div>
 
         {/* Discount */}
