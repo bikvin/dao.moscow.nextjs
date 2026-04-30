@@ -715,7 +715,7 @@ export function CreateOrderForm({
         style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
       >
         <div className="overflow-hidden">
-          <div className="px-3 pt-3 pb-2">{formContent}</div>
+          <div className="px-3 pt-3 pb-2 bg-white">{formContent}</div>
         </div>
       </div>
     );
