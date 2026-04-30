@@ -9,6 +9,7 @@ import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAdd
 import FormButton from "@/components/common/formButton/formButton";
 import { OrderTypeEnum, OrderStatusEnum, PriceTypeEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum } from "@prisma/client";
 import { X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { type ProductOption } from "./AddOrderItemForm";
 import { PartnerCombobox } from "./PartnerCombobox";
 import { ProductCombobox } from "./ProductCombobox";
@@ -613,13 +614,15 @@ export function CreateOrderForm({
           <div className="flex flex-col gap-0.5">
             <label className="text-xs text-slate-400">Статус оплаты:</label>
             <input type="hidden" name="paymentStatus" value={paymentStatus} />
-            <button
-              type="button"
-              onClick={() => setPaymentStatus(paymentStatus === PaymentStatusEnum.PAID ? PaymentStatusEnum.NOT_PAID : PaymentStatusEnum.PAID)}
-              className={`text-sm px-3 py-1 rounded border font-medium w-36 text-left ${paymentStatus === PaymentStatusEnum.PAID ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-orange-100 text-orange-700 border-orange-200"}`}
-            >
-              {paymentStatus === PaymentStatusEnum.PAID ? "Оплачен" : "Не оплачен"}
-            </button>
+            <div className="flex items-center gap-2 py-1">
+              <Switch
+                checked={paymentStatus === PaymentStatusEnum.PAID}
+                onCheckedChange={(checked) => setPaymentStatus(checked ? PaymentStatusEnum.PAID : PaymentStatusEnum.NOT_PAID)}
+              />
+              <span className={`text-sm font-medium ${paymentStatus === PaymentStatusEnum.PAID ? "text-emerald-700" : "text-slate-400"}`}>
+                {paymentStatus === PaymentStatusEnum.PAID ? "Оплачен" : "Не оплачен"}
+              </span>
+            </div>
           </div>
           <div className="flex flex-col gap-0.5">
             <label className="text-xs text-slate-400">Дата оплаты:</label>
