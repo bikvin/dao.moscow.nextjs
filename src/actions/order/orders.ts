@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
-import { OrderTypeEnum, PriceUnitEnum, CurrencyEnum, DeliveryStatusEnum, PaymentStatusEnum } from "@prisma/client";
+import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, DeliveryStatusEnum, PaymentStatusEnum } from "@prisma/client";
 import { z } from "zod";
 
 const createOrderSchema = z.object({
@@ -45,6 +45,7 @@ export async function createOrder(
   const paymentDate = paymentDateRaw ? new Date(paymentDateRaw) : null;
   const deliveryStatus = (formData.get("deliveryStatus") as DeliveryStatusEnum) || DeliveryStatusEnum.NOT_DELIVERED;
   const paymentStatus = (formData.get("paymentStatus") as PaymentStatusEnum) || PaymentStatusEnum.NOT_PAID;
+  const status = (formData.get("orderStatus") as OrderStatusEnum) || OrderStatusEnum.RESERVE;
 
   // Item arrays — one value per product row
   const productIds = formData.getAll("productId") as string[];
@@ -71,6 +72,7 @@ export async function createOrder(
           sequenceNumber,
           orderDate,
           orderType: result.data.orderType,
+          status,
           partnerId: result.data.partnerId,
           deliveryMethodId,
           paymentMethodId,

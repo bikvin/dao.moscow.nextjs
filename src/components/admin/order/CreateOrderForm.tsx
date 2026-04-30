@@ -7,7 +7,7 @@ import { updateOrder } from "@/actions/order/updateOrder";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAddSection";
 import FormButton from "@/components/common/formButton/formButton";
-import { OrderTypeEnum, PriceTypeEnum, PriceUnitEnum, CurrencyEnum, DeliveryStatusEnum, PaymentStatusEnum } from "@prisma/client";
+import { OrderTypeEnum, OrderStatusEnum, PriceTypeEnum, PriceUnitEnum, CurrencyEnum, DeliveryStatusEnum, PaymentStatusEnum } from "@prisma/client";
 import { X } from "lucide-react";
 import { type ProductOption } from "./AddOrderItemForm";
 import { PartnerCombobox } from "./PartnerCombobox";
@@ -22,6 +22,7 @@ export type InitialOrder = {
   orderDate: Date;
   partnerId: string;
   orderType: OrderTypeEnum;
+  status: OrderStatusEnum;
   deliveryMethodId: string | null;
   deliveryPriceRub: number;
   deliveryStatus: DeliveryStatusEnum;
@@ -57,6 +58,13 @@ type ItemState = {
 const ORDER_TYPE_LABELS: Record<OrderTypeEnum, string> = {
   SALE: "Продажа",
   RETURN: "Возврат",
+};
+
+const ORDER_STATUS_LABELS: Record<OrderStatusEnum, string> = {
+  RESERVE:          "Резерв",
+  SHIPMENT_PLANNED: "Отгрузка запланирована",
+  FULFILLED:        "Выполнен",
+  CANCELLED:        "Отменён",
 };
 
 const PRICE_UNIT_LABELS: Record<PriceUnitEnum, string> = {
@@ -351,6 +359,7 @@ export function CreateOrderForm({
       : new Date().toISOString().split("T")[0]
   );
   const [orderType, setOrderType] = useState<OrderTypeEnum>(initialOrder?.orderType ?? OrderTypeEnum.SALE);
+  const [orderStatus, setOrderStatus] = useState<OrderStatusEnum>(initialOrder?.status ?? OrderStatusEnum.RESERVE);
   const [deliveryMethodId, setDeliveryMethodId] = useState(initialOrder?.deliveryMethodId ?? "");
   const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatusEnum>(initialOrder?.deliveryStatus ?? DeliveryStatusEnum.NOT_DELIVERED);
   const [paymentMethodId, setPaymentMethodId] = useState(initialOrder?.paymentMethodId ?? "");
@@ -395,6 +404,7 @@ export function CreateOrderForm({
         setPartnerId("");
         setOrderDate(new Date().toISOString().split("T")[0]);
         setOrderType(OrderTypeEnum.SALE);
+        setOrderStatus(OrderStatusEnum.RESERVE);
         setDeliveryMethodId("");
         setDeliveryStatus(DeliveryStatusEnum.NOT_DELIVERED);
         setDeliveryPrice("");
@@ -503,6 +513,34 @@ export function CreateOrderForm({
           </button>
         </div>
 
+        {/* Order status + planned delivery date */}
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Статус заказа:</label>
+            <select
+              name="orderStatus"
+              value={orderStatus}
+              onChange={(e) => setOrderStatus(e.target.value as OrderStatusEnum)}
+              className="admin-form-input text-sm w-52"
+            >
+              {Object.values(OrderStatusEnum).map((s) => (
+                <option key={s} value={s}>{ORDER_STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Плановая дата доставки:</label>
+            <input
+              name="plannedDeliveryDate"
+              type="date"
+              value={plannedDeliveryDate}
+              onChange={(e) => setPlannedDeliveryDate(e.target.value)}
+              className="admin-form-input text-sm w-36 disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={orderStatus !== OrderStatusEnum.SHIPMENT_PLANNED}
+            />
+          </div>
+        </div>
+
         {/* Delivery row 1: method, price, planned date */}
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex flex-col gap-0.5">
@@ -539,16 +577,6 @@ export function CreateOrderForm({
               className="admin-form-input text-sm w-40"
               min="0"
               step="0.01"
-            />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <label className="text-xs text-slate-400">Плановая дата доставки:</label>
-            <input
-              name="plannedDeliveryDate"
-              type="date"
-              value={plannedDeliveryDate}
-              onChange={(e) => setPlannedDeliveryDate(e.target.value)}
-              className="admin-form-input text-sm w-36"
             />
           </div>
         </div>

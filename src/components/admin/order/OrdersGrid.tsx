@@ -278,6 +278,7 @@ export function OrdersGrid({
                   orderDate: order.orderDate,
                   partnerId: order.partnerId,
                   orderType: order.orderType,
+                  status: order.status,
                   deliveryMethodId: order.deliveryMethodId,
                   deliveryPriceRub: order.deliveryPriceRub,
                   deliveryStatus: order.deliveryStatus,
