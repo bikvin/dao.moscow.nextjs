@@ -536,6 +536,17 @@ export function CreateOrderForm({
               disabled={orderStatus !== OrderStatusEnum.SHIPMENT_PLANNED}
             />
           </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Фактическая дата доставки:</label>
+            <input
+              name="deliveryDate"
+              type="date"
+              value={deliveryDate}
+              onChange={(e) => setDeliveryDate(e.target.value)}
+              className="admin-form-input text-sm w-36 disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={orderStatus !== OrderStatusEnum.SHIPPED}
+            />
+          </div>
         </div>
 
         {/* Delivery row 1: method, price, planned date */}
@@ -578,19 +589,6 @@ export function CreateOrderForm({
           </div>
         </div>
 
-        {/* Delivery row 2: actual date */}
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="flex flex-col gap-0.5">
-            <label className="text-xs text-slate-400">Фактическая дата доставки:</label>
-            <input
-              name="deliveryDate"
-              type="date"
-              value={deliveryDate}
-              onChange={(e) => setDeliveryDate(e.target.value)}
-              className="admin-form-input text-sm w-36"
-            />
-          </div>
-        </div>
 
         {/* Payment row 1: method */}
         <div className="flex flex-wrap items-start gap-4">
