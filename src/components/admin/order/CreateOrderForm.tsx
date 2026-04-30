@@ -63,7 +63,7 @@ const ORDER_TYPE_LABELS: Record<OrderTypeEnum, string> = {
 const ORDER_STATUS_LABELS: Record<OrderStatusEnum, string> = {
   RESERVE:          "Резерв",
   SHIPMENT_PLANNED: "Отгрузка запланирована",
-  FULFILLED:        "Выполнен",
+  SHIPPED:          "Отгружен",
   CANCELLED:        "Отменён",
 };
 

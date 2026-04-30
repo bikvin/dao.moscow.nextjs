@@ -38,7 +38,7 @@ const ORDER_STATUS_CONFIG: Record<
     label: "Отгрузка запланирована",
     cls: "bg-blue-100 text-blue-700",
   },
-  FULFILLED: { label: "Выполнен", cls: "bg-emerald-100 text-emerald-700" },
+  SHIPPED: { label: "Отгружен", cls: "bg-emerald-100 text-emerald-700" },
   CANCELLED: { label: "Отменён", cls: "bg-red-100 text-red-600" },
 };
 

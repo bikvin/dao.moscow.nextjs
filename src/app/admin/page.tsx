@@ -14,7 +14,7 @@ const PAGE_SIZE = 50;
 const STATUS_LABELS: Record<OrderStatusEnum, string> = {
   RESERVE: "Резерв",
   SHIPMENT_PLANNED: "Отгрузка запланирована",
-  FULFILLED: "Выполнен",
+  SHIPPED: "Отгружен",
   CANCELLED: "Отменён",
 };
 
