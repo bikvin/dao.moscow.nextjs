@@ -87,6 +87,7 @@ enum OrderTypeEnum {
 
 enum OrderStatusEnum {
   RESERVE
+  SHIPMENT_PLANNED
   FULFILLED
   CANCELLED
 }
