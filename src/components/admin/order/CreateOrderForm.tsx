@@ -7,7 +7,7 @@ import { updateOrder } from "@/actions/order/updateOrder";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAddSection";
 import FormButton from "@/components/common/formButton/formButton";
-import { OrderTypeEnum, OrderStatusEnum, PriceTypeEnum, PriceUnitEnum, CurrencyEnum, DeliveryStatusEnum, PaymentStatusEnum } from "@prisma/client";
+import { OrderTypeEnum, OrderStatusEnum, PriceTypeEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum } from "@prisma/client";
 import { X } from "lucide-react";
 import { type ProductOption } from "./AddOrderItemForm";
 import { PartnerCombobox } from "./PartnerCombobox";
@@ -25,7 +25,6 @@ export type InitialOrder = {
   status: OrderStatusEnum;
   deliveryMethodId: string | null;
   deliveryPriceRub: number;
-  deliveryStatus: DeliveryStatusEnum;
   plannedDeliveryDate: Date | null;
   deliveryDate: Date | null;
   paymentMethodId: string | null;
@@ -361,7 +360,6 @@ export function CreateOrderForm({
   const [orderType, setOrderType] = useState<OrderTypeEnum>(initialOrder?.orderType ?? OrderTypeEnum.SALE);
   const [orderStatus, setOrderStatus] = useState<OrderStatusEnum>(initialOrder?.status ?? OrderStatusEnum.RESERVE);
   const [deliveryMethodId, setDeliveryMethodId] = useState(initialOrder?.deliveryMethodId ?? "");
-  const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatusEnum>(initialOrder?.deliveryStatus ?? DeliveryStatusEnum.NOT_DELIVERED);
   const [paymentMethodId, setPaymentMethodId] = useState(initialOrder?.paymentMethodId ?? "");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatusEnum>(initialOrder?.paymentStatus ?? PaymentStatusEnum.NOT_PAID);
   const [deliveryPrice, setDeliveryPrice] = useState(
@@ -406,7 +404,6 @@ export function CreateOrderForm({
         setOrderType(OrderTypeEnum.SALE);
         setOrderStatus(OrderStatusEnum.RESERVE);
         setDeliveryMethodId("");
-        setDeliveryStatus(DeliveryStatusEnum.NOT_DELIVERED);
         setDeliveryPrice("");
         setPlannedDeliveryDate("");
         setDeliveryDate("");
@@ -581,19 +578,8 @@ export function CreateOrderForm({
           </div>
         </div>
 
-        {/* Delivery row 2: status toggle, actual date */}
+        {/* Delivery row 2: actual date */}
         <div className="flex flex-wrap items-start gap-4">
-          <div className="flex flex-col gap-0.5">
-            <label className="text-xs text-slate-400">Статус доставки:</label>
-            <input type="hidden" name="deliveryStatus" value={deliveryStatus} />
-            <button
-              type="button"
-              onClick={() => setDeliveryStatus(deliveryStatus === DeliveryStatusEnum.DELIVERED ? DeliveryStatusEnum.NOT_DELIVERED : DeliveryStatusEnum.DELIVERED)}
-              className={`text-sm px-3 py-1 rounded border font-medium w-36 text-left ${deliveryStatus === DeliveryStatusEnum.DELIVERED ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}
-            >
-              {deliveryStatus === DeliveryStatusEnum.DELIVERED ? "Доставлен" : "Не доставлен"}
-            </button>
-          </div>
           <div className="flex flex-col gap-0.5">
             <label className="text-xs text-slate-400">Фактическая дата доставки:</label>
             <input
@@ -601,8 +587,7 @@ export function CreateOrderForm({
               type="date"
               value={deliveryDate}
               onChange={(e) => setDeliveryDate(e.target.value)}
-              className="admin-form-input text-sm w-36 disabled:opacity-40 disabled:cursor-not-allowed"
-              disabled={deliveryStatus !== DeliveryStatusEnum.DELIVERED}
+              className="admin-form-input text-sm w-36"
             />
           </div>
         </div>

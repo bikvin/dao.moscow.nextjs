@@ -7,7 +7,6 @@ import { CreateOrderForm } from "./CreateOrderForm";
 import { type ProductOption } from "./AddOrderItemForm";
 import {
   OrderStatusEnum,
-  DeliveryStatusEnum,
   PaymentStatusEnum,
   OrderTypeEnum,
   PriceUnitEnum,
@@ -42,13 +41,6 @@ const ORDER_STATUS_CONFIG: Record<
   CANCELLED: { label: "Отменён", cls: "bg-red-100 text-red-600" },
 };
 
-const DELIVERY_STATUS_CONFIG: Record<
-  DeliveryStatusEnum,
-  { label: string; cls: string }
-> = {
-  DELIVERED: { label: "Доставлен", cls: "bg-emerald-100 text-emerald-700" },
-  NOT_DELIVERED: { label: "Не доставлен", cls: "bg-slate-100 text-slate-500" },
-};
 
 const PAYMENT_STATUS_CONFIG: Record<
   PaymentStatusEnum,
@@ -102,7 +94,7 @@ type Order = {
   orderType: OrderTypeEnum;
   partnerId: string;
   status: OrderStatusEnum;
-  deliveryStatus: DeliveryStatusEnum;
+
   paymentStatus: PaymentStatusEnum;
   note: string | null;
   deliveryMethodId: string | null;
@@ -332,7 +324,7 @@ export function OrdersGrid({
                   </div>
                   <div className="flex flex-wrap gap-1 mt-5">
                     <Badge {...ORDER_STATUS_CONFIG[order.status]} />
-                    <Badge {...DELIVERY_STATUS_CONFIG[order.deliveryStatus]} />
+
                     <Badge {...PAYMENT_STATUS_CONFIG[order.paymentStatus]} />
                   </div>
                   {order.note && (
@@ -364,7 +356,7 @@ export function OrdersGrid({
                   status: order.status,
                   deliveryMethodId: order.deliveryMethodId,
                   deliveryPriceRub: order.deliveryPriceRub,
-                  deliveryStatus: order.deliveryStatus,
+
                   plannedDeliveryDate: order.plannedDeliveryDate,
                   deliveryDate: order.deliveryDate,
                   paymentMethodId: order.paymentMethodId,

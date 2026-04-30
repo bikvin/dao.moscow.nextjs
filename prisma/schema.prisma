@@ -92,10 +92,6 @@ enum OrderStatusEnum {
   CANCELLED
 }
 
-enum DeliveryStatusEnum {
-  DELIVERED
-  NOT_DELIVERED
-}
 
 enum PaymentStatusEnum {
   PAID
@@ -553,7 +549,7 @@ model Order {
   orderDate      DateTime
   orderType      OrderTypeEnum      @default(SALE)
   status         OrderStatusEnum    @default(RESERVE)
-  deliveryStatus DeliveryStatusEnum @default(NOT_DELIVERED)
+
   paymentStatus  PaymentStatusEnum  @default(NOT_PAID)
   plannedDeliveryDate DateTime?
   deliveryDate        DateTime?
