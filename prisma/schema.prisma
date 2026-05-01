@@ -89,6 +89,7 @@ enum OrderStatusEnum {
   RESERVE
   SHIPMENT_PLANNED
   SHIPPED
+  SELF_PICKUP
   CANCELLED
 }
 

@@ -35,6 +35,7 @@ const ORDER_STATUS_CONFIG: Record<
   RESERVE: { label: "Резерв", cls: "text-slate-800 font-medium" },
   SHIPMENT_PLANNED: { label: "Отгрузка запланирована", cls: "text-slate-800 font-medium" },
   SHIPPED: { label: "Отгружен", cls: "text-slate-800 font-medium" },
+  SELF_PICKUP: { label: "Самовывоз", cls: "text-slate-800 font-medium" },
   CANCELLED: { label: "Отменён", cls: "text-slate-800 font-medium" },
 };
 
@@ -205,7 +206,8 @@ export function OrdersGrid({
               className="border rounded-md shadow-main overflow-hidden mb-3"
               style={
                 order.status === "RESERVE" ||
-                order.status === "SHIPMENT_PLANNED"
+                order.status === "SHIPMENT_PLANNED" ||
+                order.status === "SELF_PICKUP"
                   ? { backgroundColor: "#fff7da" }
                   : undefined
               }
@@ -367,9 +369,7 @@ export function OrdersGrid({
                       }
                     />
 
-                    {order.deliveryMethod && (
-                      <Badge label={order.deliveryMethod.name} cls="text-slate-500 font-medium" />
-                    )}
+
                     <Badge {...PAYMENT_STATUS_CONFIG[order.paymentStatus]} />
                   </div>
                   {order.note && (

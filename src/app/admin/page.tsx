@@ -15,6 +15,7 @@ const STATUS_LABELS: Record<OrderStatusEnum, string> = {
   RESERVE: "Резерв",
   SHIPMENT_PLANNED: "Отгрузка запланирована",
   SHIPPED: "Отгружен",
+  SELF_PICKUP: "Самовывоз",
   CANCELLED: "Отменён",
 };
 
