@@ -32,13 +32,10 @@ const ORDER_STATUS_CONFIG: Record<
   OrderStatusEnum,
   { label: string; cls: string }
 > = {
-  RESERVE: { label: "Резерв", cls: "bg-amber-100 text-amber-700" },
-  SHIPMENT_PLANNED: {
-    label: "Отгрузка запланирована",
-    cls: "bg-blue-100 text-blue-700",
-  },
-  SHIPPED: { label: "Отгружен", cls: "bg-emerald-100 text-emerald-700" },
-  CANCELLED: { label: "Отменён", cls: "bg-red-100 text-red-600" },
+  RESERVE: { label: "Резерв", cls: "text-slate-800 font-medium" },
+  SHIPMENT_PLANNED: { label: "Отгрузка запланирована", cls: "text-slate-800 font-medium" },
+  SHIPPED: { label: "Отгружен", cls: "text-slate-800 font-medium" },
+  CANCELLED: { label: "Отменён", cls: "text-slate-800 font-medium" },
 };
 
 
@@ -46,8 +43,8 @@ const PAYMENT_STATUS_CONFIG: Record<
   PaymentStatusEnum,
   { label: string; cls: string }
 > = {
-  PAID: { label: "Оплачен", cls: "bg-emerald-100 text-emerald-700" },
-  NOT_PAID: { label: "Не оплачен", cls: "bg-orange-100 text-orange-700" },
+  PAID: { label: "Оплачен", cls: "text-slate-800 font-medium" },
+  NOT_PAID: { label: "Не оплачен", cls: "text-red-600 font-bold" },
 };
 
 const ORDER_TYPE_CONFIG: Record<OrderTypeEnum, { label: string; cls: string }> =
@@ -56,10 +53,39 @@ const ORDER_TYPE_CONFIG: Record<OrderTypeEnum, { label: string; cls: string }> =
     RETURN: { label: "Возврат", cls: "bg-purple-50 text-purple-600" },
   };
 
+const SHIPMENT_DATE_PALETTE = [
+  "bg-pink-100 text-pink-800 font-medium",
+  "bg-emerald-100 text-emerald-800 font-medium",
+  "bg-orange-100 text-orange-800 font-medium",
+  "bg-violet-100 text-violet-800 font-medium",
+  "bg-sky-100 text-sky-800 font-medium",
+  "bg-yellow-100 text-yellow-800 font-medium",
+  "bg-rose-100 text-rose-800 font-medium",
+  "bg-teal-100 text-teal-800 font-medium",
+  "bg-indigo-100 text-indigo-800 font-medium",
+  "bg-lime-100 text-lime-800 font-medium",
+];
+
+function buildShipmentDateColorMap(orders: { status: string; plannedDeliveryDate: Date | null }[]): Map<string, string> {
+  const uniqueDates = Array.from(
+    new Set(
+      orders
+        .filter((o) => o.status === "SHIPMENT_PLANNED" && o.plannedDeliveryDate)
+        .map((o) => new Date(o.plannedDeliveryDate!).toISOString().split("T")[0])
+    )
+  ).sort();
+
+  const map = new Map<string, string>();
+  uniqueDates.forEach((date, i) => {
+    map.set(date, SHIPMENT_DATE_PALETTE[i % SHIPMENT_DATE_PALETTE.length]);
+  });
+  return map;
+}
+
 function Badge({ label, cls }: { label: string; cls: string }) {
   return (
     <span
-      className={`text-xs px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${cls}`}
+      className={`text-xs px-1.5 py-0.5 rounded ${cls}`}
     >
       {label}
     </span>
@@ -142,6 +168,7 @@ export function OrdersGrid({
   rmbRate: number | null;
 }) {
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+  const shipmentDateColorMap = buildShipmentDateColorMap(orders);
 
   if (orders.length === 0) {
     return <p className="text-sm text-slate-400 mt-6">Заказы не найдены</p>;
@@ -322,9 +349,27 @@ export function OrdersGrid({
                   <div className="absolute top-2 right-3 text-xs text-slate-400">
                     {ORDER_TYPE_CONFIG[order.orderType].label}
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-5">
-                    <Badge {...ORDER_STATUS_CONFIG[order.status]} />
+                  <div className="flex flex-col gap-1 mt-5">
+                    <Badge
+                      label={
+                        order.status === "SHIPPED" && order.deliveryDate
+                          ? `${ORDER_STATUS_CONFIG[order.status].label} ${formatDate(order.deliveryDate)}`
+                          : order.status === "SHIPMENT_PLANNED"
+                          ? `${ORDER_STATUS_CONFIG[order.status].label} ${order.plannedDeliveryDate ? formatDate(order.plannedDeliveryDate) : "???"}`
+                          : ORDER_STATUS_CONFIG[order.status].label
+                      }
+                      cls={
+                        order.status === "SHIPMENT_PLANNED"
+                          ? (order.plannedDeliveryDate
+                              ? shipmentDateColorMap.get(new Date(order.plannedDeliveryDate).toISOString().split("T")[0]) ?? ORDER_STATUS_CONFIG[order.status].cls
+                              : ORDER_STATUS_CONFIG[order.status].cls)
+                          : ORDER_STATUS_CONFIG[order.status].cls
+                      }
+                    />
 
+                    {order.deliveryMethod && (
+                      <Badge label={order.deliveryMethod.name} cls="text-slate-500 font-medium" />
+                    )}
                     <Badge {...PAYMENT_STATUS_CONFIG[order.paymentStatus]} />
                   </div>
                   {order.note && (
