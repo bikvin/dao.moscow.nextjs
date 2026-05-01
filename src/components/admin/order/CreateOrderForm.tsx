@@ -512,6 +512,46 @@ export function CreateOrderForm({
           </button>
         </div>
 
+        {/* Delivery row 1: method, price */}
+        <div className="flex flex-wrap items-start gap-4 pl-2 border-l-2 border-slate-200">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Доставка:</label>
+            <select
+              name="deliveryMethodId"
+              value={deliveryMethodId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setDeliveryMethodId(id);
+                const method = deliveryMethods.find((m) => m.id === id);
+                setDeliveryPrice(
+                  method?.defaultPriceRub != null
+                    ? (method.defaultPriceRub / 100).toString()
+                    : ""
+                );
+              }}
+              className="admin-form-input text-sm w-44"
+            >
+              <option value="">— не выбрано —</option>
+              {deliveryMethods.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Стоимость доставки:</label>
+            <input
+              name="deliveryPrice"
+              type="number"
+              placeholder="0"
+              value={deliveryPrice}
+              onChange={(e) => setDeliveryPrice(e.target.value)}
+              className="admin-form-input text-sm w-40"
+              min="0"
+              step="0.01"
+            />
+          </div>
+        </div>
+
         {/* Order status + planned delivery date */}
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex flex-col gap-0.5">
@@ -551,45 +591,7 @@ export function CreateOrderForm({
           </div>
         </div>
 
-        {/* Delivery row 1: method, price, planned date */}
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="flex flex-col gap-0.5">
-            <label className="text-xs text-slate-400">Доставка:</label>
-            <select
-              name="deliveryMethodId"
-              value={deliveryMethodId}
-              onChange={(e) => {
-                const id = e.target.value;
-                setDeliveryMethodId(id);
-                const method = deliveryMethods.find((m) => m.id === id);
-                setDeliveryPrice(
-                  method?.defaultPriceRub != null
-                    ? (method.defaultPriceRub / 100).toString()
-                    : ""
-                );
-              }}
-              className="admin-form-input text-sm w-44"
-            >
-              <option value="">— не выбрано —</option>
-              {deliveryMethods.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <label className="text-xs text-slate-400">Стоимость доставки:</label>
-            <input
-              name="deliveryPrice"
-              type="number"
-              placeholder="0"
-              value={deliveryPrice}
-              onChange={(e) => setDeliveryPrice(e.target.value)}
-              className="admin-form-input text-sm w-40"
-              min="0"
-              step="0.01"
-            />
-          </div>
-        </div>
+
 
 
         {/* Payment row 1: method */}
