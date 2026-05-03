@@ -28,12 +28,19 @@ function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString("ru-RU");
 }
 
+function formatShortDate(date: Date): string {
+  const d = new Date(date);
+  const weekday = d.toLocaleDateString("ru-RU", { weekday: "short" });
+  const dayMonth = d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+  return `${weekday.charAt(0).toUpperCase() + weekday.slice(1, 2)} ${dayMonth.slice(0, 5)}`;
+}
+
 const ORDER_STATUS_CONFIG: Record<
   OrderStatusEnum,
   { label: string; cls: string }
 > = {
   RESERVE: { label: "Резерв", cls: "text-slate-800 font-medium" },
-  SHIPMENT_PLANNED: { label: "Отгрузка запланирована", cls: "text-slate-800 font-medium" },
+  SHIPMENT_PLANNED: { label: "Доставка", cls: "text-slate-800 font-bold" },
   SHIPPED: { label: "Отгружен", cls: "text-slate-800 font-medium" },
   SELF_PICKUP: { label: "Самовывоз", cls: "text-slate-800 font-medium" },
   CANCELLED: { label: "Отменён", cls: "text-slate-800 font-medium" },
@@ -55,16 +62,16 @@ const ORDER_TYPE_CONFIG: Record<OrderTypeEnum, { label: string; cls: string }> =
   };
 
 const SHIPMENT_DATE_PALETTE = [
-  "bg-pink-100 text-pink-800 font-medium",
-  "bg-emerald-100 text-emerald-800 font-medium",
-  "bg-orange-100 text-orange-800 font-medium",
-  "bg-violet-100 text-violet-800 font-medium",
-  "bg-sky-100 text-sky-800 font-medium",
-  "bg-yellow-100 text-yellow-800 font-medium",
-  "bg-rose-100 text-rose-800 font-medium",
-  "bg-teal-100 text-teal-800 font-medium",
-  "bg-indigo-100 text-indigo-800 font-medium",
-  "bg-lime-100 text-lime-800 font-medium",
+  "bg-pink-200 text-pink-900 font-bold",
+  "bg-emerald-200 text-emerald-900 font-bold",
+  "bg-orange-200 text-orange-900 font-bold",
+  "bg-violet-200 text-violet-900 font-bold",
+  "bg-sky-200 text-sky-900 font-bold",
+  "bg-yellow-200 text-yellow-900 font-bold",
+  "bg-rose-200 text-rose-900 font-bold",
+  "bg-teal-200 text-teal-900 font-bold",
+  "bg-indigo-200 text-indigo-900 font-bold",
+  "bg-lime-200 text-lime-900 font-bold",
 ];
 
 function buildShipmentDateColorMap(orders: { status: string; plannedDeliveryDate: Date | null }[]): Map<string, string> {
@@ -359,7 +366,7 @@ export function OrdersGrid({
                         order.status === "SHIPPED" && order.deliveryDate
                           ? `${ORDER_STATUS_CONFIG[order.status].label} ${formatDate(order.deliveryDate)}`
                           : order.status === "SHIPMENT_PLANNED"
-                          ? `${ORDER_STATUS_CONFIG[order.status].label} ${order.plannedDeliveryDate ? formatDate(order.plannedDeliveryDate) : "???"}`
+                          ? `${ORDER_STATUS_CONFIG[order.status].label} ${order.plannedDeliveryDate ? formatShortDate(order.plannedDeliveryDate) : "???"}`
                           : ORDER_STATUS_CONFIG[order.status].label
                       }
                       cls={
