@@ -147,7 +147,12 @@ type PartnerOption = { id: string; names: string[] };
 
 function OrderNumber({ order }: { order: Order }) {
   return (
-    <div className="py-0.5 text-sm font-semibold">{order.sequenceNumber}</div>
+    <div className="py-0.5">
+      <div className="text-sm font-semibold">{order.sequenceNumber}</div>
+      {order.orderType === "RETURN" && (
+        <div className="text-xs text-slate-400">{ORDER_TYPE_CONFIG[order.orderType].label}</div>
+      )}
+    </div>
   );
 }
 
@@ -275,18 +280,20 @@ export function OrdersGrid({
                             })()}
                           </div>
                           <div className="text-sm text-right py-0.5">
-                            {item.quantity}
+                            {order.orderType === "RETURN" ? `-${item.quantity}` : item.quantity}
                           </div>
                           <div className="text-sm text-right py-0.5">
                             {item.quantityM2 !== null
-                              ? item.quantityM2.toFixed(2)
+                              ? order.orderType === "RETURN"
+                                ? `-${item.quantityM2.toFixed(2)}`
+                                : item.quantityM2.toFixed(2)
                               : "—"}
                           </div>
                           <div className="text-sm text-right py-0.5">
                             {formatRub(item.priceRub)}
                           </div>
                           <div className="text-sm text-right py-0.5">
-                            {formatRub(item.totalRub)}
+                            {order.orderType === "RETURN" ? `-${formatRub(item.totalRub)}` : formatRub(item.totalRub)}
                           </div>
                         </React.Fragment>
                       ))}
@@ -339,7 +346,7 @@ export function OrdersGrid({
                         <E />
                         <E />
                         <div className="text-sm font-semibold text-right py-1 border-t border-slate-200">
-                          {formatRub(order.totalRub)}
+                          {order.orderType === "RETURN" ? `-${formatRub(order.totalRub)}` : formatRub(order.totalRub)}
                         </div>
                       </>
                     </>
@@ -348,10 +355,7 @@ export function OrdersGrid({
 
                 {/* Badges */}
                 <div className="relative w-44 flex-shrink-0 border-l border-slate-100 px-3 py-2 flex flex-col gap-1">
-                  <div className="absolute top-2 right-3 text-xs text-slate-400">
-                    {ORDER_TYPE_CONFIG[order.orderType].label}
-                  </div>
-                  <div className="flex flex-col gap-1 mt-5">
+                  <div className="flex flex-col gap-1">
                     <Badge
                       label={
                         order.status === "SHIPPED" && order.deliveryDate
