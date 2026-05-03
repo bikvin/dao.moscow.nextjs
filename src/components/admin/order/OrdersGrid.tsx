@@ -268,9 +268,7 @@ export function OrdersGrid({
                                 (p) => p.id === item.productId,
                               );
                               const activeVariants = p?.productVariants ?? [];
-                              const hideVariant =
-                                activeVariants.length === 1 &&
-                                activeVariants[0].isMain;
+                              const hideVariant = activeVariants.length <= 1;
                               return !hideVariant &&
                                 item.productVariant.variantName ? (
                                 <span className="text-slate-400 ml-1 text-xs">
