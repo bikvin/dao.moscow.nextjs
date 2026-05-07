@@ -212,7 +212,7 @@ export function OrdersGrid({
   return (
     <div className="mt-4">
       {/* Sticky column headers */}
-      <div className="sticky top-0 bg-white z-10 flex border-b-2 border-slate-300 text-xs text-slate-400 mb-2 mx-px">
+      <div className="hidden md:flex sticky top-0 bg-white z-10 border-b-2 border-slate-300 text-xs text-slate-400 mb-2 mx-px">
         <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 py-1.5`}>
           <div>#</div>
           <div>Дата</div>
@@ -251,132 +251,68 @@ export function OrdersGrid({
                   : undefined
               }
             >
-              <div className="flex items-start">
-                <div
-                  className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 py-2 items-start`}
-                >
+              <div className="flex flex-col md:flex-row md:items-start">
+                {/* Desktop grid */}
+                <div className={`hidden md:grid flex-1 min-w-0 ${COLS} gap-x-3 px-3 py-2 items-start`}>
                   {order.items.length === 0 ? (
-                    /* Empty order */
                     <>
                       <OrderNumber order={order} />
-                      <div className="text-sm text-slate-600 py-1.5">
-                        {formatDate(order.orderDate)}
-                      </div>
+                      <div className="text-sm text-slate-600 py-1.5">{formatDate(order.orderDate)}</div>
                       <div className="text-sm py-1.5">{partnerName}</div>
                       <div className="col-span-5 text-sm text-slate-400 italic py-1.5">
                         Нет товаров —{" "}
-                        <Link
-                          href={`/admin/orders/${order.id}`}
-                          className="text-blue-500 hover:underline"
-                        >
-                          добавить
-                        </Link>
+                        <Link href={`/admin/orders/${order.id}`} className="text-blue-500 hover:underline">добавить</Link>
                       </div>
                     </>
                   ) : (
                     <>
-                      {/* Item rows */}
                       {order.items.map((item, idx) => (
                         <React.Fragment key={item.id}>
                           {idx === 0 ? (
                             <>
                               <OrderNumber order={order} />
-                              <div className="text-sm text-slate-600 py-0.5">
-                                {formatDate(order.orderDate)}
-                              </div>
-                              <div className="text-sm py-0.5">
-                                {partnerName}
-                              </div>
+                              <div className="text-sm text-slate-600 py-0.5">{formatDate(order.orderDate)}</div>
+                              <div className="text-sm py-0.5">{partnerName}</div>
                             </>
-                          ) : (
-                            <>
-                              <E />
-                              <E />
-                              <E />
-                            </>
-                          )}
+                          ) : (<><E /><E /><E /></>)}
                           <div className="text-sm py-0.5">
                             {item.product.sku}
                             {(() => {
-                              const p = products.find(
-                                (p) => p.id === item.productId,
-                              );
+                              const p = products.find((p) => p.id === item.productId);
                               const activeVariants = p?.productVariants ?? [];
                               const hideVariant = activeVariants.length <= 1;
-                              return !hideVariant &&
-                                item.productVariant.variantName ? (
-                                <span className="text-slate-400 ml-1 text-xs">
-                                  ({item.productVariant.variantName})
-                                </span>
+                              return !hideVariant && item.productVariant.variantName ? (
+                                <span className="text-slate-400 ml-1 text-xs">({item.productVariant.variantName})</span>
                               ) : null;
                             })()}
                           </div>
+                          <div className="text-sm text-right py-0.5">{order.orderType === "RETURN" ? `-${item.quantity}` : item.quantity}</div>
                           <div className="text-sm text-right py-0.5">
-                            {order.orderType === "RETURN" ? `-${item.quantity}` : item.quantity}
+                            {item.quantityM2 !== null ? (order.orderType === "RETURN" ? `-${item.quantityM2.toFixed(2)}` : item.quantityM2.toFixed(2)) : "—"}
                           </div>
-                          <div className="text-sm text-right py-0.5">
-                            {item.quantityM2 !== null
-                              ? order.orderType === "RETURN"
-                                ? `-${item.quantityM2.toFixed(2)}`
-                                : item.quantityM2.toFixed(2)
-                              : "—"}
-                          </div>
-                          <div className="text-sm text-right py-0.5">
-                            {formatRub(item.priceRub)}
-                          </div>
-                          <div className="text-sm text-right py-0.5">
-                            {order.orderType === "RETURN" ? `-${formatRub(item.totalRub)}` : formatRub(item.totalRub)}
-                          </div>
+                          <div className="text-sm text-right py-0.5">{formatRub(item.priceRub)}</div>
+                          <div className="text-sm text-right py-0.5">{order.orderType === "RETURN" ? `-${formatRub(item.totalRub)}` : formatRub(item.totalRub)}</div>
                         </React.Fragment>
                       ))}
-
-                      {/* Delivery row */}
                       {order.deliveryPriceRub > 0 && (
-                        <>
-                          <E />
-                          <E />
-                          <E />
-                          <div className="text-sm text-slate-500 italic py-0.5">
-                            {order.deliveryMethod?.name ?? "Доставка"}
-                          </div>
-                          <E />
-                          <E />
-                          <E />
-                          <div className="text-sm text-right py-0.5 text-slate-600">
-                            {formatRub(order.deliveryPriceRub)}
-                          </div>
+                        <><E /><E /><E />
+                          <div className="text-sm text-slate-500 italic py-0.5">{order.deliveryMethod?.name ?? "Доставка"}</div>
+                          <E /><E /><E />
+                          <div className="text-sm text-right py-0.5 text-slate-600">{formatRub(order.deliveryPriceRub)}</div>
                         </>
                       )}
-
-                      {/* Total row */}
                       <>
                         <div className="flex items-center py-1 border-t border-slate-200">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setOpenOrderId(
-                                openOrderId === order.id ? null : order.id,
-                              )
-                            }
-                            className="text-slate-400 hover:text-blue-500"
-                            title="Редактировать"
-                          >
+                          <button type="button" onClick={() => setOpenOrderId(openOrderId === order.id ? null : order.id)} className="text-slate-400 hover:text-blue-500" title="Редактировать">
                             <Pencil className="w-5 h-5" />
                           </button>
                         </div>
-                        <E />
-                        <E />
+                        <E /><E />
                         <div className="text-sm font-semibold py-1 border-t border-slate-200">
                           Итого
-                          {order.discountPercent > 0 && (
-                            <span className="text-xs text-slate-400 font-normal ml-2">
-                              скидка {order.discountPercent}%
-                            </span>
-                          )}
+                          {order.discountPercent > 0 && <span className="text-xs text-slate-400 font-normal ml-2">скидка {order.discountPercent}%</span>}
                         </div>
-                        <E />
-                        <E />
-                        <E />
+                        <E /><E /><E />
                         <div className="text-sm font-semibold text-right py-1 border-t border-slate-200">
                           {order.orderType === "RETURN" ? `-${formatRub(order.totalRub)}` : formatRub(order.totalRub)}
                         </div>
@@ -385,8 +321,50 @@ export function OrdersGrid({
                   )}
                 </div>
 
+                {/* Mobile layout */}
+                <div className="flex-1 md:hidden flex flex-col px-3 py-2 gap-1">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-sm font-semibold mr-2">{order.sequenceNumber}</span>
+                      <span className="text-sm text-slate-500">{formatDate(order.orderDate)}</span>
+                      {order.orderType === "RETURN" && <span className="text-xs text-slate-400 ml-2">{ORDER_TYPE_CONFIG[order.orderType].label}</span>}
+                    </div>
+                    <button type="button" onClick={() => setOpenOrderId(openOrderId === order.id ? null : order.id)} className="text-slate-400 hover:text-blue-500" title="Редактировать">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-sm">{partnerName}</div>
+                  {order.items.map((item) => {
+                    const p = products.find((p) => p.id === item.productId);
+                    const hideVariant = (p?.productVariants ?? []).length <= 1;
+                    return (
+                      <div key={item.id} className="flex items-baseline justify-between text-sm gap-2">
+                        <div>
+                          {item.product.sku}
+                          {!hideVariant && item.productVariant.variantName && (
+                            <span className="text-slate-400 ml-1 text-xs">({item.productVariant.variantName})</span>
+                          )}
+                        </div>
+                        <div className="text-right whitespace-nowrap text-slate-600">
+                          {order.orderType === "RETURN" ? `-${item.quantity}` : item.quantity} шт · {order.orderType === "RETURN" ? `-${formatRub(item.totalRub)}` : formatRub(item.totalRub)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {order.deliveryPriceRub > 0 && (
+                    <div className="flex justify-between text-sm text-slate-500">
+                      <span className="italic">{order.deliveryMethod?.name ?? "Доставка"}</span>
+                      <span>{formatRub(order.deliveryPriceRub)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-1 mt-0.5">
+                    <span>Итого{order.discountPercent > 0 && <span className="text-xs font-normal text-slate-400 ml-1">скидка {order.discountPercent}%</span>}</span>
+                    <span>{order.orderType === "RETURN" ? `-${formatRub(order.totalRub)}` : formatRub(order.totalRub)}</span>
+                  </div>
+                </div>
+
                 {/* Badges */}
-                <div className="relative w-44 flex-shrink-0 border-l border-slate-100 px-3 py-2 flex flex-col gap-1">
+                <div className="relative md:w-44 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-100 px-3 py-2 flex flex-row flex-wrap md:flex-col gap-1">
                   <div className="flex flex-col gap-1">
                     <Badge
                       label={
@@ -466,11 +444,11 @@ export function OrdersGrid({
                   { label: "Итого:", data: all },
                   { label: "Отгружено:", data: shipped },
                 ].map(({ label, data }) => (
-                  <div key={label} className="flex items-center gap-6 text-slate-600">
-                    <span className="w-24 font-medium">{label}</span>
-                    <span className="w-24"><span className="text-slate-400">Заказов: </span>{data.count}</span>
-                    <span className="w-24"><span className="text-slate-400">М²: </span>{data.totalM2.toFixed(2)}</span>
-                    <span><span className="text-slate-400">Сумма: </span>{formatRub(data.totalRub)}</span>
+                  <div key={label} className="flex items-center gap-2 md:gap-6 text-slate-600">
+                    <span className="w-20 md:w-24 font-medium">{label}</span>
+                    <span className="w-16 md:w-24"><span className="text-slate-400">Зак: </span>{data.count}</span>
+                    <span className="w-16 md:w-24"><span className="text-slate-400">М²: </span>{data.totalM2.toFixed(2)}</span>
+                    <span><span className="text-slate-400 md:inline">Сумма: </span>{formatRub(data.totalRub)}</span>
                   </div>
                 ))}
               </div>
