@@ -9,7 +9,7 @@ import { Pagination } from "@/components/admin/Pagination";
 import { OrdersGrid } from "@/components/admin/order/OrdersGrid";
 import { CreateOrderForm } from "@/components/admin/order/CreateOrderForm";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100;
 
 const STATUS_LABELS: Record<OrderStatusEnum, string> = {
   RESERVE: "Резерв",
