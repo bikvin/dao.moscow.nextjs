@@ -38,28 +38,38 @@ export default async function OrdersPage({
 }) {
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const search = searchParams.search ?? "";
-  const statusFilter = searchParams.status ?? "";
+  const statusFilter = searchParams.status ?? "DEFAULT";
   const orderTypeFilter = searchParams.orderType ?? "";
   const dateFrom = searchParams.dateFrom ?? "";
   const dateTo = searchParams.dateTo ?? "";
 
-  const where = {
-    ...(search && {
-      partner: {
-        names: {
-          some: { name: { contains: search, mode: "insensitive" as const } },
-        },
-      },
-    }),
-    ...(statusFilter && { status: statusFilter as OrderStatusEnum }),
-    ...(orderTypeFilter && { orderType: orderTypeFilter as OrderTypeEnum }),
-    ...((dateFrom || dateTo) && {
-      orderDate: {
-        ...(dateFrom && { gte: new Date(dateFrom) }),
-        ...(dateTo && { lte: new Date(dateTo + "T23:59:59.999Z") }),
-      },
-    }),
-  };
+  // Start of previous month
+  const now = new Date();
+  const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const partnerWhere = search
+    ? { partner: { names: { some: { name: { contains: search, mode: "insensitive" as const } } } } }
+    : {};
+  const orderTypeWhere = orderTypeFilter ? { orderType: orderTypeFilter as OrderTypeEnum } : {};
+  const dateWhere = (dateFrom || dateTo)
+    ? { orderDate: { ...(dateFrom && { gte: new Date(dateFrom) }), ...(dateTo && { lte: new Date(dateTo + "T23:59:59.999Z") }) } }
+    : {};
+
+  const where =
+    statusFilter === "DEFAULT"
+      ? {
+          ...partnerWhere,
+          ...orderTypeWhere,
+          ...dateWhere,
+          OR: [
+            { orderDate: { gte: twoMonthsAgo } },
+            { status: { in: [OrderStatusEnum.RESERVE, OrderStatusEnum.SHIPMENT_PLANNED, OrderStatusEnum.SELF_PICKUP] } },
+            { paymentStatus: "NOT_PAID" as const },
+          ],
+        }
+      : statusFilter === "ALL"
+      ? { ...partnerWhere, ...orderTypeWhere, ...dateWhere }
+      : { ...partnerWhere, ...orderTypeWhere, ...dateWhere, status: statusFilter as OrderStatusEnum };
 
   const [
     orders,
@@ -150,9 +160,10 @@ export default async function OrdersPage({
             <select
               name="status"
               defaultValue={statusFilter}
-              className="admin-form-input text-sm w-36"
+              className="admin-form-input text-sm w-44"
             >
-              <option value="">Все статусы</option>
+              <option value="DEFAULT">Актуальные</option>
+              <option value="ALL">Все заказы</option>
               {Object.values(OrderStatusEnum).map((s) => (
                 <option key={s} value={s}>
                   {STATUS_LABELS[s]}
