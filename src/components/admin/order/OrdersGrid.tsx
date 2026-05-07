@@ -228,11 +228,12 @@ export function OrdersGrid({
 
       {/* Order rows grouped by month */}
       <div className="flex flex-col">
-        {monthGroups.map(({ key, orders: groupOrders }) => {
+        {monthGroups.map(({ key, label, orders: groupOrders }) => {
           const all = monthTotals(groupOrders, false);
           const shipped = monthTotals(groupOrders, true);
           return (
             <div key={key}>
+              <div className="text-sm font-semibold text-slate-500 capitalize mb-2 mt-2 px-1">{label}</div>
               {groupOrders.map((order) => {
           const partnerName =
             order.partner.names.find((n) => n.isPrimary)?.name ??
