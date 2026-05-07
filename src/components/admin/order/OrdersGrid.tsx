@@ -183,6 +183,28 @@ export function OrdersGrid({
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const shipmentDateColorMap = buildShipmentDateColorMap(orders);
 
+  // Group orders by year-month
+  const monthGroups: { key: string; label: string; orders: typeof orders }[] = [];
+  for (const order of orders) {
+    const d = new Date(order.orderDate);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const label = d.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+    const existing = monthGroups.find((g) => g.key === key);
+    if (existing) {
+      existing.orders.push(order);
+    } else {
+      monthGroups.push({ key, label, orders: [order] });
+    }
+  }
+
+  function monthTotals(groupOrders: typeof orders, shippedOnly: boolean) {
+    const filtered = shippedOnly ? groupOrders.filter((o) => o.status === "SHIPPED") : groupOrders;
+    const sign = (o: typeof orders[0]) => o.orderType === "RETURN" ? -1 : 1;
+    const totalRub = filtered.reduce((sum, o) => sum + sign(o) * o.totalRub, 0);
+    const totalM2 = filtered.reduce((sum, o) => sum + sign(o) * o.items.reduce((s, i) => s + (i.quantityM2 ?? 0), 0), 0);
+    return { count: filtered.length, totalRub, totalM2 };
+  }
+
   if (orders.length === 0) {
     return <p className="text-sm text-slate-400 mt-6">Заказы не найдены</p>;
   }
@@ -204,9 +226,14 @@ export function OrdersGrid({
         <div className="w-44 flex-shrink-0" />
       </div>
 
-      {/* Order rows */}
+      {/* Order rows grouped by month */}
       <div className="flex flex-col">
-        {orders.map((order) => {
+        {monthGroups.map(({ key, orders: groupOrders }) => {
+          const all = monthTotals(groupOrders, false);
+          const shipped = monthTotals(groupOrders, true);
+          return (
+            <div key={key}>
+              {groupOrders.map((order) => {
           const partnerName =
             order.partner.names.find((n) => n.isPrimary)?.name ??
             order.partner.names[0]?.name ??
@@ -429,6 +456,24 @@ export function OrdersGrid({
                   })),
                 }}
               />
+            </div>
+          );
+        })}
+
+              {/* Month summary */}
+              <div className="mb-6 mt-1 px-3 text-xs flex flex-col gap-0.5">
+                {[
+                  { label: "Итого:", data: all },
+                  { label: "Отгружено:", data: shipped },
+                ].map(({ label, data }) => (
+                  <div key={label} className="flex items-center gap-6 text-slate-600">
+                    <span className="w-24 font-medium">{label}</span>
+                    <span className="w-24"><span className="text-slate-400">Заказов: </span>{data.count}</span>
+                    <span className="w-24"><span className="text-slate-400">М²: </span>{data.totalM2.toFixed(2)}</span>
+                    <span><span className="text-slate-400">Сумма: </span>{formatRub(data.totalRub)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}
