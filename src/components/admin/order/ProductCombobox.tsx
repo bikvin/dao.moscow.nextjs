@@ -45,7 +45,7 @@ export function ProductCombobox({
           className={`w-44 justify-between text-sm font-normal h-8 px-2 ${error ? "border-red-500" : ""}`}
         >
           <span className="truncate">
-            {selected ? selected.sku : "— выберите —"}
+            {selected ? selected.sku : "— товар —"}
           </span>
           <ChevronsUpDown className="ml-1 w-3 h-3 shrink-0 opacity-50" />
         </Button>

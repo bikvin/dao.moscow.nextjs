@@ -5,31 +5,22 @@ import {
   OrderTypeEnum,
   ProductStatusEnum,
 } from "@prisma/client";
+
 import { Pagination } from "@/components/admin/Pagination";
 import { OrdersGrid } from "@/components/admin/order/OrdersGrid";
 import { CreateOrderForm } from "@/components/admin/order/CreateOrderForm";
+import { OrdersFilterForm } from "@/components/admin/order/OrdersFilterForm";
 
 const PAGE_SIZE = 100;
 
-const STATUS_LABELS: Record<OrderStatusEnum, string> = {
-  RESERVE: "Резерв",
-  SHIPMENT_PLANNED: "Отгрузка запланирована",
-  SHIPPED: "Отгружен",
-  SELF_PICKUP: "Самовывоз",
-  CANCELLED: "Отменён",
-};
-
-const ORDER_TYPE_LABELS: Record<OrderTypeEnum, string> = {
-  SALE: "Продажа",
-  RETURN: "Возврат",
-};
 
 export default async function OrdersPage({
   searchParams,
 }: {
   searchParams: {
     page?: string;
-    search?: string;
+    partnerId?: string;
+    productId?: string;
     status?: string;
     orderType?: string;
     dateFrom?: string;
@@ -37,7 +28,8 @@ export default async function OrdersPage({
   };
 }) {
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
-  const search = searchParams.search ?? "";
+  const partnerIdFilter = searchParams.partnerId ?? "";
+  const productIdFilter = searchParams.productId ?? "";
   const statusFilter = searchParams.status ?? "DEFAULT";
   const orderTypeFilter = searchParams.orderType ?? "";
   const dateFrom = searchParams.dateFrom ?? "";
@@ -47,9 +39,8 @@ export default async function OrdersPage({
   const now = new Date();
   const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-  const partnerWhere = search
-    ? { partner: { names: { some: { name: { contains: search, mode: "insensitive" as const } } } } }
-    : {};
+  const partnerWhere = partnerIdFilter ? { partnerId: partnerIdFilter } : {};
+  const productWhere = productIdFilter ? { items: { some: { productId: productIdFilter } } } : {};
   const orderTypeWhere = orderTypeFilter ? { orderType: orderTypeFilter as OrderTypeEnum } : {};
   const dateWhere = (dateFrom || dateTo)
     ? { orderDate: { ...(dateFrom && { gte: new Date(dateFrom) }), ...(dateTo && { lte: new Date(dateTo + "T23:59:59.999Z") }) } }
@@ -59,6 +50,7 @@ export default async function OrdersPage({
     statusFilter === "DEFAULT"
       ? {
           ...partnerWhere,
+          ...productWhere,
           ...orderTypeWhere,
           ...dateWhere,
           OR: [
@@ -68,8 +60,8 @@ export default async function OrdersPage({
           ],
         }
       : statusFilter === "ALL"
-      ? { ...partnerWhere, ...orderTypeWhere, ...dateWhere }
-      : { ...partnerWhere, ...orderTypeWhere, ...dateWhere, status: statusFilter as OrderStatusEnum };
+      ? { ...partnerWhere, ...productWhere, ...orderTypeWhere, ...dateWhere }
+      : { ...partnerWhere, ...productWhere, ...orderTypeWhere, ...dateWhere, status: statusFilter as OrderStatusEnum };
 
   const [
     orders,
@@ -148,60 +140,16 @@ export default async function OrdersPage({
         <div className="w-[95%] mx-auto pb-16">
           <h1 className="admin-form-header mt-10">Заказы</h1>
 
-          {/* Filters */}
-          <form className="mt-6 flex flex-wrap gap-2 items-center">
-            <input
-              name="search"
-              type="text"
-              defaultValue={search}
-              placeholder="Партнёр"
-              className="admin-form-input text-sm w-48"
-            />
-            <select
-              name="status"
-              defaultValue={statusFilter}
-              className="admin-form-input text-sm w-44"
-            >
-              <option value="DEFAULT">Актуальные</option>
-              <option value="ALL">Все заказы</option>
-              {Object.values(OrderStatusEnum).map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABELS[s]}
-                </option>
-              ))}
-            </select>
-            <select
-              name="orderType"
-              defaultValue={orderTypeFilter}
-              className="admin-form-input text-sm w-32"
-            >
-              <option value="">Все типы</option>
-              {Object.values(OrderTypeEnum).map((t) => (
-                <option key={t} value={t}>
-                  {ORDER_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </select>
-            <input
-              name="dateFrom"
-              type="date"
-              defaultValue={dateFrom}
-              className="admin-form-input text-sm w-36"
-            />
-            <span className="text-slate-400 text-sm">—</span>
-            <input
-              name="dateTo"
-              type="date"
-              defaultValue={dateTo}
-              className="admin-form-input text-sm w-36"
-            />
-            <button
-              type="submit"
-              className="link-button link-button-gray text-sm"
-            >
-              Найти
-            </button>
-          </form>
+          <OrdersFilterForm
+            partners={partnerOptions}
+            products={products}
+            initialPartnerId={partnerIdFilter}
+            initialProductId={productIdFilter}
+            initialStatus={statusFilter}
+            initialOrderType={orderTypeFilter}
+            initialDateFrom={dateFrom}
+            initialDateTo={dateTo}
+          />
 
           <OrdersGrid
             orders={orders}
