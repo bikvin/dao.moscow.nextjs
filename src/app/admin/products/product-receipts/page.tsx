@@ -56,7 +56,10 @@ export default async function AllProductReciptsPage({
     const [productReceiptData, total] = await Promise.all([
       db.productReceipt.findMany({
         where,
-        include: { productVariant: { include: { product: true } } },
+        include: {
+          productVariant: { include: { product: true } },
+          order: { select: { year: true, sequenceNumber: true } },
+        },
         orderBy,
         skip: (currentPage - 1) * PAGE_SIZE,
         take: PAGE_SIZE,

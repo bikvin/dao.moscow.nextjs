@@ -24,6 +24,7 @@ export function ProductReceiptForm({
   description,
   receiptDate,
   receiptType,
+  order,
   isEdit = false,
 }: {
   id?: string;
@@ -34,6 +35,7 @@ export function ProductReceiptForm({
   description?: string | null;
   receiptDate?: Date;
   receiptType?: ProductReceiptTypeEnum;
+  order?: { year: number; sequenceNumber: number } | null;
   isEdit?: boolean;
 }) {
   const usedAction = isEdit ? updateProductReceipt : createProductReceipt;
@@ -73,6 +75,14 @@ export function ProductReceiptForm({
 
   return (
     <form className={"admin-form"} action={action}>
+      {order && (
+        <div className="form-item">
+          <label>Заказ</label>
+          <span className="text-sm text-slate-600">
+            №{order.sequenceNumber}/{order.year}
+          </span>
+        </div>
+      )}
       <div className="form-item">
         <label htmlFor="">Товар</label>
         <ProductSelect

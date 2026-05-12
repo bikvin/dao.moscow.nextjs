@@ -134,6 +134,13 @@ export default async function OrdersPage({
             productVariant: { select: { variantName: true } },
           },
         },
+        receipts: {
+          select: {
+            id: true,
+            quantity: true,
+            productVariant: { select: { variantName: true } },
+          },
+        },
       },
       orderBy: [{ year: "asc" }, { sequenceNumber: "asc" }],
       skip: (currentPage - 1) * PAGE_SIZE,

@@ -137,6 +137,12 @@ type OrderIssue = {
   productVariant: { variantName: string };
 };
 
+type OrderReceipt = {
+  id: string;
+  quantity: number;
+  productVariant: { variantName: string };
+};
+
 type Order = {
   id: string;
   year: number;
@@ -161,6 +167,7 @@ type Order = {
   items: OrderItem[];
   reserves: OrderReserve[];
   issues: OrderIssue[];
+  receipts: OrderReceipt[];
 };
 
 type Option = { id: string; name: string };
@@ -565,6 +572,19 @@ export function OrdersGrid({
                                 className="text-xs text-emerald-600 hover:text-emerald-800 hover:underline"
                               >
                                 Списание создано ({issue.quantity} шт)
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                        {order.receipts.length > 0 && (
+                          <div className="flex flex-col gap-0.5 mt-0.5">
+                            {order.receipts.map((receipt) => (
+                              <Link
+                                key={receipt.id}
+                                href={`/admin/products/product-receipts/update/${receipt.id}`}
+                                className="text-xs text-sky-600 hover:text-sky-800 hover:underline"
+                              >
+                                Приход создан ({receipt.quantity} шт)
                               </Link>
                             ))}
                           </div>

@@ -13,14 +13,20 @@ export default async function UpdateProductReceiptPage({
 
   let products: ProductWithVariants[] = [];
   let productReceipt:
-    | (ProductReceipt & { productVariant: ProductVariant })
+    | (ProductReceipt & {
+        productVariant: ProductVariant;
+        order: { year: number; sequenceNumber: number } | null;
+      })
     | null = null;
 
   try {
     const [productReceiptData, productsData] = await Promise.all([
       db.productReceipt.findUnique({
         where: { id: productReceiptId },
-        include: { productVariant: true },
+        include: {
+          productVariant: true,
+          order: { select: { year: true, sequenceNumber: true } },
+        },
       }),
       db.product.findMany({
         orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
@@ -59,6 +65,7 @@ export default async function UpdateProductReceiptPage({
             description={productReceipt.description}
             receiptDate={productReceipt.receiptDate}
             receiptType={productReceipt.type}
+            order={productReceipt.order}
             isEdit={true}
           />
         </div>
