@@ -201,7 +201,7 @@ export function OrdersGrid({
     [];
   for (const order of orders) {
     const d = new Date(order.orderDate);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
     const label = d.toLocaleDateString("ru-RU", {
       month: "long",
       year: "numeric",
@@ -213,6 +213,7 @@ export function OrdersGrid({
       monthGroups.push({ key, label, orders: [order] });
     }
   }
+  monthGroups.sort((a, b) => a.key.localeCompare(b.key));
 
   function monthTotals(groupOrders: typeof orders, shippedOnly: boolean) {
     const filtered = shippedOnly
