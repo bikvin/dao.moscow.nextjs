@@ -130,6 +130,13 @@ type OrderReserve = {
   productVariant: { variantName: string };
 };
 
+type OrderIssue = {
+  id: string;
+  quantity: number;
+  issueDate: Date;
+  productVariant: { variantName: string };
+};
+
 type Order = {
   id: string;
   year: number;
@@ -153,6 +160,7 @@ type Order = {
   deliveryMethod: { name: string } | null;
   items: OrderItem[];
   reserves: OrderReserve[];
+  issues: OrderIssue[];
 };
 
 type Option = { id: string; name: string };
@@ -546,6 +554,19 @@ export function OrdersGrid({
                                   Резерв создан ({r.quantity} шт)
                                 </Link>
                               ))}
+                          </div>
+                        )}
+                        {order.issues.length > 0 && (
+                          <div className="flex flex-col gap-0.5 mt-0.5">
+                            {order.issues.map((issue) => (
+                              <Link
+                                key={issue.id}
+                                href={`/admin/products/product-issues/update/${issue.id}`}
+                                className="text-xs text-emerald-600 hover:text-emerald-800 hover:underline"
+                              >
+                                Списание создано ({issue.quantity} шт)
+                              </Link>
+                            ))}
                           </div>
                         )}
                         {order.note && (

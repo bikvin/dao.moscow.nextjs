@@ -212,7 +212,11 @@ model ProductReceipt {
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
   productVariantId String
 
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
   @@index([productVariantId])
+  @@index([orderId])
 }
 
 model ProductIssue {
@@ -228,7 +232,11 @@ model ProductIssue {
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
   productVariantId String
 
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
   @@index([productVariantId])
+  @@index([orderId])
 }
 
 model YandexMarketMapping {
@@ -579,6 +587,8 @@ model Order {
 
   items    OrderItem[]
   reserves ProductReserve[]
+  issues   ProductIssue[]
+  receipts ProductReceipt[]
 
   @@unique([year, sequenceNumber])
   @@index([partnerId])

@@ -12,14 +12,21 @@ export default async function UpdateProductIssuePage({
   const productIssueId = params.id;
 
   let products: ProductWithVariants[] = [];
-  let productIssue: (ProductIssue & { productVariant: ProductVariant }) | null =
-    null;
+  let productIssue:
+    | (ProductIssue & {
+        productVariant: ProductVariant;
+        order: { year: number; sequenceNumber: number } | null;
+      })
+    | null = null;
 
   try {
     const [productIssueData, productsData] = await Promise.all([
       db.productIssue.findUnique({
         where: { id: productIssueId },
-        include: { productVariant: true },
+        include: {
+          productVariant: true,
+          order: { select: { year: true, sequenceNumber: true } },
+        },
       }),
       db.product.findMany({
         orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
@@ -56,6 +63,7 @@ export default async function UpdateProductIssuePage({
             description={productIssue.description}
             issueDate={productIssue.issueDate}
             issueType={productIssue.type}
+            order={productIssue.order}
             isEdit={true}
           />
         </div>

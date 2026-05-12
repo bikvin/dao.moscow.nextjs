@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
-import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum, ProductReserveStatusEnum } from "@prisma/client";
+import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum, ProductReserveStatusEnum, ProductIssueEnum, ProductReceiptTypeEnum } from "@prisma/client";
 import { z } from "zod";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 
@@ -131,8 +131,42 @@ export async function createOrder(
         await tx.order.update({ where: { id: order.id }, data: { totalRub: grandTotal } });
       }
 
-      // Create reserves for SALE orders with active statuses
-      if (result.data.orderType === OrderTypeEnum.SALE && RESERVE_STATUSES.has(status)) {
+      const orderLabel = `Заказ №${sequenceNumber}/${year}`;
+      const eventDate = deliveryDate ?? orderDate;
+
+      if (status === OrderStatusEnum.SHIPPED) {
+        // Order created directly as shipped — write issues or receipts immediately
+        if (result.data.orderType === OrderTypeEnum.SALE) {
+          for (const [variantId, qty] of variantQuantities) {
+            await tx.productIssue.create({
+              data: {
+                productVariantId: variantId,
+                orderId: order.id,
+                quantity: qty,
+                issueDate: eventDate,
+                type: ProductIssueEnum.SALE,
+                description: orderLabel,
+              },
+            });
+            await recalculateWarehouseQuantity(variantId, tx);
+          }
+        } else if (result.data.orderType === OrderTypeEnum.RETURN) {
+          for (const [variantId, qty] of variantQuantities) {
+            await tx.productReceipt.create({
+              data: {
+                productVariantId: variantId,
+                orderId: order.id,
+                quantity: qty,
+                receiptDate: eventDate,
+                type: ProductReceiptTypeEnum.RETURN,
+                description: orderLabel,
+              },
+            });
+            await recalculateWarehouseQuantity(variantId, tx);
+          }
+        }
+      } else if (result.data.orderType === OrderTypeEnum.SALE && RESERVE_STATUSES.has(status)) {
+        // Create reserves for SALE orders with active statuses
         const partner = await tx.partner.findUnique({
           where: { id: result.data.partnerId },
           include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },

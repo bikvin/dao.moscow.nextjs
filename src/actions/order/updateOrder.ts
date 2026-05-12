@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
-import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum, ProductReserveStatusEnum } from "@prisma/client";
+import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum, ProductReserveStatusEnum, ProductIssueEnum, ProductReceiptTypeEnum } from "@prisma/client";
 import { z } from "zod";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 
@@ -60,15 +60,41 @@ export async function updateOrder(
 
   try {
     await db.$transaction(async (tx) => {
-      // Collect old reserve variant IDs before deleting
-      const oldReserves = await tx.productReserve.findMany({
-        where: { orderId, status: ProductReserveStatusEnum.ACTIVE },
-        select: { productVariantId: true },
+      // Read current order to detect status transition
+      const currentOrder = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { status: true, year: true, sequenceNumber: true },
       });
-      const oldVariantIds = new Set(oldReserves.map((r) => r.productVariantId));
+      const becomingShipped =
+        status === OrderStatusEnum.SHIPPED &&
+        currentOrder?.status !== OrderStatusEnum.SHIPPED;
+      const wasShipped =
+        currentOrder?.status === OrderStatusEnum.SHIPPED &&
+        status !== OrderStatusEnum.SHIPPED;
 
-      // Remove old order-linked reserves
-      await tx.productReserve.deleteMany({ where: { orderId } });
+      // If reverting from SHIPPED: delete linked issues/receipts and collect their variant IDs
+      const revertVariantIds = new Set<string>();
+      if (wasShipped) {
+        const [existingIssues, existingReceipts] = await Promise.all([
+          tx.productIssue.findMany({ where: { orderId }, select: { productVariantId: true } }),
+          tx.productReceipt.findMany({ where: { orderId }, select: { productVariantId: true } }),
+        ]);
+        existingIssues.forEach((i) => revertVariantIds.add(i.productVariantId));
+        existingReceipts.forEach((r) => revertVariantIds.add(r.productVariantId));
+        await tx.productIssue.deleteMany({ where: { orderId } });
+        await tx.productReceipt.deleteMany({ where: { orderId } });
+      }
+
+      // Collect ACTIVE reserves before any changes
+      const activeReserves = await tx.productReserve.findMany({
+        where: { orderId, status: ProductReserveStatusEnum.ACTIVE },
+      });
+      const oldVariantIds = new Set(activeReserves.map((r) => r.productVariantId));
+
+      // For non-shipped transitions: wipe all order reserves so they get recreated
+      if (!becomingShipped) {
+        await tx.productReserve.deleteMany({ where: { orderId } });
+      }
 
       await tx.order.update({
         where: { id: orderId },
@@ -131,34 +157,92 @@ export async function updateOrder(
       const grandTotal = Math.round(totalRub * (1 - discountPercent / 100)) + deliveryPriceRub;
       await tx.order.update({ where: { id: orderId }, data: { totalRub: grandTotal } });
 
-      // Create new reserves for SALE orders with active statuses
-      const newVariantIds = new Set<string>();
-      if (result.data.orderType === OrderTypeEnum.SALE && RESERVE_STATUSES.has(status)) {
-        const partner = await tx.partner.findUnique({
-          where: { id: result.data.partnerId },
-          include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
-        });
-        const clientName = partner?.names[0]?.name ?? "—";
+      const orderLabel = `Заказ №${currentOrder?.sequenceNumber}/${currentOrder?.year}`;
+      const eventDate = deliveryDate ?? orderDate;
 
-        for (const [variantId, qty] of variantQuantities) {
-          await tx.productReserve.create({
-            data: {
-              productVariantId: variantId,
-              orderId,
-              quantity: qty,
-              reserveDate: orderDate,
-              client: clientName,
-              status: ProductReserveStatusEnum.ACTIVE,
-            },
-          });
-          newVariantIds.add(variantId);
+      if (becomingShipped) {
+        if (result.data.orderType === OrderTypeEnum.SALE) {
+          // Fulfill existing active reserves and create issues for them
+          const fulfilledVariants = new Set<string>();
+          for (const reserve of activeReserves) {
+            await tx.productReserve.update({
+              where: { id: reserve.id },
+              data: { status: ProductReserveStatusEnum.FULFILLED },
+            });
+            await tx.productIssue.create({
+              data: {
+                productVariantId: reserve.productVariantId,
+                orderId,
+                quantity: reserve.quantity,
+                issueDate: eventDate,
+                type: ProductIssueEnum.SALE,
+                description: orderLabel,
+              },
+            });
+            fulfilledVariants.add(reserve.productVariantId);
+          }
+          // Create issues for items not covered by a reserve (edge case)
+          for (const [variantId, qty] of variantQuantities) {
+            if (!fulfilledVariants.has(variantId)) {
+              await tx.productIssue.create({
+                data: {
+                  productVariantId: variantId,
+                  orderId,
+                  quantity: qty,
+                  issueDate: eventDate,
+                  type: ProductIssueEnum.SALE,
+                  description: orderLabel,
+                },
+              });
+            }
+          }
+        } else if (result.data.orderType === OrderTypeEnum.RETURN) {
+          for (const [variantId, qty] of variantQuantities) {
+            await tx.productReceipt.create({
+              data: {
+                productVariantId: variantId,
+                orderId,
+                quantity: qty,
+                receiptDate: eventDate,
+                type: ProductReceiptTypeEnum.RETURN,
+                description: orderLabel,
+              },
+            });
+          }
         }
-      }
 
-      // Recalculate all affected variants (old + new)
-      const allVariantIds = new Set([...oldVariantIds, ...newVariantIds]);
-      for (const variantId of allVariantIds) {
-        await recalculateWarehouseQuantity(variantId, tx);
+        for (const variantId of variantQuantities.keys()) {
+          await recalculateWarehouseQuantity(variantId, tx);
+        }
+      } else {
+        // Non-shipped: recreate reserves if needed
+        const newVariantIds = new Set<string>();
+        if (result.data.orderType === OrderTypeEnum.SALE && RESERVE_STATUSES.has(status)) {
+          const partner = await tx.partner.findUnique({
+            where: { id: result.data.partnerId },
+            include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
+          });
+          const clientName = partner?.names[0]?.name ?? "—";
+
+          for (const [variantId, qty] of variantQuantities) {
+            await tx.productReserve.create({
+              data: {
+                productVariantId: variantId,
+                orderId,
+                quantity: qty,
+                reserveDate: orderDate,
+                client: clientName,
+                status: ProductReserveStatusEnum.ACTIVE,
+              },
+            });
+            newVariantIds.add(variantId);
+          }
+        }
+
+        const allVariantIds = new Set([...oldVariantIds, ...newVariantIds, ...revertVariantIds]);
+        for (const variantId of allVariantIds) {
+          await recalculateWarehouseQuantity(variantId, tx);
+        }
       }
     });
   } catch (err: unknown) {

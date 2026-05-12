@@ -45,6 +45,11 @@ export function ProductIssueListItem({
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
         <span className="text-slate-400">вариант: {item.productVariant.variantName}</span>
+        {item.order && (
+          <span className="text-slate-500">
+            заказ №{item.order.sequenceNumber}/{item.order.year}
+          </span>
+        )}
         <span className={typeColor[item.type]}>{typeLabel[item.type]}</span>
       </div>
     </div>

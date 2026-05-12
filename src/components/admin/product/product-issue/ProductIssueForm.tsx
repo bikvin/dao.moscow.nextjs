@@ -24,6 +24,7 @@ export function ProductIssueForm({
   description,
   issueDate,
   issueType,
+  order,
   isEdit = false,
 }: {
   id?: string;
@@ -34,6 +35,7 @@ export function ProductIssueForm({
   description?: string | null;
   issueDate?: Date;
   issueType?: ProductIssueEnum;
+  order?: { year: number; sequenceNumber: number } | null;
   isEdit?: boolean;
 }) {
   const usedAction = isEdit ? updateProductIssue : createProductIssue;
@@ -74,6 +76,14 @@ export function ProductIssueForm({
 
   return (
     <form className={"admin-form"} action={action}>
+      {order && (
+        <div className="form-item">
+          <label>Заказ</label>
+          <span className="text-sm text-slate-600">
+            №{order.sequenceNumber}/{order.year}
+          </span>
+        </div>
+      )}
       <div className="form-item">
         <label htmlFor="">Товар</label>
         <ProductSelect

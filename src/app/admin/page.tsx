@@ -98,6 +98,14 @@ export default async function OrdersPage({
             productVariant: { select: { variantName: true } },
           },
         },
+        issues: {
+          select: {
+            id: true,
+            quantity: true,
+            issueDate: true,
+            productVariant: { select: { variantName: true } },
+          },
+        },
       },
       orderBy: [{ year: "asc" }, { sequenceNumber: "asc" }],
       skip: (currentPage - 1) * PAGE_SIZE,
