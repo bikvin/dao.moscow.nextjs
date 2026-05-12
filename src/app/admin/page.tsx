@@ -13,7 +13,6 @@ import { OrdersFilterForm } from "@/components/admin/order/OrdersFilterForm";
 
 const PAGE_SIZE = 100;
 
-
 export default async function OrdersPage({
   searchParams,
 }: {
@@ -40,11 +39,21 @@ export default async function OrdersPage({
   const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
   const partnerWhere = partnerIdFilter ? { partnerId: partnerIdFilter } : {};
-  const productWhere = productIdFilter ? { items: { some: { productId: productIdFilter } } } : {};
-  const orderTypeWhere = orderTypeFilter ? { orderType: orderTypeFilter as OrderTypeEnum } : {};
-  const dateWhere = (dateFrom || dateTo)
-    ? { orderDate: { ...(dateFrom && { gte: new Date(dateFrom) }), ...(dateTo && { lte: new Date(dateTo + "T23:59:59.999Z") }) } }
+  const productWhere = productIdFilter
+    ? { items: { some: { productId: productIdFilter } } }
     : {};
+  const orderTypeWhere = orderTypeFilter
+    ? { orderType: orderTypeFilter as OrderTypeEnum }
+    : {};
+  const dateWhere =
+    dateFrom || dateTo
+      ? {
+          orderDate: {
+            ...(dateFrom && { gte: new Date(dateFrom) }),
+            ...(dateTo && { lte: new Date(dateTo + "T23:59:59.999Z") }),
+          },
+        }
+      : {};
 
   const where =
     statusFilter === "DEFAULT"
@@ -53,15 +62,31 @@ export default async function OrdersPage({
           ...productWhere,
           ...orderTypeWhere,
           ...dateWhere,
+          NOT: { status: OrderStatusEnum.CANCELLED, paymentStatus: "NOT_PAID" as const },
           OR: [
             { orderDate: { gte: twoMonthsAgo } },
-            { status: { in: [OrderStatusEnum.RESERVE, OrderStatusEnum.SHIPMENT_PLANNED, OrderStatusEnum.SELF_PICKUP] } },
+            {
+              status: {
+                in: [
+                  OrderStatusEnum.RESERVE,
+                  OrderStatusEnum.SHIPMENT_PLANNED,
+                  OrderStatusEnum.SELF_PICKUP,
+                ],
+              },
+            },
             { paymentStatus: "NOT_PAID" as const },
+            { status: OrderStatusEnum.CANCELLED, paymentStatus: "PAID" as const },
           ],
         }
       : statusFilter === "ALL"
-      ? { ...partnerWhere, ...productWhere, ...orderTypeWhere, ...dateWhere }
-      : { ...partnerWhere, ...productWhere, ...orderTypeWhere, ...dateWhere, status: statusFilter as OrderStatusEnum };
+        ? { ...partnerWhere, ...productWhere, ...orderTypeWhere, ...dateWhere }
+        : {
+            ...partnerWhere,
+            ...productWhere,
+            ...orderTypeWhere,
+            ...dateWhere,
+            status: statusFilter as OrderStatusEnum,
+          };
 
   const [
     orders,
@@ -133,7 +158,12 @@ export default async function OrdersPage({
           orderBy: { variantName: "asc" },
         },
         prices: {
-          select: { type: true, priceInCents: true, currency: true, unit: true },
+          select: {
+            type: true,
+            priceInCents: true,
+            currency: true,
+            unit: true,
+          },
           where: { type: { in: ["DEALER", "RETAIL"] } },
         },
       },
