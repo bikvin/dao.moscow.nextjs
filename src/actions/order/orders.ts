@@ -66,7 +66,18 @@ export async function createOrder(
         orderBy: { sequenceNumber: "desc" },
         select: { sequenceNumber: true },
       });
-      const sequenceNumber = (last?.sequenceNumber ?? 0) + 1;
+      const maxSeqNum = last?.sequenceNumber ?? 0;
+
+      const customSeqNumRaw = formData.get("customSequenceNumber") as string;
+      const customSeqNum = customSeqNumRaw ? parseInt(customSeqNumRaw, 10) : null;
+
+      if (customSeqNum !== null) {
+        if (isNaN(customSeqNum) || customSeqNum <= maxSeqNum) {
+          throw new Error(`Номер заказа должен быть больше ${maxSeqNum}`);
+        }
+      }
+
+      const sequenceNumber = customSeqNum ?? maxSeqNum + 1;
 
       const order = await tx.order.create({
         data: {

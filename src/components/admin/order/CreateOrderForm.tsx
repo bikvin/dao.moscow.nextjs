@@ -335,6 +335,7 @@ export function CreateOrderForm({
   initialOrder,
   isOpen: isOpenProp,
   onToggle,
+  nextOrderNumber,
 }: {
   partners: PartnerOption[];
   deliveryMethods: DeliveryMethodOption[];
@@ -345,6 +346,7 @@ export function CreateOrderForm({
   initialOrder?: InitialOrder;
   isOpen?: boolean;
   onToggle?: () => void;
+  nextOrderNumber?: number;
 }) {
   const isEditMode = !!initialOrder;
   const boundAction = isEditMode ? updateOrder.bind(null, initialOrder.id) : createOrder;
@@ -353,6 +355,9 @@ export function CreateOrderForm({
   const isOpen = isOpenProp !== undefined ? isOpenProp : isOpenInternal;
   const setIsOpen = onToggle ? () => onToggle() : setIsOpenInternal;
   const [touched, setTouched] = useState(false);
+  const [customSeqNum, setCustomSeqNum] = useState(
+    !initialOrder && nextOrderNumber ? nextOrderNumber.toString() : ""
+  );
   const [partnerId, setPartnerId] = useState(initialOrder?.partnerId ?? "");
   const [orderDate, setOrderDate] = useState(
     initialOrder
@@ -414,6 +419,7 @@ export function CreateOrderForm({
         setPaymentDate("");
         setDiscount("");
         setNote("");
+        setCustomSeqNum(nextOrderNumber ? nextOrderNumber.toString() : "");
         setItems([emptyItem()]);
       }
     }
@@ -456,31 +462,54 @@ export function CreateOrderForm({
       >
 
         {/* Order header fields */}
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            name="orderDate"
-            type="date"
-            value={orderDate}
-            onChange={(e) => setOrderDate(e.target.value)}
-            className="admin-form-input text-sm w-36"
-          />
-          <input type="hidden" name="partnerId" value={partnerId} />
-          <PartnerCombobox
-            partners={partners}
-            value={partnerId}
-            onChange={setPartnerId}
-            error={touched && !partnerId}
-          />
-          <select
-            name="orderType"
-            value={orderType}
-            onChange={(e) => setOrderType(e.target.value as OrderTypeEnum)}
-            className="admin-form-input text-sm w-32"
-          >
-            {Object.values(OrderTypeEnum).map((t) => (
-              <option key={t} value={t}>{ORDER_TYPE_LABELS[t]}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-end gap-2">
+          {!isEditMode && (
+            <div className="flex flex-col gap-0.5">
+              <label className="text-xs text-slate-400">№ заказа:</label>
+              <input
+                name="customSequenceNumber"
+                type="number"
+                value={customSeqNum}
+                onChange={(e) => setCustomSeqNum(e.target.value)}
+                className="admin-form-input text-sm w-24"
+                min="1"
+                step="1"
+              />
+            </div>
+          )}
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Дата:</label>
+            <input
+              name="orderDate"
+              type="date"
+              value={orderDate}
+              onChange={(e) => setOrderDate(e.target.value)}
+              className="admin-form-input text-sm w-36"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Партнёр:</label>
+            <input type="hidden" name="partnerId" value={partnerId} />
+            <PartnerCombobox
+              partners={partners}
+              value={partnerId}
+              onChange={setPartnerId}
+              error={touched && !partnerId}
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Тип:</label>
+            <select
+              name="orderType"
+              value={orderType}
+              onChange={(e) => setOrderType(e.target.value as OrderTypeEnum)}
+              className="admin-form-input text-sm w-32"
+            >
+              {Object.values(OrderTypeEnum).map((t) => (
+                <option key={t} value={t}>{ORDER_TYPE_LABELS[t]}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Product rows */}

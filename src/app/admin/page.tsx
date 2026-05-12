@@ -88,6 +88,8 @@ export default async function OrdersPage({
             status: statusFilter as OrderStatusEnum,
           };
 
+  const currentYear = now.getFullYear();
+
   const [
     orders,
     total,
@@ -97,6 +99,7 @@ export default async function OrdersPage({
     products,
     usdRateSetting,
     rmbRateSetting,
+    maxSeqOrder,
   ] = await Promise.all([
     db.order.findMany({
       where,
@@ -171,6 +174,10 @@ export default async function OrdersPage({
     }),
     db.settings.findUnique({ where: { field: "usdMainRate" } }),
     db.settings.findUnique({ where: { field: "rmbOfficialRate" } }),
+    db.order.aggregate({
+      where: { year: currentYear },
+      _max: { sequenceNumber: true },
+    }),
   ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -224,6 +231,7 @@ export default async function OrdersPage({
               products={products}
               usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
               rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
+              nextOrderNumber={(maxSeqOrder._max.sequenceNumber ?? 0) + 1}
             />
           </div>
         </div>
