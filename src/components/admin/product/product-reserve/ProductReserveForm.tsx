@@ -24,6 +24,7 @@ export function ProductReserveForm({
   reserveDate,
   client,
   status,
+  order,
   isEdit = false,
 }: {
   id?: string;
@@ -34,6 +35,7 @@ export function ProductReserveForm({
   reserveDate?: Date;
   client?: string;
   status?: ProductReserveStatusEnum;
+  order?: { year: number; sequenceNumber: number } | null;
   isEdit?: boolean;
 }) {
   const usedAction = isEdit ? updateProductReserve : createProductReserve;
@@ -75,6 +77,14 @@ export function ProductReserveForm({
 
   return (
     <form className="admin-form" action={action}>
+      {order && (
+        <div className="form-item">
+          <label>Заказ</label>
+          <span className="text-sm text-slate-600">
+            №{order.sequenceNumber}/{order.year}
+          </span>
+        </div>
+      )}
       <div className="form-item">
         <label>Товар</label>
         <ProductSelect

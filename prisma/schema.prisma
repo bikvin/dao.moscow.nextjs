@@ -316,7 +316,11 @@ model ProductReserve {
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
   productVariantId String
 
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
   @@index([productVariantId])
+  @@index([orderId])
 }
 
 model Price {
@@ -573,7 +577,8 @@ model Order {
   paymentMethodId String?
   paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
 
-  items OrderItem[]
+  items    OrderItem[]
+  reserves ProductReserve[]
 
   @@unique([year, sequenceNumber])
   @@index([partnerId])

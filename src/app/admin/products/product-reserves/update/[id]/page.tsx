@@ -13,14 +13,20 @@ export default async function UpdateProductReservePage({
 
   let products: ProductWithVariants[] = [];
   let productReserve:
-    | (ProductReserve & { productVariant: ProductVariant })
+    | (ProductReserve & {
+        productVariant: ProductVariant;
+        order: { year: number; sequenceNumber: number } | null;
+      })
     | null = null;
 
   try {
     const [productReserveData, productsData] = await Promise.all([
       db.productReserve.findUnique({
         where: { id: productReserveId },
-        include: { productVariant: true },
+        include: {
+          productVariant: true,
+          order: { select: { year: true, sequenceNumber: true } },
+        },
       }),
       db.product.findMany({
         orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
@@ -55,6 +61,7 @@ export default async function UpdateProductReservePage({
             reserveDate={productReserve.reserveDate}
             client={productReserve.client}
             status={productReserve.status}
+            order={productReserve.order}
             isEdit={true}
           />
         </div>

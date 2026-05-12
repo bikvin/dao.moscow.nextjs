@@ -31,7 +31,10 @@ function formatDate(date: Date): string {
 function formatShortDate(date: Date): string {
   const d = new Date(date);
   const weekday = d.toLocaleDateString("ru-RU", { weekday: "short" });
-  const dayMonth = d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+  const dayMonth = d.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+  });
   return `${weekday.charAt(0).toUpperCase() + weekday.slice(1, 2)} ${dayMonth.slice(0, 5)}`;
 }
 
@@ -45,7 +48,6 @@ const ORDER_STATUS_CONFIG: Record<
   SELF_PICKUP: { label: "Самовывоз", cls: "text-slate-800 font-medium" },
   CANCELLED: { label: "Отменён", cls: "text-slate-800 font-medium" },
 };
-
 
 const PAYMENT_STATUS_CONFIG: Record<
   PaymentStatusEnum,
@@ -74,13 +76,17 @@ const SHIPMENT_DATE_PALETTE = [
   "bg-lime-200 text-lime-900 font-bold",
 ];
 
-function buildShipmentDateColorMap(orders: { status: string; plannedDeliveryDate: Date | null }[]): Map<string, string> {
+function buildShipmentDateColorMap(
+  orders: { status: string; plannedDeliveryDate: Date | null }[],
+): Map<string, string> {
   const uniqueDates = Array.from(
     new Set(
       orders
         .filter((o) => o.status === "SHIPMENT_PLANNED" && o.plannedDeliveryDate)
-        .map((o) => new Date(o.plannedDeliveryDate!).toISOString().split("T")[0])
-    )
+        .map(
+          (o) => new Date(o.plannedDeliveryDate!).toISOString().split("T")[0],
+        ),
+    ),
   ).sort();
 
   const map = new Map<string, string>();
@@ -92,11 +98,7 @@ function buildShipmentDateColorMap(orders: { status: string; plannedDeliveryDate
 
 function Badge({ label, cls }: { label: string; cls: string }) {
   return (
-    <span
-      className={`text-xs px-1.5 py-0.5 rounded ${cls}`}
-    >
-      {label}
-    </span>
+    <span className={`text-xs px-1.5 py-0.5 rounded ${cls}`}>{label}</span>
   );
 }
 
@@ -117,6 +119,14 @@ type OrderItem = {
   priceRub: number;
   totalRub: number;
   product: { sku: string };
+  productVariant: { variantName: string };
+};
+
+type OrderReserve = {
+  id: string;
+  productVariantId: string;
+  quantity: number;
+  status: string;
   productVariant: { variantName: string };
 };
 
@@ -142,6 +152,7 @@ type Order = {
   partner: { names: { name: string; isPrimary: boolean }[] };
   deliveryMethod: { name: string } | null;
   items: OrderItem[];
+  reserves: OrderReserve[];
 };
 
 type Option = { id: string; name: string };
@@ -157,7 +168,9 @@ function OrderNumber({ order }: { order: Order }) {
     <div className="py-0.5">
       <div className="text-sm font-semibold">{order.sequenceNumber}</div>
       {order.orderType === "RETURN" && (
-        <div className="text-xs text-slate-400">{ORDER_TYPE_CONFIG[order.orderType].label}</div>
+        <div className="text-xs text-slate-400">
+          {ORDER_TYPE_CONFIG[order.orderType].label}
+        </div>
       )}
     </div>
   );
@@ -184,11 +197,15 @@ export function OrdersGrid({
   const shipmentDateColorMap = buildShipmentDateColorMap(orders);
 
   // Group orders by year-month
-  const monthGroups: { key: string; label: string; orders: typeof orders }[] = [];
+  const monthGroups: { key: string; label: string; orders: typeof orders }[] =
+    [];
   for (const order of orders) {
     const d = new Date(order.orderDate);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
-    const label = d.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+    const label = d.toLocaleDateString("ru-RU", {
+      month: "long",
+      year: "numeric",
+    });
     const existing = monthGroups.find((g) => g.key === key);
     if (existing) {
       existing.orders.push(order);
@@ -198,10 +215,16 @@ export function OrdersGrid({
   }
 
   function monthTotals(groupOrders: typeof orders, shippedOnly: boolean) {
-    const filtered = shippedOnly ? groupOrders.filter((o) => o.status === "SHIPPED") : groupOrders;
-    const sign = (o: typeof orders[0]) => o.orderType === "RETURN" ? -1 : 1;
+    const filtered = shippedOnly
+      ? groupOrders.filter((o) => o.status === "SHIPPED")
+      : groupOrders;
+    const sign = (o: (typeof orders)[0]) => (o.orderType === "RETURN" ? -1 : 1);
     const totalRub = filtered.reduce((sum, o) => sum + sign(o) * o.totalRub, 0);
-    const totalM2 = filtered.reduce((sum, o) => sum + sign(o) * o.items.reduce((s, i) => s + (i.quantityM2 ?? 0), 0), 0);
+    const totalM2 = filtered.reduce(
+      (sum, o) =>
+        sum + sign(o) * o.items.reduce((s, i) => s + (i.quantityM2 ?? 0), 0),
+      0,
+    );
     return { count: filtered.length, totalRub, totalM2 };
   }
 
@@ -233,211 +256,350 @@ export function OrdersGrid({
           const shipped = monthTotals(groupOrders, true);
           return (
             <div key={key}>
-              <div className="text-sm font-semibold text-slate-500 capitalize mb-2 mt-2 px-1">{label}</div>
+              <div className="text-sm font-semibold text-slate-500 capitalize mb-2 mt-2 px-1">
+                {label}
+              </div>
               {groupOrders.map((order) => {
-          const partnerName =
-            order.partner.names.find((n) => n.isPrimary)?.name ??
-            order.partner.names[0]?.name ??
-            "—";
+                const partnerName =
+                  order.partner.names.find((n) => n.isPrimary)?.name ??
+                  order.partner.names[0]?.name ??
+                  "—";
 
-          return (
-            <div
-              key={order.id}
-              className="border rounded-md shadow-main overflow-hidden mb-3"
-              style={
-                order.status === "RESERVE" ||
-                order.status === "SHIPMENT_PLANNED" ||
-                order.status === "SELF_PICKUP"
-                  ? { backgroundColor: "#fff7da" }
-                  : undefined
-              }
-            >
-              <div className="flex flex-col md:flex-row md:items-start">
-                {/* Desktop grid */}
-                <div className={`hidden md:grid flex-1 min-w-0 ${COLS} gap-x-3 px-3 py-2 items-start`}>
-                  {order.items.length === 0 ? (
-                    <>
-                      <OrderNumber order={order} />
-                      <div className="text-sm text-slate-600 py-1.5">{formatDate(order.orderDate)}</div>
-                      <div className="text-sm py-1.5">{partnerName}</div>
-                      <div className="col-span-5 text-sm text-slate-400 italic py-1.5">
-                        Нет товаров —{" "}
-                        <Link href={`/admin/orders/${order.id}`} className="text-blue-500 hover:underline">добавить</Link>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {order.items.map((item, idx) => (
-                        <React.Fragment key={item.id}>
-                          {idx === 0 ? (
+                return (
+                  <div
+                    key={order.id}
+                    className="border rounded-md shadow-main overflow-hidden mb-3"
+                    style={
+                      order.status === "RESERVE" ||
+                      order.status === "SHIPMENT_PLANNED" ||
+                      order.status === "SELF_PICKUP"
+                        ? { backgroundColor: "#fff7da" }
+                        : undefined
+                    }
+                  >
+                    <div className="flex flex-col md:flex-row md:items-start">
+                      {/* Desktop grid */}
+                      <div
+                        className={`hidden md:grid flex-1 min-w-0 ${COLS} gap-x-3 px-3 py-2 items-start`}
+                      >
+                        {order.items.length === 0 ? (
+                          <>
+                            <OrderNumber order={order} />
+                            <div className="text-sm text-slate-600 py-1.5">
+                              {formatDate(order.orderDate)}
+                            </div>
+                            <div className="text-sm py-1.5">{partnerName}</div>
+                            <div className="col-span-5 text-sm text-slate-400 italic py-1.5">
+                              Нет товаров —{" "}
+                              <Link
+                                href={`/admin/orders/${order.id}`}
+                                className="text-blue-500 hover:underline"
+                              >
+                                добавить
+                              </Link>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {order.items.map((item, idx) => (
+                              <React.Fragment key={item.id}>
+                                {idx === 0 ? (
+                                  <>
+                                    <OrderNumber order={order} />
+                                    <div className="text-sm text-slate-600 py-0.5">
+                                      {formatDate(order.orderDate)}
+                                    </div>
+                                    <div className="text-sm py-0.5">
+                                      {partnerName}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <E />
+                                    <E />
+                                    <E />
+                                  </>
+                                )}
+                                <div className="text-sm py-0.5">
+                                  {item.product.sku}
+                                  {(() => {
+                                    const p = products.find(
+                                      (p) => p.id === item.productId,
+                                    );
+                                    const activeVariants =
+                                      p?.productVariants ?? [];
+                                    const hideVariant =
+                                      activeVariants.length <= 1;
+                                    return !hideVariant &&
+                                      item.productVariant.variantName ? (
+                                      <span className="text-slate-400 ml-1 text-xs">
+                                        ({item.productVariant.variantName})
+                                      </span>
+                                    ) : null;
+                                  })()}
+                                </div>
+                                <div className="text-sm text-right py-0.5">
+                                  {order.orderType === "RETURN"
+                                    ? `-${item.quantity}`
+                                    : item.quantity}
+                                </div>
+                                <div className="text-sm text-right py-0.5">
+                                  {item.quantityM2 !== null
+                                    ? order.orderType === "RETURN"
+                                      ? `-${item.quantityM2.toFixed(2)}`
+                                      : item.quantityM2.toFixed(2)
+                                    : "—"}
+                                </div>
+                                <div className="text-sm text-right py-0.5">
+                                  {formatRub(item.priceRub)}
+                                </div>
+                                <div className="text-sm text-right py-0.5">
+                                  {order.orderType === "RETURN"
+                                    ? `-${formatRub(item.totalRub)}`
+                                    : formatRub(item.totalRub)}
+                                </div>
+                              </React.Fragment>
+                            ))}
+                            {order.deliveryPriceRub > 0 && (
+                              <>
+                                <E />
+                                <E />
+                                <E />
+                                <div className="text-sm text-slate-500 italic py-0.5">
+                                  {order.deliveryMethod?.name ?? "Доставка"}
+                                </div>
+                                <E />
+                                <E />
+                                <E />
+                                <div className="text-sm text-right py-0.5 text-slate-600">
+                                  {formatRub(order.deliveryPriceRub)}
+                                </div>
+                              </>
+                            )}
                             <>
-                              <OrderNumber order={order} />
-                              <div className="text-sm text-slate-600 py-0.5">{formatDate(order.orderDate)}</div>
-                              <div className="text-sm py-0.5">{partnerName}</div>
+                              <div className="flex items-center py-1 border-t border-slate-200">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setOpenOrderId(
+                                      openOrderId === order.id
+                                        ? null
+                                        : order.id,
+                                    )
+                                  }
+                                  className="text-slate-400 hover:text-blue-500"
+                                  title="Редактировать"
+                                >
+                                  <Pencil className="w-5 h-5" />
+                                </button>
+                              </div>
+                              <E />
+                              <E />
+                              <div className="text-sm font-semibold py-1 border-t border-slate-200">
+                                Итого
+                                {order.discountPercent > 0 && (
+                                  <span className="text-xs text-slate-400 font-normal ml-2">
+                                    скидка {order.discountPercent}%
+                                  </span>
+                                )}
+                              </div>
+                              <E />
+                              <E />
+                              <E />
+                              <div className="text-sm font-semibold text-right py-1 border-t border-slate-200">
+                                {order.orderType === "RETURN"
+                                  ? `-${formatRub(order.totalRub)}`
+                                  : formatRub(order.totalRub)}
+                              </div>
                             </>
-                          ) : (<><E /><E /><E /></>)}
-                          <div className="text-sm py-0.5">
-                            {item.product.sku}
-                            {(() => {
-                              const p = products.find((p) => p.id === item.productId);
-                              const activeVariants = p?.productVariants ?? [];
-                              const hideVariant = activeVariants.length <= 1;
-                              return !hideVariant && item.productVariant.variantName ? (
-                                <span className="text-slate-400 ml-1 text-xs">({item.productVariant.variantName})</span>
-                              ) : null;
-                            })()}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Mobile layout */}
+                      <div className="flex-1 md:hidden flex flex-col px-3 py-2 gap-1">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <span className="text-sm font-semibold mr-2">
+                              {order.sequenceNumber}
+                            </span>
+                            <span className="text-sm text-slate-500">
+                              {formatDate(order.orderDate)}
+                            </span>
+                            {order.orderType === "RETURN" && (
+                              <span className="text-xs text-slate-400 ml-2">
+                                {ORDER_TYPE_CONFIG[order.orderType].label}
+                              </span>
+                            )}
                           </div>
-                          <div className="text-sm text-right py-0.5">{order.orderType === "RETURN" ? `-${item.quantity}` : item.quantity}</div>
-                          <div className="text-sm text-right py-0.5">
-                            {item.quantityM2 !== null ? (order.orderType === "RETURN" ? `-${item.quantityM2.toFixed(2)}` : item.quantityM2.toFixed(2)) : "—"}
-                          </div>
-                          <div className="text-sm text-right py-0.5">{formatRub(item.priceRub)}</div>
-                          <div className="text-sm text-right py-0.5">{order.orderType === "RETURN" ? `-${formatRub(item.totalRub)}` : formatRub(item.totalRub)}</div>
-                        </React.Fragment>
-                      ))}
-                      {order.deliveryPriceRub > 0 && (
-                        <><E /><E /><E />
-                          <div className="text-sm text-slate-500 italic py-0.5">{order.deliveryMethod?.name ?? "Доставка"}</div>
-                          <E /><E /><E />
-                          <div className="text-sm text-right py-0.5 text-slate-600">{formatRub(order.deliveryPriceRub)}</div>
-                        </>
-                      )}
-                      <>
-                        <div className="flex items-center py-1 border-t border-slate-200">
-                          <button type="button" onClick={() => setOpenOrderId(openOrderId === order.id ? null : order.id)} className="text-slate-400 hover:text-blue-500" title="Редактировать">
-                            <Pencil className="w-5 h-5" />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenOrderId(
+                                openOrderId === order.id ? null : order.id,
+                              )
+                            }
+                            className="text-slate-400 hover:text-blue-500"
+                            title="Редактировать"
+                          >
+                            <Pencil className="w-4 h-4" />
                           </button>
                         </div>
-                        <E /><E />
-                        <div className="text-sm font-semibold py-1 border-t border-slate-200">
-                          Итого
-                          {order.discountPercent > 0 && <span className="text-xs text-slate-400 font-normal ml-2">скидка {order.discountPercent}%</span>}
-                        </div>
-                        <E /><E /><E />
-                        <div className="text-sm font-semibold text-right py-1 border-t border-slate-200">
-                          {order.orderType === "RETURN" ? `-${formatRub(order.totalRub)}` : formatRub(order.totalRub)}
-                        </div>
-                      </>
-                    </>
-                  )}
-                </div>
-
-                {/* Mobile layout */}
-                <div className="flex-1 md:hidden flex flex-col px-3 py-2 gap-1">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-sm font-semibold mr-2">{order.sequenceNumber}</span>
-                      <span className="text-sm text-slate-500">{formatDate(order.orderDate)}</span>
-                      {order.orderType === "RETURN" && <span className="text-xs text-slate-400 ml-2">{ORDER_TYPE_CONFIG[order.orderType].label}</span>}
-                    </div>
-                    <button type="button" onClick={() => setOpenOrderId(openOrderId === order.id ? null : order.id)} className="text-slate-400 hover:text-blue-500" title="Редактировать">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="text-sm">{partnerName}</div>
-                  {order.items.map((item) => {
-                    const p = products.find((p) => p.id === item.productId);
-                    const hideVariant = (p?.productVariants ?? []).length <= 1;
-                    return (
-                      <div key={item.id} className="flex items-baseline justify-between text-sm gap-2">
-                        <div>
-                          {item.product.sku}
-                          {!hideVariant && item.productVariant.variantName && (
-                            <span className="text-slate-400 ml-1 text-xs">({item.productVariant.variantName})</span>
-                          )}
-                        </div>
-                        <div className="text-right whitespace-nowrap text-slate-600">
-                          {order.orderType === "RETURN" ? `-${item.quantity}` : item.quantity} шт · {order.orderType === "RETURN" ? `-${formatRub(item.totalRub)}` : formatRub(item.totalRub)}
+                        <div className="text-sm">{partnerName}</div>
+                        {order.items.map((item) => {
+                          const p = products.find(
+                            (p) => p.id === item.productId,
+                          );
+                          const hideVariant =
+                            (p?.productVariants ?? []).length <= 1;
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex items-baseline justify-between text-sm gap-2"
+                            >
+                              <div>
+                                {item.product.sku}
+                                {!hideVariant &&
+                                  item.productVariant.variantName && (
+                                    <span className="text-slate-400 ml-1 text-xs">
+                                      ({item.productVariant.variantName})
+                                    </span>
+                                  )}
+                              </div>
+                              <div className="text-right whitespace-nowrap text-slate-600">
+                                {order.orderType === "RETURN"
+                                  ? `-${item.quantity}`
+                                  : item.quantity}{" "}
+                                шт ·{" "}
+                                {order.orderType === "RETURN"
+                                  ? `-${formatRub(item.totalRub)}`
+                                  : formatRub(item.totalRub)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {order.deliveryPriceRub > 0 && (
+                          <div className="flex justify-between text-sm text-slate-500">
+                            <span className="italic">
+                              {order.deliveryMethod?.name ?? "Доставка"}
+                            </span>
+                            <span>{formatRub(order.deliveryPriceRub)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-1 mt-0.5">
+                          <span>
+                            Итого
+                            {order.discountPercent > 0 && (
+                              <span className="text-xs font-normal text-slate-400 ml-1">
+                                скидка {order.discountPercent}%
+                              </span>
+                            )}
+                          </span>
+                          <span>
+                            {order.orderType === "RETURN"
+                              ? `-${formatRub(order.totalRub)}`
+                              : formatRub(order.totalRub)}
+                          </span>
                         </div>
                       </div>
-                    );
-                  })}
-                  {order.deliveryPriceRub > 0 && (
-                    <div className="flex justify-between text-sm text-slate-500">
-                      <span className="italic">{order.deliveryMethod?.name ?? "Доставка"}</span>
-                      <span>{formatRub(order.deliveryPriceRub)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-1 mt-0.5">
-                    <span>Итого{order.discountPercent > 0 && <span className="text-xs font-normal text-slate-400 ml-1">скидка {order.discountPercent}%</span>}</span>
-                    <span>{order.orderType === "RETURN" ? `-${formatRub(order.totalRub)}` : formatRub(order.totalRub)}</span>
-                  </div>
-                </div>
 
-                {/* Badges */}
-                <div className="relative md:w-44 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-100 px-3 py-2 flex flex-row flex-wrap md:flex-col gap-1">
-                  <div className="flex flex-col gap-1">
-                    <Badge
-                      label={
-                        order.status === "SHIPPED" && order.deliveryDate
-                          ? `${ORDER_STATUS_CONFIG[order.status].label} ${formatDate(order.deliveryDate)}`
-                          : order.status === "SHIPMENT_PLANNED"
-                          ? `${ORDER_STATUS_CONFIG[order.status].label} ${order.plannedDeliveryDate ? formatShortDate(order.plannedDeliveryDate) : "???"}`
-                          : ORDER_STATUS_CONFIG[order.status].label
+                      {/* Badges */}
+                      <div className="relative md:w-44 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-100 px-3 py-2 flex flex-row flex-wrap md:flex-col gap-1">
+                        <div className="flex flex-col gap-1">
+                          <Badge
+                            label={
+                              order.status === "SHIPPED" && order.deliveryDate
+                                ? `${ORDER_STATUS_CONFIG[order.status].label} ${formatDate(order.deliveryDate)}`
+                                : order.status === "SHIPMENT_PLANNED"
+                                  ? `${ORDER_STATUS_CONFIG[order.status].label} ${order.plannedDeliveryDate ? formatShortDate(order.plannedDeliveryDate) : "???"}`
+                                  : ORDER_STATUS_CONFIG[order.status].label
+                            }
+                            cls={
+                              order.status === "SHIPMENT_PLANNED"
+                                ? order.plannedDeliveryDate
+                                  ? (shipmentDateColorMap.get(
+                                      new Date(order.plannedDeliveryDate)
+                                        .toISOString()
+                                        .split("T")[0],
+                                    ) ?? ORDER_STATUS_CONFIG[order.status].cls)
+                                  : ORDER_STATUS_CONFIG[order.status].cls
+                                : ORDER_STATUS_CONFIG[order.status].cls
+                            }
+                          />
+
+                          <Badge
+                            {...PAYMENT_STATUS_CONFIG[order.paymentStatus]}
+                          />
+                        </div>
+                        {order.reserves.filter((r) => r.status === "ACTIVE")
+                          .length > 0 && (
+                          <div className="flex flex-col gap-0.5 mt-0.5">
+                            {order.reserves
+                              .filter((r) => r.status === "ACTIVE")
+                              .map((r) => (
+                                <Link
+                                  key={r.id}
+                                  href={`/admin/products/product-reserves/update/${r.id}`}
+                                  className="text-xs text-blue-500 hover:text-blue-700 hover:underline"
+                                >
+                                  Резерв создан ({r.quantity} шт)
+                                </Link>
+                              ))}
+                          </div>
+                        )}
+                        {order.note && (
+                          <div className="text-xs text-slate-400 italic">
+                            {order.note}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* end flex */}
+
+                    {/* Edit order form */}
+                    <CreateOrderForm
+                      partners={partners}
+                      deliveryMethods={deliveryMethods}
+                      paymentMethods={paymentMethods}
+                      products={products}
+                      usdRate={usdRate}
+                      rmbRate={rmbRate}
+                      isOpen={openOrderId === order.id}
+                      onToggle={() =>
+                        setOpenOrderId(
+                          openOrderId === order.id ? null : order.id,
+                        )
                       }
-                      cls={
-                        order.status === "SHIPMENT_PLANNED"
-                          ? (order.plannedDeliveryDate
-                              ? shipmentDateColorMap.get(new Date(order.plannedDeliveryDate).toISOString().split("T")[0]) ?? ORDER_STATUS_CONFIG[order.status].cls
-                              : ORDER_STATUS_CONFIG[order.status].cls)
-                          : ORDER_STATUS_CONFIG[order.status].cls
-                      }
+                      initialOrder={{
+                        id: order.id,
+                        orderDate: order.orderDate,
+                        partnerId: order.partnerId,
+                        orderType: order.orderType,
+                        status: order.status,
+                        deliveryMethodId: order.deliveryMethodId,
+                        deliveryPriceRub: order.deliveryPriceRub,
+
+                        plannedDeliveryDate: order.plannedDeliveryDate,
+                        deliveryDate: order.deliveryDate,
+                        paymentMethodId: order.paymentMethodId,
+                        paymentStatus: order.paymentStatus,
+                        paymentDate: order.paymentDate,
+                        discountPercent: order.discountPercent,
+                        note: order.note,
+                        items: order.items.map((item) => ({
+                          productId: item.productId,
+                          productVariantId: item.productVariantId,
+                          quantity: item.quantity,
+                          priceUnit: item.priceUnit,
+                          priceInCents: item.priceInCents,
+                          priceCurrency: item.priceCurrency,
+                          priceRub: item.priceRub,
+                        })),
+                      }}
                     />
-
-
-                    <Badge {...PAYMENT_STATUS_CONFIG[order.paymentStatus]} />
                   </div>
-                  {order.note && (
-                    <div className="text-xs text-slate-400 italic">
-                      {order.note}
-                    </div>
-                  )}
-                </div>
-              </div>
-              {/* end flex */}
-
-              {/* Edit order form */}
-              <CreateOrderForm
-                partners={partners}
-                deliveryMethods={deliveryMethods}
-                paymentMethods={paymentMethods}
-                products={products}
-                usdRate={usdRate}
-                rmbRate={rmbRate}
-                isOpen={openOrderId === order.id}
-                onToggle={() =>
-                  setOpenOrderId(openOrderId === order.id ? null : order.id)
-                }
-                initialOrder={{
-                  id: order.id,
-                  orderDate: order.orderDate,
-                  partnerId: order.partnerId,
-                  orderType: order.orderType,
-                  status: order.status,
-                  deliveryMethodId: order.deliveryMethodId,
-                  deliveryPriceRub: order.deliveryPriceRub,
-
-                  plannedDeliveryDate: order.plannedDeliveryDate,
-                  deliveryDate: order.deliveryDate,
-                  paymentMethodId: order.paymentMethodId,
-                  paymentStatus: order.paymentStatus,
-                  paymentDate: order.paymentDate,
-                  discountPercent: order.discountPercent,
-                  note: order.note,
-                  items: order.items.map((item) => ({
-                    productId: item.productId,
-                    productVariantId: item.productVariantId,
-                    quantity: item.quantity,
-                    priceUnit: item.priceUnit,
-                    priceInCents: item.priceInCents,
-                    priceCurrency: item.priceCurrency,
-                    priceRub: item.priceRub,
-                  })),
-                }}
-              />
-            </div>
-          );
-        })}
+                );
+              })}
 
               {/* Month summary */}
               <div className="mb-6 mt-1 px-3 text-xs flex flex-col gap-0.5">
@@ -445,11 +607,23 @@ export function OrdersGrid({
                   { label: "Итого:", data: all },
                   { label: "Отгружено:", data: shipped },
                 ].map(({ label, data }) => (
-                  <div key={label} className="flex items-center gap-2 md:gap-6 text-slate-600">
+                  <div
+                    key={label}
+                    className="flex items-center gap-2 md:gap-6 text-slate-600"
+                  >
                     <span className="w-20 md:w-24 font-medium">{label}</span>
-                    <span className="w-16 md:w-24"><span className="text-slate-400">Зак: </span>{data.count}</span>
-                    <span className="w-16 md:w-24"><span className="text-slate-400">М²: </span>{data.totalM2.toFixed(2)}</span>
-                    <span><span className="text-slate-400 md:inline">Сумма: </span>{formatRub(data.totalRub)}</span>
+                    <span className="w-16 md:w-24">
+                      <span className="text-slate-400">Зак: </span>
+                      {data.count}
+                    </span>
+                    <span className="w-16 md:w-24">
+                      <span className="text-slate-400">М²: </span>
+                      {data.totalM2.toFixed(2)}
+                    </span>
+                    <span>
+                      <span className="text-slate-400 md:inline">Сумма: </span>
+                      {formatRub(data.totalRub)}
+                    </span>
                   </div>
                 ))}
               </div>

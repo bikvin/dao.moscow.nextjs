@@ -89,6 +89,15 @@ export default async function OrdersPage({
           },
           orderBy: { createdAt: "asc" },
         },
+        reserves: {
+          select: {
+            id: true,
+            productVariantId: true,
+            quantity: true,
+            status: true,
+            productVariant: { select: { variantName: true } },
+          },
+        },
       },
       orderBy: [{ year: "asc" }, { sequenceNumber: "asc" }],
       skip: (currentPage - 1) * PAGE_SIZE,

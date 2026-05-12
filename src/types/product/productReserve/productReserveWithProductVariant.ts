@@ -4,4 +4,5 @@ export type ProductReserveWithProductVariant = ProductReserve & {
   productVariant: ProductVariant & {
     product: Product;
   };
+  order: { year: number; sequenceNumber: number } | null;
 };

@@ -50,6 +50,11 @@ export function ProductReserveListItem({
         <span className="text-slate-400">
           вариант: {item.productVariant.variantName}
         </span>
+        {item.order && (
+          <span className="text-slate-500">
+            заказ №{item.order.sequenceNumber}/{item.order.year}
+          </span>
+        )}
         <span className={statusColors[item.status]}>
           {statusLabels[item.status]}
         </span>

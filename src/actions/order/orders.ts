@@ -3,8 +3,11 @@
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
-import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum } from "@prisma/client";
+import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum, ProductReserveStatusEnum } from "@prisma/client";
 import { z } from "zod";
+import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
+
+const RESERVE_STATUSES = new Set<OrderStatusEnum>([OrderStatusEnum.RESERVE, OrderStatusEnum.SHIPMENT_PLANNED, OrderStatusEnum.SELF_PICKUP]);
 
 const createOrderSchema = z.object({
   partnerId: z.string().min(1, "Выберите партнёра"),
@@ -86,6 +89,7 @@ export async function createOrder(
       });
 
       let totalRub = 0;
+      const variantQuantities = new Map<string, number>();
 
       for (let i = 0; i < productIds.length; i++) {
         if (!productIds[i] || !variantIds[i]) continue;
@@ -119,11 +123,35 @@ export async function createOrder(
         });
 
         totalRub += itemTotal;
+        variantQuantities.set(variantIds[i], (variantQuantities.get(variantIds[i]) ?? 0) + qty);
       }
 
       const grandTotal = Math.round(totalRub * (1 - discountPercent / 100)) + deliveryPriceRub;
       if (grandTotal > 0) {
         await tx.order.update({ where: { id: order.id }, data: { totalRub: grandTotal } });
+      }
+
+      // Create reserves for SALE orders with active statuses
+      if (result.data.orderType === OrderTypeEnum.SALE && RESERVE_STATUSES.has(status)) {
+        const partner = await tx.partner.findUnique({
+          where: { id: result.data.partnerId },
+          include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
+        });
+        const clientName = partner?.names[0]?.name ?? "—";
+
+        for (const [variantId, qty] of variantQuantities) {
+          await tx.productReserve.create({
+            data: {
+              productVariantId: variantId,
+              orderId: order.id,
+              quantity: qty,
+              reserveDate: orderDate,
+              client: clientName,
+              status: ProductReserveStatusEnum.ACTIVE,
+            },
+          });
+          await recalculateWarehouseQuantity(variantId, tx);
+        }
       }
     });
   } catch (err: unknown) {
