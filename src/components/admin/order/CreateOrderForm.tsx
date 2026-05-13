@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createOrder } from "@/actions/order/orders";
 import { updateOrder } from "@/actions/order/updateOrder";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
@@ -10,7 +10,7 @@ import FormButton from "@/components/common/formButton/formButton";
 import { OrderTypeEnum, OrderStatusEnum, PriceTypeEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum } from "@prisma/client";
 import { X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { type ProductOption } from "./AddOrderItemForm";
+import { type ProductOption, calcTotalFromPriceRub, calcPriceRubFromTotal } from "./AddOrderItemForm";
 import { PartnerCombobox } from "./PartnerCombobox";
 import { ProductCombobox } from "./ProductCombobox";
 
@@ -53,6 +53,7 @@ type ItemState = {
   price: string;
   currency: CurrencyEnum;
   priceRub: string;
+  total: string;
 };
 
 const ORDER_TYPE_LABELS: Record<OrderTypeEnum, string> = {
@@ -98,6 +99,7 @@ function emptyItem(): ItemState {
     price: "",
     currency: CurrencyEnum.RUB,
     priceRub: "",
+    total: "",
   };
 }
 
@@ -118,6 +120,8 @@ function ItemRow({
   usdRate: number | null;
   rmbRate: number | null;
 }) {
+  const lastEdited = useRef<"price" | "total">("price");
+
   const selectedProduct = products.find((p) => p.id === item.productId);
   const availableVariants = selectedProduct?.productVariants ?? [];
 
@@ -128,11 +132,6 @@ function ItemRow({
       : null;
 
   const effectivePriceRub = item.currency === CurrencyEnum.RUB ? item.price : item.priceRub;
-  const priceRubNum = parseFloat(effectivePriceRub) || 0;
-  const previewTotal =
-    item.priceUnit === PriceUnitEnum.M2 && quantityM2 !== null
-      ? quantityM2 * priceRubNum
-      : (parseInt(item.quantity) || 0) * priceRubNum;
 
   return (
     <div className="flex flex-wrap items-start gap-2 pl-2 border-l-2 border-slate-200">
@@ -170,7 +169,16 @@ function ItemRow({
           type="number"
           placeholder="0"
           value={item.quantity}
-          onChange={(e) => onChange({ quantity: e.target.value })}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (lastEdited.current === "total") {
+              const calcPriceRub = calcPriceRubFromTotal(item.total, v, item.priceUnit, selectedProduct);
+              onChange({ quantity: v, price: calcPriceRub, priceRub: calcPriceRub, currency: CurrencyEnum.RUB });
+            } else {
+              const rubVal = item.currency === CurrencyEnum.RUB ? item.price : item.priceRub;
+              onChange({ quantity: v, total: calcTotalFromPriceRub(rubVal, v, item.priceUnit, selectedProduct) });
+            }
+          }}
           className={`admin-form-input text-sm w-20 ${touched && !(parseInt(item.quantity) > 0) ? "border-red-500" : ""}`}
           min="1"
         />
@@ -192,6 +200,7 @@ function ItemRow({
           placeholder="0"
           value={item.price}
           onChange={(e) => {
+            lastEdited.current = "price";
             const v = e.target.value;
             const num = parseFloat(v);
             let priceRub = item.priceRub;
@@ -202,7 +211,7 @@ function ItemRow({
             } else if (item.currency === CurrencyEnum.RMB && rmbRate != null && !isNaN(num)) {
               priceRub = (num * rmbRate).toFixed(2);
             }
-            onChange({ price: v, priceRub });
+            onChange({ price: v, priceRub, total: calcTotalFromPriceRub(priceRub, item.quantity, item.priceUnit, selectedProduct) });
           }}
           className={`admin-form-input text-sm w-28 ${touched && !(parseFloat(effectivePriceRub) > 0) ? "border-red-500" : ""}`}
           min="0"
@@ -221,6 +230,7 @@ function ItemRow({
                   type="button"
                   className="text-xs text-blue-500 hover:underline"
                   onClick={() => {
+                    lastEdited.current = "price";
                     const priceNum = parseFloat(val);
                     let rubPrice = "";
                     if (p.currency === CurrencyEnum.RUB) {
@@ -230,7 +240,7 @@ function ItemRow({
                     } else if (p.currency === CurrencyEnum.RMB && rmbRate != null) {
                       rubPrice = (priceNum * rmbRate).toFixed(2);
                     }
-                    onChange({ price: val, currency: p.currency, priceRub: rubPrice, priceUnit: p.unit });
+                    onChange({ price: val, currency: p.currency, priceRub: rubPrice, priceUnit: p.unit, total: calcTotalFromPriceRub(rubPrice, item.quantity, p.unit, selectedProduct) });
                   }}
                 >
                   {label}
@@ -246,6 +256,7 @@ function ItemRow({
           name="priceCurrency"
           value={item.currency}
           onChange={(e) => {
+            lastEdited.current = "price";
             const c = e.target.value as CurrencyEnum;
             const num = parseFloat(item.price);
             let priceRub = "";
@@ -256,7 +267,10 @@ function ItemRow({
             } else if (c === CurrencyEnum.RMB && rmbRate != null && !isNaN(num)) {
               priceRub = (num * rmbRate).toFixed(2);
             }
-            onChange({ currency: c, priceRub });
+            const newTotal = c === CurrencyEnum.RUB
+              ? calcTotalFromPriceRub(item.price, item.quantity, item.priceUnit, selectedProduct)
+              : "";
+            onChange({ currency: c, priceRub, total: newTotal });
           }}
           className="admin-form-input text-sm w-20"
         >
@@ -270,7 +284,16 @@ function ItemRow({
         <select
           name="priceUnit"
           value={item.priceUnit}
-          onChange={(e) => onChange({ priceUnit: e.target.value as PriceUnitEnum })}
+          onChange={(e) => {
+            const u = e.target.value as PriceUnitEnum;
+            if (lastEdited.current === "total") {
+              const calcPriceRub = calcPriceRubFromTotal(item.total, item.quantity, u, selectedProduct);
+              onChange({ priceUnit: u, price: calcPriceRub, priceRub: calcPriceRub, currency: CurrencyEnum.RUB });
+            } else {
+              const rubVal = item.currency === CurrencyEnum.RUB ? item.price : item.priceRub;
+              onChange({ priceUnit: u, total: calcTotalFromPriceRub(rubVal, item.quantity, u, selectedProduct) });
+            }
+          }}
           className="admin-form-input text-sm w-20"
         >
           {Object.values(PriceUnitEnum).map((u) => (
@@ -286,31 +309,35 @@ function ItemRow({
             type="number"
             placeholder="0"
             value={item.priceRub}
-            onChange={(e) => onChange({ priceRub: e.target.value })}
+            onChange={(e) => {
+              lastEdited.current = "price";
+              const v = e.target.value;
+              onChange({ priceRub: v, total: calcTotalFromPriceRub(v, item.quantity, item.priceUnit, selectedProduct) });
+            }}
             className={`admin-form-input text-sm w-28 ${touched && !(parseFloat(item.priceRub) > 0) ? "border-red-500" : ""}`}
             min="0"
             step="0.01"
           />
         </Field>
       ) : (
-        <>
-          {item.price && (
-            <Field label="Цена (₽):">
-              <div className="text-sm py-1 px-2 bg-slate-100 rounded w-28 text-right border border-slate-200">
-                {item.price}
-              </div>
-            </Field>
-          )}
-          <input type="hidden" name="priceRub" value={item.price} />
-        </>
+        <input type="hidden" name="priceRub" value={item.price} />
       )}
 
-      <Field label="Итого:">
-        <div className="text-sm py-1 px-2 bg-slate-100 rounded w-28 text-right border border-slate-200">
-          {previewTotal > 0
-            ? new Intl.NumberFormat("ru-RU").format(previewTotal) + " ₽"
-            : "—"}
-        </div>
+      <Field label="Итого (₽):">
+        <input
+          type="number"
+          placeholder="0"
+          value={item.total}
+          onChange={(e) => {
+            lastEdited.current = "total";
+            const v = e.target.value;
+            const calcPriceRub = calcPriceRubFromTotal(v, item.quantity, item.priceUnit, selectedProduct);
+            onChange({ total: v, price: calcPriceRub, priceRub: calcPriceRub, currency: CurrencyEnum.RUB });
+          }}
+          className="admin-form-input text-sm w-28"
+          min="0"
+          step="0.01"
+        />
       </Field>
 
       <button
@@ -387,16 +414,22 @@ export function CreateOrderForm({
   const [note, setNote] = useState(initialOrder?.note ?? "");
   const [items, setItems] = useState<ItemState[]>(
     initialOrder?.items.length
-      ? initialOrder.items.map((item) => ({
-          id: crypto.randomUUID(),
-          productId: item.productId,
-          variantId: item.productVariantId,
-          quantity: item.quantity.toString(),
-          priceUnit: item.priceUnit,
-          price: (item.priceInCents / 100).toString(),
-          currency: item.priceCurrency,
-          priceRub: (item.priceRub / 100).toString(),
-        }))
+      ? initialOrder.items.map((item) => {
+          const product = products.find((p) => p.id === item.productId);
+          const priceRubStr = (item.priceRub / 100).toString();
+          const qtyStr = item.quantity.toString();
+          return {
+            id: crypto.randomUUID(),
+            productId: item.productId,
+            variantId: item.productVariantId,
+            quantity: qtyStr,
+            priceUnit: item.priceUnit,
+            price: (item.priceInCents / 100).toString(),
+            currency: item.priceCurrency,
+            priceRub: priceRubStr,
+            total: calcTotalFromPriceRub(priceRubStr, qtyStr, item.priceUnit, product),
+          };
+        })
       : [emptyItem()]
   );
 
