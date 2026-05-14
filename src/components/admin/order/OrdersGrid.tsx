@@ -376,6 +376,26 @@ export function OrdersGrid({
                                 </div>
                               </React.Fragment>
                             ))}
+                            {order.discountPercent > 0 && (() => {
+                              const itemsSubtotal = order.items.reduce((s, i) => s + i.totalRub, 0);
+                              const discountAmount = Math.round(itemsSubtotal * order.discountPercent / 100);
+                              return (
+                                <>
+                                  <E />
+                                  <E />
+                                  <E />
+                                  <div className="text-sm text-slate-500 italic py-0.5">
+                                    Скидка {order.discountPercent}%
+                                  </div>
+                                  <E />
+                                  <E />
+                                  <E />
+                                  <div className="text-sm text-right py-0.5 text-slate-500">
+                                    −{formatRub(discountAmount)}
+                                  </div>
+                                </>
+                              );
+                            })()}
                             {order.deliveryPriceRub > 0 && (
                               <>
                                 <E />
@@ -413,11 +433,6 @@ export function OrdersGrid({
                               <E />
                               <div className="text-sm font-semibold py-1 border-t border-slate-200">
                                 Итого
-                                {order.discountPercent > 0 && (
-                                  <span className="text-xs text-slate-400 font-normal ml-2">
-                                    скидка {order.discountPercent}%
-                                  </span>
-                                )}
                               </div>
                               <E />
                               <E />
@@ -494,6 +509,16 @@ export function OrdersGrid({
                             </div>
                           );
                         })}
+                        {order.discountPercent > 0 && (() => {
+                          const itemsSubtotal = order.items.reduce((s, i) => s + i.totalRub, 0);
+                          const discountAmount = Math.round((itemsSubtotal + order.deliveryPriceRub) * order.discountPercent / 100);
+                          return (
+                            <div className="flex justify-between text-sm text-slate-500">
+                              <span className="italic">Скидка {order.discountPercent}%</span>
+                              <span>−{formatRub(discountAmount)}</span>
+                            </div>
+                          );
+                        })()}
                         {order.deliveryPriceRub > 0 && (
                           <div className="flex justify-between text-sm text-slate-500">
                             <span className="italic">
@@ -503,14 +528,7 @@ export function OrdersGrid({
                           </div>
                         )}
                         <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-1 mt-0.5">
-                          <span>
-                            Итого
-                            {order.discountPercent > 0 && (
-                              <span className="text-xs font-normal text-slate-400 ml-1">
-                                скидка {order.discountPercent}%
-                              </span>
-                            )}
-                          </span>
+                          <span>Итого</span>
                           <span>
                             {order.orderType === "RETURN"
                               ? `-${formatRub(order.totalRub)}`
