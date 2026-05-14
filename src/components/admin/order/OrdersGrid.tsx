@@ -429,8 +429,9 @@ export function OrdersGrid({
                                   <Pencil className="w-5 h-5" />
                                 </button>
                               </div>
-                              <E />
-                              <E />
+                              <div className="col-span-2 text-xs text-slate-700 italic py-1 border-t border-slate-200 flex items-center">
+                                {order.note}
+                              </div>
                               <div className="text-sm font-semibold py-1 border-t border-slate-200">
                                 Итого
                               </div>
@@ -528,7 +529,12 @@ export function OrdersGrid({
                           </div>
                         )}
                         <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-1 mt-0.5">
-                          <span>Итого</span>
+                          <span className="flex items-baseline gap-2">
+                            {order.note && (
+                              <span className="text-xs font-normal text-slate-700 italic">{order.note}</span>
+                            )}
+                            Итого
+                          </span>
                           <span>
                             {order.orderType === "RETURN"
                               ? `-${formatRub(order.totalRub)}`
@@ -605,11 +611,6 @@ export function OrdersGrid({
                                 Приход создан ({receipt.quantity} шт)
                               </Link>
                             ))}
-                          </div>
-                        )}
-                        {order.note && (
-                          <div className="text-xs text-slate-400 italic">
-                            {order.note}
                           </div>
                         )}
                       </div>

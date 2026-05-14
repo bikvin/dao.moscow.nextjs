@@ -734,7 +734,7 @@ export function CreateOrderForm({
             placeholder="Комментарий"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="admin-form-input text-sm w-56"
+            className="admin-form-input text-sm w-96"
           />
         </div>
 
