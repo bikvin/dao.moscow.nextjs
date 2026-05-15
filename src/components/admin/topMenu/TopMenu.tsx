@@ -4,7 +4,7 @@ import TopMenuItem from "./topMenuItem";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { useUser } from "@/components/providers/UserProviderClient";
 
-import TopMenuDropdown from "./TopMenuDropdown";
+import TopMenuDropdown, { type DropdownItem } from "./TopMenuDropdown";
 import { LogoutForm } from "../LogoutForm/LogoutForm";
 
 import {
@@ -29,7 +29,7 @@ type TopMenuItemLink = TopMenuItemBase & {
 
 type TopMenuDropDown = TopMenuItemBase & {
   type: "dropdown";
-  data: TopMenuItemLink[];
+  data: DropdownItem[];
 };
 
 // change menu items here
@@ -69,75 +69,65 @@ const topMenuList: TopMenuItem[] = [
   },
 
   {
-    name: "Товары",
+    name: "Продажи",
     type: "dropdown",
-    adminOnly: false,
     data: [
       {
-        type: "link",
+        type: "dropdown",
         name: "Товары",
-        link: "/admin/products",
-      },
-
-      {
-        type: "link",
-        name: "Группы товаров",
-        link: "/admin/products/product-groups",
-      },
-      {
-        type: "link",
-        name: "Приходы",
-        link: "/admin/products/product-receipts",
+        data: [
+          { type: "link", name: "Товары",          link: "/admin/products" },
+          { type: "link", name: "Группы товаров",  link: "/admin/products/product-groups" },
+          { type: "link", name: "Приходы",         link: "/admin/products/product-receipts" },
+          { type: "link", name: "Списания",        link: "/admin/products/product-issues" },
+          { type: "link", name: "Резервы",         link: "/admin/products/product-reserves" },
+          { type: "link", name: "Размеры чипа",    link: "/admin/products/chip-sizes" },
+          { type: "link", name: "Импорт цен",      link: "/admin/import" },
+        ],
       },
       {
-        type: "link",
-        name: "Списания",
-        link: "/admin/products/product-issues",
+        type: "dropdown",
+        name: "Счета",
+        data: [
+          { type: "link", name: "Все счета", link: "/admin/invoices" },
+        ],
       },
       {
-        type: "link",
-        name: "Резервы",
-        link: "/admin/products/product-reserves",
-      },
-      {
-        type: "link",
-        name: "Размеры чипа",
-        link: "/admin/products/chip-sizes",
-      },
-      {
-        type: "link",
-        name: "Импорт цен",
-        link: "/admin/import",
+        type: "dropdown",
+        name: "Партнёры",
+        data: [
+          { type: "link", name: "Все партнёры",            link: "/admin/partners" },
+          { type: "link", name: "Добавить партнёра",       link: "/admin/partners/create" },
+          { type: "link", name: "Города",                  link: "/admin/partners/cities" },
+          { type: "link", name: "Транспортные компании",   link: "/admin/partners/transport-companies" },
+          { type: "link", name: "Типы образцов",           link: "/admin/partners/sample-types" },
+          { type: "link", name: "Типы партнёров",          link: "/admin/partners/partner-types" },
+          { type: "link", name: "Торговые центры",         link: "/admin/partners/shopping-malls" },
+        ],
       },
     ],
   },
 
   {
-    name: "Пользователи",
-    type: "dropdown",
-    adminOnly: true,
-    data: [
-      {
-        type: "link",
-        name: "Все пользователи",
-        link: "/admin/users/all-users",
-      },
-      {
-        type: "link",
-        name: "Создать пользователя",
-        link: "/admin/users/create",
-      },
-    ],
-  },
-
-  {
-    name: "Счета",
+    name: "Настройки",
     type: "dropdown",
     data: [
       {
-        type: "link",
-        name: "Все счета",
-        link: "/admin/invoices",
+        type: "dropdown",
+        name: "Курс валют",
+        data: [
+          { type: "link", name: "Курс валют", link: "/admin/exchange-rate" },
+          { type: "link", name: "Настройки",  link: "/admin/exchange-rate/settings" },
+        ],
+      },
+      {
+        type: "dropdown",
+        name: "Пользователи",
+        adminOnly: true,
+        data: [
+          { type: "link", name: "Все пользователи",     link: "/admin/users/all-users" },
+          { type: "link", name: "Создать пользователя", link: "/admin/users/create" },
+        ],
       },
       {
         type: "link",
@@ -148,116 +138,29 @@ const topMenuList: TopMenuItem[] = [
   },
 
   {
-    name: "Курс валют",
-    type: "dropdown",
-    data: [
-      {
-        type: "link",
-        name: "Курс валют",
-        link: "/admin/exchange-rate",
-      },
-      {
-        type: "link",
-        name: "Настройки",
-        link: "/admin/exchange-rate/settings",
-      },
-    ],
-  },
-
-  {
-    name: "Партнёры",
-    type: "dropdown",
-    data: [
-      {
-        type: "link",
-        name: "Все партнёры",
-        link: "/admin/partners",
-      },
-      {
-        type: "link",
-        name: "Добавить партнёра",
-        link: "/admin/partners/create",
-      },
-      {
-        type: "link",
-        name: "Города",
-        link: "/admin/partners/cities",
-      },
-      {
-        type: "link",
-        name: "Транспортные компании",
-        link: "/admin/partners/transport-companies",
-      },
-      {
-        type: "link",
-        name: "Типы образцов",
-        link: "/admin/partners/sample-types",
-      },
-      {
-        type: "link",
-        name: "Типы партнёров",
-        link: "/admin/partners/partner-types",
-      },
-      {
-        type: "link",
-        name: "Торговые центры",
-        link: "/admin/partners/shopping-malls",
-      },
-    ],
-  },
-
-  {
-    name: "Яндекс",
+    name: "Маркетплейсы",
     type: "dropdown",
     adminOnly: true,
     data: [
       {
-        type: "link",
-        name: "Настройки",
-        link: "/admin/yandex",
+        type: "dropdown",
+        name: "Яндекс",
+        data: [
+          { type: "link", name: "Настройки",                link: "/admin/yandex" },
+          { type: "link", name: "Синхронизации остатков",   link: "/admin/yandex/sync-history" },
+          { type: "link", name: "Синхронизации цен",        link: "/admin/yandex/price-sync-history" },
+          { type: "link", name: "Маппинг товаров",          link: "/admin/yandex/mappings" },
+        ],
       },
       {
-        type: "link",
-        name: "Синхронизации остатков",
-        link: "/admin/yandex/sync-history",
-      },
-      {
-        type: "link",
-        name: "Синхронизации цен",
-        link: "/admin/yandex/price-sync-history",
-      },
-      {
-        type: "link",
-        name: "Маппинг товаров",
-        link: "/admin/yandex/mappings",
-      },
-    ],
-  },
-
-  {
-    name: "Ozon",
-    type: "dropdown",
-    adminOnly: true,
-    data: [
-      {
-        type: "link",
-        name: "Настройки",
-        link: "/admin/ozon",
-      },
-      {
-        type: "link",
-        name: "Синхронизации остатков",
-        link: "/admin/ozon/sync-history",
-      },
-      {
-        type: "link",
-        name: "Синхронизации цен",
-        link: "/admin/ozon/price-sync-history",
-      },
-      {
-        type: "link",
-        name: "Маппинг товаров",
-        link: "/admin/ozon/mappings",
+        type: "dropdown",
+        name: "Ozon",
+        data: [
+          { type: "link", name: "Настройки",                link: "/admin/ozon" },
+          { type: "link", name: "Синхронизации остатков",   link: "/admin/ozon/sync-history" },
+          { type: "link", name: "Синхронизации цен",        link: "/admin/ozon/price-sync-history" },
+          { type: "link", name: "Маппинг товаров",          link: "/admin/ozon/mappings" },
+        ],
       },
     ],
   },
@@ -336,6 +239,7 @@ export function TopMenu() {
                     key={item.name}
                     name={item.name}
                     data={item.data}
+                    isAdmin={isAdmin}
                   />
                 );
               }
