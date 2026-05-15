@@ -99,6 +99,11 @@ enum PaymentStatusEnum {
   NOT_PAID
 }
 
+enum InvoiceTypeEnum {
+  CASH
+  BANK
+}
+
 model ChipSize {
   id           String    @id @default(uuid())
   name         String    @unique
@@ -164,6 +169,7 @@ model Product {
   ozonMappings         OzonMapping[]
   prices               Price[]
   orderItems           OrderItem[]
+  invoiceItems         InvoiceItem[]
 }
 
 model ProductVariant {
@@ -184,6 +190,7 @@ model ProductVariant {
   productIssues   ProductIssue[]
   productReserves ProductReserve[]
   orderItems      OrderItem[]
+  invoiceItems    InvoiceItem[]
 
   @@index([productId])
 }
@@ -420,6 +427,7 @@ model Partner {
   legalEntities      PartnerLegalEntity[]
   contactPersons     PartnerContactPerson[]
   orders             Order[]
+  invoices           Invoice[]
 }
 
 model PartnerName {
@@ -589,6 +597,7 @@ model Order {
   reserves ProductReserve[]
   issues   ProductIssue[]
   receipts ProductReceipt[]
+  invoices Invoice[]
 
   @@unique([year, sequenceNumber])
   @@index([partnerId])
@@ -617,4 +626,72 @@ model OrderItem {
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
 
   @@index([orderId])
+}
+
+model Invoice {
+  id             String          @id @default(uuid())
+  year           Int
+  sequenceNumber Int
+  invoiceDate    DateTime
+  invoiceType    InvoiceTypeEnum @default(CASH)
+
+  deliveryPriceRub Int   @default(0)
+  discountPercent  Float @default(0)
+  totalRub         Int   @default(0)
+
+  // Seller details (frozen at creation, pre-populated from Settings)
+  sellerLegalName     String @default("")
+  sellerInn           String @default("")
+  sellerKpp           String @default("")
+  sellerBankName      String @default("")
+  sellerShortBankName String @default("")
+  sellerBik           String @default("")
+  sellerBankAccNo     String @default("")
+  sellerAccNo         String @default("")
+
+  // Buyer details (frozen at creation, populated from PartnerLegalEntity)
+  buyerLegalName  String @default("")
+  buyerInn        String @default("")
+  buyerKpp        String @default("")
+  buyerBankName   String @default("")
+  buyerBik        String @default("")
+  buyerBankAccNo  String @default("")
+  buyerAccNo      String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id])
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  items InvoiceItem[]
+
+  @@unique([year, sequenceNumber])
+  @@index([partnerId])
+  @@index([orderId])
+}
+
+model InvoiceItem {
+  id         String        @id @default(uuid())
+  quantity   Int
+  quantityM2 Float?
+  priceUnit  PriceUnitEnum @default(M2)
+  priceRub   Int
+  totalRub   Int
+
+  createdAt DateTime @default(now())
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@index([invoiceId])
 }

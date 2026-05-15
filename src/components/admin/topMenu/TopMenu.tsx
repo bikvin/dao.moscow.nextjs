@@ -131,6 +131,23 @@ const topMenuList: TopMenuItem[] = [
   },
 
   {
+    name: "Счета",
+    type: "dropdown",
+    data: [
+      {
+        type: "link",
+        name: "Все счета",
+        link: "/admin/invoices",
+      },
+      {
+        type: "link",
+        name: "Реквизиты продавца",
+        link: "/admin/invoices/settings",
+      },
+    ],
+  },
+
+  {
     name: "Курс валют",
     type: "dropdown",
     data: [
