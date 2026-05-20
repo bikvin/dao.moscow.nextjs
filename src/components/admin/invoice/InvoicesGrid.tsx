@@ -1,5 +1,7 @@
 import React from "react";
 import { PriceUnitEnum, InvoiceTypeEnum } from "@prisma/client";
+import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
+import { deleteInvoice } from "@/actions/invoice/deleteInvoice";
 
 const COLS = "grid-cols-[72px_84px_148px_1fr_48px_68px_84px_88px]";
 
@@ -88,8 +90,15 @@ export function InvoicesGrid({ invoices }: { invoices: Invoice[] }) {
           return (
             <div
               key={inv.id}
-              className="border rounded-md shadow-main overflow-hidden mb-3"
+              className="relative border rounded-md shadow-main overflow-hidden mb-3"
             >
+              <div className="absolute top-2 right-2 z-10">
+                <DeleteItemButton
+                  action={deleteInvoice}
+                  fields={{ id: inv.id }}
+                  message={`Удалить счёт №${inv.sequenceNumber}/${inv.year}?`}
+                />
+              </div>
               <div className="flex flex-col md:flex-row md:items-start">
                 {/* Desktop grid */}
                 <div
