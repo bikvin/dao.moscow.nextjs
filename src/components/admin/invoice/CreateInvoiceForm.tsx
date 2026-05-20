@@ -364,7 +364,6 @@ export function CreateInvoiceForm({
   const [formKey, setFormKey] = useState(0);
   const [partnerId, setPartnerId] = useState("");
   const [invoiceType, setInvoiceType] = useState<InvoiceTypeEnum>(InvoiceTypeEnum.CASH);
-  const [legalEntityId, setLegalEntityId] = useState("");
   const [items, setItems] = useState<ItemState[]>([{ ...EMPTY_ITEM }]);
   const [showSeller, setShowSeller] = useState(false);
 
@@ -385,7 +384,6 @@ export function CreateInvoiceForm({
       setFormKey((k) => k + 1);
       setPartnerId("");
       setInvoiceType(InvoiceTypeEnum.CASH);
-      setLegalEntityId("");
       setItems([{ ...EMPTY_ITEM }]);
       setShowSeller(false);
       setBuyer(EMPTY_BUYER);
@@ -398,12 +396,10 @@ export function CreateInvoiceForm({
 
   const handlePartnerChange = (id: string) => {
     setPartnerId(id);
-    setLegalEntityId("");
-    setBuyer({ buyerLegalName: "", buyerInn: "", buyerKpp: "", buyerBankName: "", buyerBik: "", buyerBankAccNo: "", buyerAccNo: "" });
+    setBuyer(EMPTY_BUYER);
   };
 
   const handleLegalEntityChange = (id: string) => {
-    setLegalEntityId(id);
     const le = partner?.legalEntities.find((e) => e.id === id);
     if (le) {
       setBuyer({
@@ -565,18 +561,17 @@ export function CreateInvoiceForm({
         <div className="mb-6 p-4 border border-slate-200 rounded">
           <h3 className="text-sm font-semibold mb-3">Покупатель</h3>
           {partner && partner.legalEntities.length > 0 && (
-            <div className="mb-3">
-              <label className="text-xs text-slate-500">Юр. лицо партнёра</label>
-              <select
-                value={legalEntityId}
-                onChange={(e) => handleLegalEntityChange(e.target.value)}
-                className="admin-form-input h-8 text-sm w-80 mt-0.5"
-              >
-                <option value="">— выбрать —</option>
-                {partner.legalEntities.map((le) => (
-                  <option key={le.id} value={le.id}>{le.name}</option>
-                ))}
-              </select>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {partner.legalEntities.map((le) => (
+                <button
+                  key={le.id}
+                  type="button"
+                  className="text-xs text-blue-500 hover:underline"
+                  onClick={() => handleLegalEntityChange(le.id)}
+                >
+                  {le.name}
+                </button>
+              ))}
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">
