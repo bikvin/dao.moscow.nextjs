@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   createInvoice,
   type CreateInvoiceFormState,
@@ -361,13 +361,14 @@ export function CreateInvoiceForm({
     {}
   );
 
+  const [formKey, setFormKey] = useState(0);
   const [partnerId, setPartnerId] = useState("");
   const [invoiceType, setInvoiceType] = useState<InvoiceTypeEnum>(InvoiceTypeEnum.CASH);
   const [legalEntityId, setLegalEntityId] = useState("");
   const [items, setItems] = useState<ItemState[]>([{ ...EMPTY_ITEM }]);
   const [showSeller, setShowSeller] = useState(false);
 
-  const [buyer, setBuyer] = useState({
+  const EMPTY_BUYER = {
     buyerLegalName: "",
     buyerInn: "",
     buyerKpp: "",
@@ -375,7 +376,22 @@ export function CreateInvoiceForm({
     buyerBik: "",
     buyerBankAccNo: "",
     buyerAccNo: "",
-  });
+  };
+
+  const [buyer, setBuyer] = useState(EMPTY_BUYER);
+
+  useEffect(() => {
+    if (formState.success) {
+      setFormKey((k) => k + 1);
+      setPartnerId("");
+      setInvoiceType(InvoiceTypeEnum.CASH);
+      setLegalEntityId("");
+      setItems([{ ...EMPTY_ITEM }]);
+      setShowSeller(false);
+      setBuyer(EMPTY_BUYER);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formState.success]);
 
   const partner = partners.find((p) => p.id === partnerId);
   const isBank = invoiceType === InvoiceTypeEnum.BANK;
@@ -418,7 +434,7 @@ export function CreateInvoiceForm({
   const itemsSubtotal = items.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0);
 
   const formContent = (
-    <form action={action}>
+    <form key={formKey} action={action}>
       {/* Header fields */}
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="flex flex-col gap-0.5">
