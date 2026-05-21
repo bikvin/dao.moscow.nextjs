@@ -694,7 +694,8 @@ export function CreateInvoiceForm({
             name="invoiceType"
             value={invoiceType}
             onChange={(e) => setInvoiceType(e.target.value as InvoiceTypeEnum)}
-            className="admin-form-input h-8 text-sm"
+            disabled={isEditMode}
+            className="admin-form-input h-8 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value={InvoiceTypeEnum.CASH}>Наличные</option>
             <option value={InvoiceTypeEnum.BANK}>Безналичные</option>

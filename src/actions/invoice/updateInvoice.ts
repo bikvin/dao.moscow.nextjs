@@ -3,13 +3,12 @@
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { InvoiceTypeEnum, PriceUnitEnum } from "@prisma/client";
+import { PriceUnitEnum } from "@prisma/client";
 import { type CreateInvoiceFormState } from "./createInvoice";
 
 const schema = z.object({
   partnerId: z.string().min(1, "Выберите партнёра"),
   invoiceDate: z.string().min(1, "Введите дату"),
-  invoiceType: z.nativeEnum(InvoiceTypeEnum),
 });
 
 export async function updateInvoice(
@@ -20,7 +19,6 @@ export async function updateInvoice(
   const result = schema.safeParse({
     partnerId: formData.get("partnerId"),
     invoiceDate: formData.get("invoiceDate"),
-    invoiceType: formData.get("invoiceType"),
   });
 
   if (!result.success) {
@@ -110,7 +108,6 @@ export async function updateInvoice(
         where: { id: invoiceId },
         data: {
           invoiceDate,
-          invoiceType: result.data.invoiceType,
           deliveryPriceRub,
           discountPercent,
           totalRub,
