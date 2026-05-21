@@ -180,20 +180,20 @@ const s = StyleSheet.create({
 
   // ── Title ──────────────────────────────────────
   titleWrap: {
-    borderBottomWidth: 0.75, borderBottomColor: "#000000", borderBottomStyle: "solid",
-    paddingTop: 4, paddingBottom: 4, marginBottom: 6, marginTop: 2,
+    borderBottomWidth: 2, borderBottomColor: "#000000", borderBottomStyle: "solid",
+    paddingTop: 6, paddingBottom: 8, marginBottom: 10, marginTop: 6,
   },
   title: { fontSize: 15, fontWeight: "bold" },
 
   // ── Parties ────────────────────────────────────
   partiesTable: { marginBottom: 6 },
-  partyRow: { flexDirection: "row", marginBottom: 3 },
+  partyRow: { flexDirection: "row", marginBottom: 7 },
   partyLabel: { width: 120, fontSize: 10, color: "#333" },
   partyValue: { flex: 1, fontSize: 10, fontWeight: "bold" },
 
   // ── Items table ────────────────────────────────
   table: {
-    borderWidth: 0.75, borderColor: "#000000", borderStyle: "solid",
+    borderWidth: 1.5, borderColor: "#000000", borderStyle: "solid",
     marginBottom: 3,
   },
   tHead: {
@@ -202,16 +202,16 @@ const s = StyleSheet.create({
   },
   tRow: {
     flexDirection: "row",
-    borderBottomWidth: 0.5, borderBottomColor: "#bbbbbb", borderBottomStyle: "solid",
+    borderBottomWidth: 0.5, borderBottomColor: "#000000", borderBottomStyle: "solid",
   },
   tRowLast: { flexDirection: "row" },
-  cN:  { width: 20,  padding: "3 4", borderRightWidth: 0.5, borderRightColor: "#bbbbbb", borderRightStyle: "solid", textAlign: "center", fontSize: 9 },
-  cNm: { flex: 1,    padding: "3 4", borderRightWidth: 0.5, borderRightColor: "#bbbbbb", borderRightStyle: "solid", fontSize: 9 },
-  cQ:  { width: 44,  padding: "3 4", borderRightWidth: 0.5, borderRightColor: "#bbbbbb", borderRightStyle: "solid", textAlign: "right", fontSize: 9 },
-  cU:  { width: 26,  padding: "3 4", borderRightWidth: 0.5, borderRightColor: "#bbbbbb", borderRightStyle: "solid", textAlign: "center", fontSize: 9 },
-  cP:  { width: 72,  padding: "3 4", borderRightWidth: 0.5, borderRightColor: "#bbbbbb", borderRightStyle: "solid", textAlign: "right", fontSize: 9 },
-  cS:  { width: 72,  padding: "3 4", textAlign: "right", fontSize: 9 },
-  thTxt: { fontWeight: "bold", fontSize: 9 },
+  cN:  { width: 20,  padding: "1 2", borderRightWidth: 0.5, borderRightColor: "#000000", borderRightStyle: "solid", textAlign: "center", fontSize: 9 },
+  cNm: { flex: 1,    padding: "1 2", borderRightWidth: 0.5, borderRightColor: "#000000", borderRightStyle: "solid", fontSize: 9 },
+  cQ:  { width: 44,  padding: "1 2", borderRightWidth: 0.5, borderRightColor: "#000000", borderRightStyle: "solid", textAlign: "right", fontSize: 9 },
+  cU:  { width: 26,  padding: "1 2", borderRightWidth: 0.5, borderRightColor: "#000000", borderRightStyle: "solid", textAlign: "center", fontSize: 9 },
+  cP:  { width: 72,  padding: "1 2", borderRightWidth: 0.5, borderRightColor: "#000000", borderRightStyle: "solid", textAlign: "right", fontSize: 9 },
+  cS:  { width: 72,  padding: "1 2", textAlign: "right", fontSize: 9 },
+  thTxt: { fontWeight: "bold", fontSize: 9, textAlign: "center" },
 
   // ── Totals ─────────────────────────────────────
   totalsWrap: { alignItems: "flex-end", marginBottom: 6 },
@@ -227,11 +227,10 @@ const s = StyleSheet.create({
 
   // ── Notes ──────────────────────────────────────
   notesBorder: {
-    borderTopWidth: 0.75, borderTopColor: "#000000", borderTopStyle: "solid",
     borderBottomWidth: 0.75, borderBottomColor: "#000000", borderBottomStyle: "solid",
     paddingTop: 3, paddingBottom: 3, marginBottom: 10,
   },
-  notesTitle: { fontWeight: "bold", fontSize: 9, marginBottom: 1 },
+  notesTitle: { fontSize: 9, marginBottom: 1 },
   notesText: { fontSize: 8.5, color: "#333", marginBottom: 1 },
 
   // ── Signature ──────────────────────────────────
@@ -364,9 +363,7 @@ export function InvoicePDF({ invoice }: { invoice: InvoicePDFData }) {
           </View>
 
           {invoice.items.map((item, idx) => {
-            const name = item.variantName
-              ? `${item.sku} (${item.variantName})`
-              : item.sku;
+            const name = item.sku;
             const isM2 = item.priceUnit === PriceUnitEnum.M2;
             const unit = isM2 ? "м²" : "шт";
             const qty = isM2 && item.quantityM2 !== null
@@ -415,12 +412,12 @@ export function InvoicePDF({ invoice }: { invoice: InvoicePDFData }) {
         {/* ── Totals ── */}
         <View style={s.totalsWrap}>
           <View style={s.tRow2}>
-            <Text style={s.tLbl}>{"Итого:"}</Text>
-            <Text style={s.tVal}>{num(tableTotal)}</Text>
+            <Text style={s.tLblBold}>{"Итого:"}</Text>
+            <Text style={s.tValBold}>{num(tableTotal)}</Text>
           </View>
           <View style={s.tRow2}>
-            <Text style={s.tLbl}>{"Без налога (НДС)"}</Text>
-            <Text style={s.tVal}>{"-"}</Text>
+            <Text style={s.tLblBold}>{"Без налога (НДС)"}</Text>
+            <Text style={s.tValBold}>{"-"}</Text>
           </View>
           <View style={s.tRow2}>
             <Text style={s.tLblBold}>{"Всего к оплате:"}</Text>
