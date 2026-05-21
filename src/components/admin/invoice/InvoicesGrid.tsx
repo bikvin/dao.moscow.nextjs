@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { PriceUnitEnum, InvoiceTypeEnum } from "@prisma/client";
-import { Pencil } from "lucide-react";
+import { Download, Pencil } from "lucide-react";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deleteInvoice } from "@/actions/invoice/deleteInvoice";
 import { CreateInvoiceForm, type InitialInvoice } from "./CreateInvoiceForm";
@@ -355,10 +355,19 @@ export function InvoicesGrid({
                 {/* Type badge sidebar */}
                 <div className="md:w-36 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-100 px-3 py-2 flex flex-row flex-wrap md:flex-col gap-1">
                   <Badge {...TYPE_CONFIG[inv.invoiceType]} />
+                  <a
+                    href={`/api/invoices/${inv.id}/pdf`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-slate-400 hover:text-blue-500 mt-1"
+                    title="Скачать PDF"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
                   <button
                     type="button"
                     onClick={() => setOpenInvoiceId(openInvoiceId === inv.id ? null : inv.id)}
-                    className="text-slate-400 hover:text-blue-500 mt-1"
+                    className="text-slate-400 hover:text-blue-500"
                     title="Редактировать"
                   >
                     <Pencil className="w-4 h-4" />
