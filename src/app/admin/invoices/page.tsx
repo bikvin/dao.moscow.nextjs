@@ -1,6 +1,5 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { CreateInvoiceForm } from "@/components/admin/invoice/CreateInvoiceForm";
 import { InvoicesGrid } from "@/components/admin/invoice/InvoicesGrid";
 import { InvoiceTypeEnum, PriceTypeEnum, ProductStatusEnum } from "@prisma/client";
 
@@ -134,22 +133,11 @@ export default async function InvoicesPage() {
           orders={orders}
           products={productOptions}
           sellerSettings={sellerSettings}
+          nextCashSeqNum={nextCashSeqNum}
+          nextBankSeqNum={nextBankSeqNum}
           usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
           rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
         />
-
-        <div className="mt-8 border-t border-slate-200 pt-2">
-          <CreateInvoiceForm
-            partners={partnerOptions}
-            orders={orders}
-            products={productOptions}
-            sellerSettings={sellerSettings}
-            nextCashSeqNum={nextCashSeqNum}
-            nextBankSeqNum={nextBankSeqNum}
-            usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
-            rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
-          />
-        </div>
       </div>
     </>
   );

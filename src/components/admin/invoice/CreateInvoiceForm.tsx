@@ -507,6 +507,7 @@ export function CreateInvoiceForm({
   sellerSettings,
   nextCashSeqNum,
   nextBankSeqNum,
+  defaultInvoiceType,
   usdRate,
   rmbRate,
   initialInvoice,
@@ -519,6 +520,7 @@ export function CreateInvoiceForm({
   sellerSettings: SellerSettings;
   nextCashSeqNum?: number;
   nextBankSeqNum?: number;
+  defaultInvoiceType?: InvoiceTypeEnum;
   usdRate: number | null;
   rmbRate: number | null;
   initialInvoice?: InitialInvoice;
@@ -565,7 +567,7 @@ export function CreateInvoiceForm({
   const [formKey, setFormKey] = useState(0);
   const [partnerId, setPartnerId] = useState(initialInvoice?.partnerId ?? "");
   const [invoiceType, setInvoiceType] = useState<InvoiceTypeEnum>(
-    initialInvoice?.invoiceType ?? InvoiceTypeEnum.CASH,
+    initialInvoice?.invoiceType ?? defaultInvoiceType ?? InvoiceTypeEnum.CASH,
   );
   const [items, setItems] = useState<ItemState[]>(
     initialInvoice ? itemsFromInitial(initialInvoice) : [{ ...EMPTY_ITEM }],

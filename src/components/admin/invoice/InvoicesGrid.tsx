@@ -93,6 +93,8 @@ export function InvoicesGrid({
   sellerSettings,
   usdRate,
   rmbRate,
+  nextCashSeqNum,
+  nextBankSeqNum,
 }: {
   invoices: Invoice[];
   partners: PartnerOption[];
@@ -101,6 +103,8 @@ export function InvoicesGrid({
   sellerSettings: SellerSettings;
   usdRate: number | null;
   rmbRate: number | null;
+  nextCashSeqNum: number;
+  nextBankSeqNum: number;
 }) {
   const [openInvoiceId, setOpenInvoiceId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<InvoiceTypeEnum>(InvoiceTypeEnum.CASH);
@@ -422,6 +426,21 @@ export function InvoicesGrid({
         })}
       </div>
       </>}
+
+      <div className="mt-8 border-t border-slate-200 pt-2">
+        <CreateInvoiceForm
+          key={activeTab}
+          partners={partners}
+          orders={orders}
+          products={products}
+          sellerSettings={sellerSettings}
+          nextCashSeqNum={nextCashSeqNum}
+          nextBankSeqNum={nextBankSeqNum}
+          defaultInvoiceType={activeTab}
+          usdRate={usdRate}
+          rmbRate={rmbRate}
+        />
+      </div>
     </div>
   );
 }
