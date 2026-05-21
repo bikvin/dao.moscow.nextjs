@@ -12,6 +12,8 @@ const SELLER_FIELDS = [
   "sellerLegalName",
   "sellerInn",
   "sellerKpp",
+  "sellerAddress",
+  "sellerPhone",
   "sellerBankName",
   "sellerShortBankName",
   "sellerBik",

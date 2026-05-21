@@ -8,6 +8,8 @@ type SellerSettings = {
   sellerLegalName: string;
   sellerInn: string;
   sellerKpp: string;
+  sellerAddress: string;
+  sellerPhone: string;
   sellerBankName: string;
   sellerShortBankName: string;
   sellerBik: string;
@@ -19,6 +21,8 @@ const FIELDS: { name: keyof SellerSettings; label: string }[] = [
   { name: "sellerLegalName",     label: "Полное наименование" },
   { name: "sellerInn",           label: "ИНН" },
   { name: "sellerKpp",           label: "КПП" },
+  { name: "sellerAddress",       label: "Юридический адрес" },
+  { name: "sellerPhone",         label: "Телефон" },
   { name: "sellerBankName",      label: "Название банка" },
   { name: "sellerShortBankName", label: "Краткое название банка" },
   { name: "sellerBik",           label: "БИК" },
