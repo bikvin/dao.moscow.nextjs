@@ -669,7 +669,7 @@ model Invoice {
 
   items InvoiceItem[]
 
-  @@unique([year, sequenceNumber])
+  @@unique([year, invoiceType, sequenceNumber])
   @@index([partnerId])
   @@index([orderId])
 }

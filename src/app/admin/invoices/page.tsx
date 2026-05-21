@@ -2,7 +2,7 @@ import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { CreateInvoiceForm } from "@/components/admin/invoice/CreateInvoiceForm";
 import { InvoicesGrid } from "@/components/admin/invoice/InvoicesGrid";
-import { PriceTypeEnum, ProductStatusEnum } from "@prisma/client";
+import { InvoiceTypeEnum, PriceTypeEnum, ProductStatusEnum } from "@prisma/client";
 
 const SELLER_FIELDS = [
   "sellerLegalName",
@@ -18,7 +18,7 @@ const SELLER_FIELDS = [
 export default async function InvoicesPage() {
   const year = new Date().getFullYear();
 
-  const [invoices, partners, orders, products, settingsRows, lastInvoice, usdRateSetting, rmbRateSetting] =
+  const [invoices, partners, orders, products, settingsRows, lastCashInvoice, lastBankInvoice, usdRateSetting, rmbRateSetting] =
     await Promise.all([
       db.invoice.findMany({
         orderBy: [{ year: "desc" }, { sequenceNumber: "desc" }],
@@ -59,7 +59,12 @@ export default async function InvoicesPage() {
       }),
       db.settings.findMany({ where: { field: { in: [...SELLER_FIELDS] } } }),
       db.invoice.findFirst({
-        where: { year },
+        where: { year, invoiceType: InvoiceTypeEnum.CASH },
+        orderBy: { sequenceNumber: "desc" },
+        select: { sequenceNumber: true },
+      }),
+      db.invoice.findFirst({
+        where: { year, invoiceType: InvoiceTypeEnum.BANK },
         orderBy: { sequenceNumber: "desc" },
         select: { sequenceNumber: true },
       }),
@@ -81,7 +86,8 @@ export default async function InvoicesPage() {
     sellerAccNo: get("sellerAccNo"),
   };
 
-  const nextSeqNum = (lastInvoice?.sequenceNumber ?? 0) + 1;
+  const nextCashSeqNum = (lastCashInvoice?.sequenceNumber ?? 0) + 1;
+  const nextBankSeqNum = (lastBankInvoice?.sequenceNumber ?? 0) + 1;
 
   const partnerOptions = partners.map((p) => ({
     id: p.id,
@@ -138,8 +144,8 @@ export default async function InvoicesPage() {
             orders={orders}
             products={productOptions}
             sellerSettings={sellerSettings}
-            nextSeqNum={nextSeqNum}
-            year={year}
+            nextCashSeqNum={nextCashSeqNum}
+            nextBankSeqNum={nextBankSeqNum}
             usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
             rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
           />

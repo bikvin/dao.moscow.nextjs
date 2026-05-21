@@ -505,8 +505,8 @@ export function CreateInvoiceForm({
   orders,
   products,
   sellerSettings,
-  nextSeqNum,
-  year,
+  nextCashSeqNum,
+  nextBankSeqNum,
   usdRate,
   rmbRate,
   initialInvoice,
@@ -517,8 +517,8 @@ export function CreateInvoiceForm({
   orders: OrderOption[];
   products: ProductOption[];
   sellerSettings: SellerSettings;
-  nextSeqNum: number;
-  year: number;
+  nextCashSeqNum?: number;
+  nextBankSeqNum?: number;
   usdRate: number | null;
   rmbRate: number | null;
   initialInvoice?: InitialInvoice;
@@ -651,7 +651,7 @@ export function CreateInvoiceForm({
           <div className="flex flex-col gap-0.5">
             <label className="text-xs text-slate-500">Номер счёта</label>
             <div className="flex items-center gap-1 text-sm font-semibold">
-              {initialInvoice.sequenceNumber}/{initialInvoice.year}
+              {initialInvoice.sequenceNumber}
             </div>
           </div>
         ) : (
@@ -659,13 +659,13 @@ export function CreateInvoiceForm({
             <label className="text-xs text-slate-500">Номер счёта</label>
             <div className="flex items-center gap-1 text-sm">
               <input
+                key={invoiceType}
                 name="invoiceNumber"
                 type="number"
                 min="1"
-                defaultValue={nextSeqNum}
+                defaultValue={invoiceType === InvoiceTypeEnum.CASH ? (nextCashSeqNum ?? 1) : (nextBankSeqNum ?? 1)}
                 className="admin-form-input h-8 text-sm w-20 text-right"
               />
-              <span className="text-slate-400">/ {year}</span>
             </div>
           </div>
         )}

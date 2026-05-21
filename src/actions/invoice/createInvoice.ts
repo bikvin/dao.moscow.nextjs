@@ -74,8 +74,9 @@ export async function createInvoice(
 
   try {
     await db.$transaction(async (tx) => {
+      const invoiceType = result.data.invoiceType;
       const last = await tx.invoice.findFirst({
-        where: { year },
+        where: { year, invoiceType },
         orderBy: { sequenceNumber: "desc" },
         select: { sequenceNumber: true },
       });
@@ -88,10 +89,10 @@ export async function createInvoice(
       const sequenceNumber = customSeqNum ?? maxSeqNum + 1;
 
       const existing = await tx.invoice.findUnique({
-        where: { year_sequenceNumber: { year, sequenceNumber } },
+        where: { year_invoiceType_sequenceNumber: { year, invoiceType, sequenceNumber } },
       });
       if (existing) {
-        throw new Error(`Счёт №${sequenceNumber}/${year} уже существует`);
+        throw new Error(`Счёт №${sequenceNumber} уже существует`);
       }
 
       let itemsTotal = 0;

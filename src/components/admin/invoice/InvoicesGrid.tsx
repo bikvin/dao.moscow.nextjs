@@ -185,7 +185,7 @@ export function InvoicesGrid({
                   {inv.items.length === 0 ? (
                     <>
                       <div className="py-0.5 text-sm font-semibold">
-                        {inv.sequenceNumber}/{inv.year}
+                        {inv.sequenceNumber}
                       </div>
                       <div className="text-sm text-slate-600 py-0.5">
                         {formatDate(inv.invoiceDate)}
@@ -202,7 +202,7 @@ export function InvoicesGrid({
                           {idx === 0 ? (
                             <>
                               <div className="py-0.5 text-sm font-semibold leading-tight">
-                                <div>{inv.sequenceNumber}/{inv.year}</div>
+                                <div>{inv.sequenceNumber}</div>
                               </div>
                               <div className="text-sm text-slate-600 py-0.5">
                                 {formatDate(inv.invoiceDate)}
@@ -293,7 +293,7 @@ export function InvoicesGrid({
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-sm font-semibold mr-2">
-                        №{inv.sequenceNumber}/{inv.year}
+                        №{inv.sequenceNumber}
                       </span>
                       <span className="text-sm text-slate-500">
                         {formatDate(inv.invoiceDate)}
@@ -377,8 +377,6 @@ export function InvoicesGrid({
                   sellerBankAccNo: inv.sellerBankAccNo,
                   sellerAccNo: inv.sellerAccNo,
                 }}
-                nextSeqNum={inv.sequenceNumber}
-                year={inv.year}
                 usdRate={usdRate}
                 rmbRate={rmbRate}
                 isOpen={openInvoiceId === inv.id}
