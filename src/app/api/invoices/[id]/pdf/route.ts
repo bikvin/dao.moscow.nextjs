@@ -60,8 +60,8 @@ export async function GET(
   }
 
   const SELLER_FIELDS = [
-    "sellerLegalName", "sellerInn", "sellerKpp", "sellerBankName",
-    "sellerShortBankName", "sellerBik", "sellerBankAccNo", "sellerAccNo",
+    "sellerLegalName", "sellerInn", "sellerKpp", "sellerAddress", "sellerPhone",
+    "sellerBankName", "sellerShortBankName", "sellerBik", "sellerBankAccNo", "sellerAccNo",
   ] as const;
 
   const settingsRows = await db.settings.findMany({
@@ -83,6 +83,8 @@ export async function GET(
     sellerLegalName: sel(invoice.sellerLegalName, "sellerLegalName"),
     sellerInn: sel(invoice.sellerInn, "sellerInn"),
     sellerKpp: sel(invoice.sellerKpp, "sellerKpp"),
+    sellerAddress: sel(invoice.sellerAddress, "sellerAddress"),
+    sellerPhone: sel(invoice.sellerPhone, "sellerPhone"),
     sellerBankName: sel(invoice.sellerBankName, "sellerBankName"),
     sellerShortBankName: sel(invoice.sellerShortBankName, "sellerShortBankName"),
     sellerBik: sel(invoice.sellerBik, "sellerBik"),

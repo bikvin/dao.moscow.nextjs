@@ -46,6 +46,8 @@ export async function updateInvoice(
   const sellerLegalName = (formData.get("sellerLegalName") as string) || "";
   const sellerInn = (formData.get("sellerInn") as string) || "";
   const sellerKpp = (formData.get("sellerKpp") as string) || "";
+  const sellerAddress = (formData.get("sellerAddress") as string) || "";
+  const sellerPhone = (formData.get("sellerPhone") as string) || "";
   const sellerBankName = (formData.get("sellerBankName") as string) || "";
   const sellerShortBankName = (formData.get("sellerShortBankName") as string) || "";
   const sellerBik = (formData.get("sellerBik") as string) || "";
@@ -114,6 +116,8 @@ export async function updateInvoice(
           sellerLegalName,
           sellerInn,
           sellerKpp,
+          sellerAddress,
+          sellerPhone,
           sellerBankName,
           sellerShortBankName,
           sellerBik,

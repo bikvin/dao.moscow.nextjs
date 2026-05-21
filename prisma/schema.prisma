@@ -643,6 +643,8 @@ model Invoice {
   sellerLegalName     String @default("")
   sellerInn           String @default("")
   sellerKpp           String @default("")
+  sellerAddress       String @default("")
+  sellerPhone         String @default("")
   sellerBankName      String @default("")
   sellerShortBankName String @default("")
   sellerBik           String @default("")

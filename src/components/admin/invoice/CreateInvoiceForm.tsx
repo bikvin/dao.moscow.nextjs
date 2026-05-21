@@ -50,6 +50,8 @@ type SellerSettings = {
   sellerLegalName: string;
   sellerInn: string;
   sellerKpp: string;
+  sellerAddress: string;
+  sellerPhone: string;
   sellerBankName: string;
   sellerShortBankName: string;
   sellerBik: string;
@@ -70,6 +72,8 @@ export type InitialInvoice = {
   sellerLegalName: string;
   sellerInn: string;
   sellerKpp: string;
+  sellerAddress: string;
+  sellerPhone: string;
   sellerBankName: string;
   sellerShortBankName: string;
   sellerBik: string;
@@ -872,6 +876,8 @@ export function CreateInvoiceForm({
                 ["sellerLegalName", "Полное наименование"],
                 ["sellerInn", "ИНН"],
                 ["sellerKpp", "КПП"],
+                ["sellerAddress", "Юридический адрес"],
+                ["sellerPhone", "Телефон"],
                 ["sellerBankName", "Банк"],
                 ["sellerShortBankName", "Краткое название банка"],
                 ["sellerBik", "БИК"],
@@ -908,6 +914,16 @@ export function CreateInvoiceForm({
               type="hidden"
               name="sellerKpp"
               value={sellerSettings.sellerKpp}
+            />
+            <input
+              type="hidden"
+              name="sellerAddress"
+              value={sellerSettings.sellerAddress}
+            />
+            <input
+              type="hidden"
+              name="sellerPhone"
+              value={sellerSettings.sellerPhone}
             />
             <input
               type="hidden"

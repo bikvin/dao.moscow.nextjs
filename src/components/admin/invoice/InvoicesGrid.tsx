@@ -40,7 +40,7 @@ const TYPE_CONFIG: Record<InvoiceTypeEnum, { label: string; cls: string }> = {
 
 type PartnerOption = { id: string; names: string[]; legalEntities: { id: string; name: string; inn: string | null; kpp: string | null; bankName: string | null; bik: string | null; checkingAccount: string | null; correspondentAccount: string | null }[] };
 type OrderOption = { id: string; year: number; sequenceNumber: number };
-type SellerSettings = { sellerLegalName: string; sellerInn: string; sellerKpp: string; sellerBankName: string; sellerShortBankName: string; sellerBik: string; sellerBankAccNo: string; sellerAccNo: string };
+type SellerSettings = { sellerLegalName: string; sellerInn: string; sellerKpp: string; sellerAddress: string; sellerPhone: string; sellerBankName: string; sellerShortBankName: string; sellerBik: string; sellerBankAccNo: string; sellerAccNo: string };
 
 type InvoiceItem = {
   id: string;
@@ -76,6 +76,8 @@ type Invoice = {
   sellerLegalName: string;
   sellerInn: string;
   sellerKpp: string;
+  sellerAddress: string;
+  sellerPhone: string;
   sellerBankName: string;
   sellerShortBankName: string;
   sellerBik: string;
@@ -384,6 +386,8 @@ export function InvoicesGrid({
                   sellerLegalName: inv.sellerLegalName,
                   sellerInn: inv.sellerInn,
                   sellerKpp: inv.sellerKpp,
+                  sellerAddress: inv.sellerAddress,
+                  sellerPhone: inv.sellerPhone,
                   sellerBankName: inv.sellerBankName,
                   sellerShortBankName: inv.sellerShortBankName,
                   sellerBik: inv.sellerBik,
@@ -407,6 +411,8 @@ export function InvoicesGrid({
                   sellerLegalName: inv.sellerLegalName,
                   sellerInn: inv.sellerInn,
                   sellerKpp: inv.sellerKpp,
+                  sellerAddress: inv.sellerAddress,
+                  sellerPhone: inv.sellerPhone,
                   sellerBankName: inv.sellerBankName,
                   sellerShortBankName: inv.sellerShortBankName,
                   sellerBik: inv.sellerBik,

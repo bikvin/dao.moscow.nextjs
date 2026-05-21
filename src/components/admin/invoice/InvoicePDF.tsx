@@ -12,6 +12,8 @@ export type InvoicePDFData = {
   sellerLegalName: string;
   sellerInn: string;
   sellerKpp: string;
+  sellerAddress: string;
+  sellerPhone: string;
   sellerBankName: string;
   sellerShortBankName: string;
   sellerBik: string;
@@ -267,6 +269,8 @@ export function InvoicePDF({ invoice }: { invoice: InvoicePDFData }) {
     invoice.sellerLegalName,
     invoice.sellerInn ? `ИНН ${invoice.sellerInn}` : "",
     invoice.sellerKpp ? `КПП ${invoice.sellerKpp}` : "",
+    invoice.sellerAddress || "",
+    invoice.sellerPhone ? `тел. ${invoice.sellerPhone}` : "",
   ].filter(Boolean).join(", ");
 
   return (
