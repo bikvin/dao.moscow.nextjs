@@ -103,13 +103,46 @@ export function InvoicesGrid({
   rmbRate: number | null;
 }) {
   const [openInvoiceId, setOpenInvoiceId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<InvoiceTypeEnum>(InvoiceTypeEnum.CASH);
 
-  if (invoices.length === 0) {
-    return <p className="text-sm text-slate-400 mt-6">Счетов пока нет</p>;
-  }
+  const filtered = invoices.filter((inv) => inv.invoiceType === activeTab);
+
+  const TAB_CONFIG: { type: InvoiceTypeEnum; label: string }[] = [
+    { type: InvoiceTypeEnum.CASH, label: "Наличные" },
+    { type: InvoiceTypeEnum.BANK, label: "Безналичные" },
+  ];
 
   return (
     <div className="mt-4">
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-slate-200 mb-4">
+        {TAB_CONFIG.map(({ type, label }) => {
+          const count = invoices.filter((inv) => inv.invoiceType === type).length;
+          const isActive = activeTab === type;
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => { setActiveTab(type); setOpenInvoiceId(null); }}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                isActive
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              }`}
+            >
+              {label}
+              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${isActive ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-500"}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="text-sm text-slate-400 mt-6">Счетов пока нет</p>
+      )}
+      {filtered.length > 0 && <>
       {/* Sticky column headers */}
       <div className="hidden md:flex sticky top-0 bg-white z-10 border-b-2 border-slate-300 text-xs text-slate-400 mb-2 mx-px">
         <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 py-1.5`}>
@@ -126,7 +159,7 @@ export function InvoicesGrid({
       </div>
 
       <div className="flex flex-col">
-        {invoices.map((inv) => {
+        {filtered.map((inv) => {
           const partnerName =
             inv.partner.names.find((n) => n.isPrimary)?.name ??
             inv.partner.names[0]?.name ??
@@ -390,6 +423,7 @@ export function InvoicesGrid({
           );
         })}
       </div>
+      </>}
     </div>
   );
 }
