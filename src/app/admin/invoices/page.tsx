@@ -122,7 +122,15 @@ export default async function InvoicesPage() {
       <div className="max-w-screen-xl mx-auto px-4 pb-16">
         <h1 className="admin-form-header mt-10">Счета</h1>
 
-        <InvoicesGrid invoices={invoices} />
+        <InvoicesGrid
+          invoices={invoices}
+          partners={partnerOptions}
+          orders={orders}
+          products={productOptions}
+          sellerSettings={sellerSettings}
+          usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
+          rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
+        />
 
         <div className="mt-8 border-t border-slate-200 pt-2">
           <CreateInvoiceForm

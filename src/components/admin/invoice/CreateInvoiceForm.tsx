@@ -6,6 +6,7 @@ import {
   createInvoice,
   type CreateInvoiceFormState,
 } from "@/actions/invoice/createInvoice";
+import { updateInvoice } from "@/actions/invoice/updateInvoice";
 import { CollapsibleAddSection } from "@/components/admin/partner/CollapsibleAddSection";
 import { PartnerCombobox } from "@/components/admin/order/PartnerCombobox";
 import { ProductCombobox } from "@/components/admin/order/ProductCombobox";
@@ -15,7 +16,12 @@ import {
   calcPriceRubFromTotal,
 } from "@/components/admin/order/AddOrderItemForm";
 import FormButton from "@/components/common/formButton/formButton";
-import { PriceUnitEnum, InvoiceTypeEnum, CurrencyEnum, PriceTypeEnum } from "@prisma/client";
+import {
+  PriceUnitEnum,
+  InvoiceTypeEnum,
+  CurrencyEnum,
+  PriceTypeEnum,
+} from "@prisma/client";
 
 type LegalEntity = {
   id: string;
@@ -49,6 +55,42 @@ type SellerSettings = {
   sellerBik: string;
   sellerBankAccNo: string;
   sellerAccNo: string;
+};
+
+export type InitialInvoice = {
+  id: string;
+  sequenceNumber: number;
+  year: number;
+  invoiceDate: Date;
+  invoiceType: InvoiceTypeEnum;
+  partnerId: string;
+  orderId: string | null;
+  deliveryPriceRub: number;
+  discountPercent: number;
+  sellerLegalName: string;
+  sellerInn: string;
+  sellerKpp: string;
+  sellerBankName: string;
+  sellerShortBankName: string;
+  sellerBik: string;
+  sellerBankAccNo: string;
+  sellerAccNo: string;
+  buyerLegalName: string;
+  buyerInn: string;
+  buyerKpp: string;
+  buyerBankName: string;
+  buyerBik: string;
+  buyerBankAccNo: string;
+  buyerAccNo: string;
+  items: {
+    productId: string;
+    productVariantId: string;
+    quantity: number;
+    quantityM2: number | null;
+    priceUnit: PriceUnitEnum;
+    priceRub: number;
+    totalRub: number;
+  }[];
 };
 
 type ItemState = {
@@ -86,7 +128,10 @@ const CURRENCY_LABELS: Record<CurrencyEnum, string> = {
   RMB: "¥",
 };
 
-function computeM2(product: ProductOption | undefined, qty: string): number | null {
+function computeM2(
+  product: ProductOption | undefined,
+  qty: string,
+): number | null {
   if (!product || !qty) return null;
   const q = parseInt(qty) || 0;
   if (q <= 0) return null;
@@ -115,62 +160,139 @@ function ItemRow({
 
   const handleProductChange = (id: string) => {
     const p = products.find((x) => x.id === id);
-    const variantId = p?.productVariants.find((v) => v.isMain)?.id ?? p?.productVariants[0]?.id ?? "";
-    onChange(index, { ...item, productId: id, variantId, price: "", priceRub: "", total: "" });
+    const variantId =
+      p?.productVariants.find((v) => v.isMain)?.id ??
+      p?.productVariants[0]?.id ??
+      "";
+    onChange(index, {
+      ...item,
+      productId: id,
+      variantId,
+      price: "",
+      priceRub: "",
+      total: "",
+    });
   };
 
   const handleQtyChange = (qty: string) => {
     if (lastEdited.current === "price") {
-      onChange(index, { ...item, quantity: qty, total: calcTotalFromPriceRub(item.priceRub, qty, item.priceForUnit, product) });
+      onChange(index, {
+        ...item,
+        quantity: qty,
+        total: calcTotalFromPriceRub(
+          item.priceRub,
+          qty,
+          item.priceForUnit,
+          product,
+        ),
+      });
     } else {
-      const priceRub = calcPriceRubFromTotal(item.total, qty, item.priceForUnit, product);
-      onChange(index, { ...item, quantity: qty, priceRub, price: item.currency === CurrencyEnum.RUB ? priceRub : item.price });
+      const priceRub = calcPriceRubFromTotal(
+        item.total,
+        qty,
+        item.priceForUnit,
+        product,
+      );
+      onChange(index, {
+        ...item,
+        quantity: qty,
+        priceRub,
+        price: item.currency === CurrencyEnum.RUB ? priceRub : item.price,
+      });
     }
   };
 
   const handlePriceForUnitChange = (unit: PriceUnitEnum) => {
     if (lastEdited.current === "price") {
-      onChange(index, { ...item, priceForUnit: unit, total: calcTotalFromPriceRub(item.priceRub, item.quantity, unit, product) });
+      onChange(index, {
+        ...item,
+        priceForUnit: unit,
+        total: calcTotalFromPriceRub(
+          item.priceRub,
+          item.quantity,
+          unit,
+          product,
+        ),
+      });
     } else {
-      const priceRub = calcPriceRubFromTotal(item.total, item.quantity, unit, product);
-      onChange(index, { ...item, priceForUnit: unit, priceRub, price: item.currency === CurrencyEnum.RUB ? priceRub : item.price });
+      const priceRub = calcPriceRubFromTotal(
+        item.total,
+        item.quantity,
+        unit,
+        product,
+      );
+      onChange(index, {
+        ...item,
+        priceForUnit: unit,
+        priceRub,
+        price: item.currency === CurrencyEnum.RUB ? priceRub : item.price,
+      });
     }
   };
 
   function calcPriceRub(price: string, currency: CurrencyEnum): string {
     const num = parseFloat(price);
     if (currency === CurrencyEnum.RUB) return price;
-    if (currency === CurrencyEnum.USD && usdRate != null && !isNaN(num)) return (num * usdRate).toFixed(2);
-    if (currency === CurrencyEnum.RMB && rmbRate != null && !isNaN(num)) return (num * rmbRate).toFixed(2);
+    if (currency === CurrencyEnum.USD && usdRate != null && !isNaN(num))
+      return (num * usdRate).toFixed(2);
+    if (currency === CurrencyEnum.RMB && rmbRate != null && !isNaN(num))
+      return (num * rmbRate).toFixed(2);
     return item.priceRub;
   }
 
   const handlePriceChange = (price: string) => {
     lastEdited.current = "price";
     const priceRub = calcPriceRub(price, item.currency);
-    const total = calcTotalFromPriceRub(priceRub, item.quantity, item.priceForUnit, product);
+    const total = calcTotalFromPriceRub(
+      priceRub,
+      item.quantity,
+      item.priceForUnit,
+      product,
+    );
     onChange(index, { ...item, price, priceRub, total });
   };
 
   const handlePriceRubChange = (priceRub: string) => {
     lastEdited.current = "price";
-    const total = calcTotalFromPriceRub(priceRub, item.quantity, item.priceForUnit, product);
+    const total = calcTotalFromPriceRub(
+      priceRub,
+      item.quantity,
+      item.priceForUnit,
+      product,
+    );
     onChange(index, { ...item, priceRub, total });
   };
 
   const handleCurrencyChange = (currency: CurrencyEnum) => {
     lastEdited.current = "price";
     const priceRub = calcPriceRub(item.price, currency);
-    const total = currency === CurrencyEnum.RUB || (priceRub !== "")
-      ? calcTotalFromPriceRub(priceRub, item.quantity, item.priceForUnit, product)
-      : "";
+    const total =
+      currency === CurrencyEnum.RUB || priceRub !== ""
+        ? calcTotalFromPriceRub(
+            priceRub,
+            item.quantity,
+            item.priceForUnit,
+            product,
+          )
+        : "";
     onChange(index, { ...item, currency, priceRub, total });
   };
 
   const handleTotalChange = (total: string) => {
     lastEdited.current = "total";
-    const priceRub = calcPriceRubFromTotal(total, item.quantity, item.priceForUnit, product);
-    onChange(index, { ...item, total, priceRub, price: priceRub, currency: CurrencyEnum.RUB });
+    const priceRub = calcPriceRubFromTotal(
+      total,
+      item.quantity,
+      item.priceForUnit,
+      product,
+    );
+    onChange(index, {
+      ...item,
+      total,
+      priceRub,
+      price: priceRub,
+      currency: CurrencyEnum.RUB,
+    });
   };
 
   const m2 = computeM2(product, item.quantity);
@@ -180,7 +302,11 @@ function ItemRow({
       <div className="flex flex-col gap-0.5">
         <label className="text-xs text-slate-400">Товар</label>
         <input type="hidden" name="productId" value={item.productId} />
-        <ProductCombobox products={products} value={item.productId} onChange={handleProductChange} />
+        <ProductCombobox
+          products={products}
+          value={item.productId}
+          onChange={handleProductChange}
+        />
       </div>
 
       <div className="flex flex-col gap-0.5">
@@ -188,12 +314,16 @@ function ItemRow({
         <select
           name="productVariantId"
           value={item.variantId}
-          onChange={(e) => onChange(index, { ...item, variantId: e.target.value })}
+          onChange={(e) =>
+            onChange(index, { ...item, variantId: e.target.value })
+          }
           className="admin-form-input text-sm w-36"
         >
           <option value="">— вариант —</option>
           {product?.productVariants.map((v) => (
-            <option key={v.id} value={v.id}>{v.variantName}</option>
+            <option key={v.id} value={v.id}>
+              {v.variantName}
+            </option>
           ))}
         </select>
       </div>
@@ -219,7 +349,15 @@ function ItemRow({
           </div>
         </div>
       )}
-      <input type="hidden" name="quantityM2" value={m2 !== null && item.priceForUnit === PriceUnitEnum.M2 ? m2.toFixed(6) : ""} />
+      <input
+        type="hidden"
+        name="quantityM2"
+        value={
+          m2 !== null && item.priceForUnit === PriceUnitEnum.M2
+            ? m2.toFixed(6)
+            : ""
+        }
+      />
 
       <div className="flex flex-col gap-0.5">
         <label className="text-xs text-slate-400">Цена</label>
@@ -238,7 +376,8 @@ function ItemRow({
               const p = product.prices.find((pr) => pr.type === type);
               if (!p) return null;
               const val = (p.priceInCents / 100).toString();
-              const label = type === PriceTypeEnum.DEALER ? "Дилерская" : "Розничная";
+              const label =
+                type === PriceTypeEnum.DEALER ? "Дилерская" : "Розничная";
               return (
                 <button
                   key={type}
@@ -250,13 +389,31 @@ function ItemRow({
                     let priceRub = "";
                     if (p.currency === CurrencyEnum.RUB) {
                       priceRub = val;
-                    } else if (p.currency === CurrencyEnum.USD && usdRate != null) {
+                    } else if (
+                      p.currency === CurrencyEnum.USD &&
+                      usdRate != null
+                    ) {
                       priceRub = (priceNum * usdRate).toFixed(2);
-                    } else if (p.currency === CurrencyEnum.RMB && rmbRate != null) {
+                    } else if (
+                      p.currency === CurrencyEnum.RMB &&
+                      rmbRate != null
+                    ) {
                       priceRub = (priceNum * rmbRate).toFixed(2);
                     }
-                    const total = calcTotalFromPriceRub(priceRub, item.quantity, p.unit, product);
-                    onChange(index, { ...item, price: val, currency: p.currency, priceRub, priceForUnit: p.unit, total });
+                    const total = calcTotalFromPriceRub(
+                      priceRub,
+                      item.quantity,
+                      p.unit,
+                      product,
+                    );
+                    onChange(index, {
+                      ...item,
+                      price: val,
+                      currency: p.currency,
+                      priceRub,
+                      priceForUnit: p.unit,
+                      total,
+                    });
                   }}
                 >
                   {label}
@@ -275,7 +432,9 @@ function ItemRow({
           className="admin-form-input text-sm w-20"
         >
           {Object.values(CurrencyEnum).map((c) => (
-            <option key={c} value={c}>{CURRENCY_LABELS[c]}</option>
+            <option key={c} value={c}>
+              {CURRENCY_LABELS[c]}
+            </option>
           ))}
         </select>
       </div>
@@ -304,11 +463,15 @@ function ItemRow({
         <input type="hidden" name="priceUnit" value={item.priceForUnit} />
         <select
           value={item.priceForUnit}
-          onChange={(e) => handlePriceForUnitChange(e.target.value as PriceUnitEnum)}
+          onChange={(e) =>
+            handlePriceForUnitChange(e.target.value as PriceUnitEnum)
+          }
           className="admin-form-input text-sm w-20"
         >
           {Object.values(PriceUnitEnum).map((u) => (
-            <option key={u} value={u}>{PRICE_UNIT_LABELS[u]}</option>
+            <option key={u} value={u}>
+              {PRICE_UNIT_LABELS[u]}
+            </option>
           ))}
         </select>
       </div>
@@ -346,6 +509,9 @@ export function CreateInvoiceForm({
   year,
   usdRate,
   rmbRate,
+  initialInvoice,
+  isOpen,
+  onToggle,
 }: {
   partners: PartnerOption[];
   orders: OrderOption[];
@@ -355,17 +521,18 @@ export function CreateInvoiceForm({
   year: number;
   usdRate: number | null;
   rmbRate: number | null;
+  initialInvoice?: InitialInvoice;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }) {
+  const isEditMode = !!initialInvoice;
+  const boundAction = isEditMode
+    ? updateInvoice.bind(null, initialInvoice.id)
+    : createInvoice;
   const [formState, action] = useFormState<CreateInvoiceFormState, FormData>(
-    createInvoice,
-    {}
+    boundAction,
+    {},
   );
-
-  const [formKey, setFormKey] = useState(0);
-  const [partnerId, setPartnerId] = useState("");
-  const [invoiceType, setInvoiceType] = useState<InvoiceTypeEnum>(InvoiceTypeEnum.CASH);
-  const [items, setItems] = useState<ItemState[]>([{ ...EMPTY_ITEM }]);
-  const [showSeller, setShowSeller] = useState(false);
 
   const EMPTY_BUYER = {
     buyerLegalName: "",
@@ -377,18 +544,62 @@ export function CreateInvoiceForm({
     buyerAccNo: "",
   };
 
-  const [buyer, setBuyer] = useState(EMPTY_BUYER);
+  function itemsFromInitial(inv: InitialInvoice): ItemState[] {
+    return inv.items.map((item) => {
+      const priceRubStr = (item.priceRub / 100).toFixed(2);
+      const totalStr = (item.totalRub / 100).toFixed(2);
+      return {
+        productId: item.productId,
+        variantId: item.productVariantId,
+        quantity: item.quantity.toString(),
+        priceUnit: PriceUnitEnum.ITEM,
+        priceForUnit: item.priceUnit,
+        price: priceRubStr,
+        currency: CurrencyEnum.RUB,
+        priceRub: priceRubStr,
+        total: totalStr,
+      };
+    });
+  }
+
+  const [formKey, setFormKey] = useState(0);
+  const [partnerId, setPartnerId] = useState(initialInvoice?.partnerId ?? "");
+  const [invoiceType, setInvoiceType] = useState<InvoiceTypeEnum>(
+    initialInvoice?.invoiceType ?? InvoiceTypeEnum.CASH,
+  );
+  const [items, setItems] = useState<ItemState[]>(
+    initialInvoice ? itemsFromInitial(initialInvoice) : [{ ...EMPTY_ITEM }],
+  );
+  const [showSeller, setShowSeller] = useState(false);
+
+  const [buyer, setBuyer] = useState(
+    initialInvoice
+      ? {
+          buyerLegalName: initialInvoice.buyerLegalName,
+          buyerInn: initialInvoice.buyerInn,
+          buyerKpp: initialInvoice.buyerKpp,
+          buyerBankName: initialInvoice.buyerBankName,
+          buyerBik: initialInvoice.buyerBik,
+          buyerBankAccNo: initialInvoice.buyerBankAccNo,
+          buyerAccNo: initialInvoice.buyerAccNo,
+        }
+      : EMPTY_BUYER,
+  );
 
   useEffect(() => {
     if (formState.success) {
-      setFormKey((k) => k + 1);
-      setPartnerId("");
-      setInvoiceType(InvoiceTypeEnum.CASH);
-      setItems([{ ...EMPTY_ITEM }]);
-      setShowSeller(false);
-      setBuyer(EMPTY_BUYER);
+      if (isEditMode) {
+        onToggle?.();
+      } else {
+        setFormKey((k) => k + 1);
+        setPartnerId("");
+        setInvoiceType(InvoiceTypeEnum.CASH);
+        setItems([{ ...EMPTY_ITEM }]);
+        setShowSeller(false);
+        setBuyer(EMPTY_BUYER);
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formState.success]);
 
   const partner = partners.find((p) => p.id === partnerId);
@@ -427,32 +638,50 @@ export function CreateInvoiceForm({
   };
 
   // Compute display total
-  const itemsSubtotal = items.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0);
+  const itemsSubtotal = items.reduce(
+    (acc, item) => acc + (parseFloat(item.total) || 0),
+    0,
+  );
 
   const formContent = (
     <form key={formKey} action={action}>
       {/* Header fields */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex flex-col gap-0.5">
-          <label className="text-xs text-slate-500">Номер счёта</label>
-          <div className="flex items-center gap-1 text-sm">
-            <input
-              name="invoiceNumber"
-              type="number"
-              min="1"
-              defaultValue={nextSeqNum}
-              className="admin-form-input h-8 text-sm w-20 text-right"
-            />
-            <span className="text-slate-400">/ {year}</span>
+        {isEditMode ? (
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-500">Номер счёта</label>
+            <div className="flex items-center gap-1 text-sm font-semibold">
+              {initialInvoice.sequenceNumber}/{initialInvoice.year}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-500">Номер счёта</label>
+            <div className="flex items-center gap-1 text-sm">
+              <input
+                name="invoiceNumber"
+                type="number"
+                min="1"
+                defaultValue={nextSeqNum}
+                className="admin-form-input h-8 text-sm w-20 text-right"
+              />
+              <span className="text-slate-400">/ {year}</span>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-0.5">
           <label className="text-xs text-slate-500">Дата</label>
           <input
             name="invoiceDate"
             type="date"
-            defaultValue={new Date().toISOString().slice(0, 10)}
+            defaultValue={
+              initialInvoice
+                ? new Date(initialInvoice.invoiceDate)
+                    .toISOString()
+                    .slice(0, 10)
+                : new Date().toISOString().slice(0, 10)
+            }
             className="admin-form-input h-8 text-sm"
           />
         </div>
@@ -483,9 +712,12 @@ export function CreateInvoiceForm({
         </div>
 
         <div className="flex flex-col gap-0.5">
-          <label className="text-xs text-slate-500">Заказ (необязательно)</label>
+          <label className="text-xs text-slate-500">
+            Заказ (необязательно)
+          </label>
           <select
             name="orderId"
+            defaultValue={initialInvoice?.orderId ?? ""}
             className="admin-form-input h-8 text-sm w-40"
           >
             <option value="">— без заказа —</option>
@@ -531,7 +763,7 @@ export function CreateInvoiceForm({
             step="0.1"
             min="0"
             max="100"
-            defaultValue="0"
+            defaultValue={initialInvoice?.discountPercent ?? 0}
             className="admin-form-input h-8 text-sm w-20 text-right"
           />
         </div>
@@ -542,7 +774,9 @@ export function CreateInvoiceForm({
             type="number"
             step="0.01"
             min="0"
-            defaultValue="0"
+            defaultValue={
+              initialInvoice ? initialInvoice.deliveryPriceRub / 100 : 0
+            }
             className="admin-form-input h-8 text-sm w-28 text-right"
           />
         </div>
@@ -550,7 +784,10 @@ export function CreateInvoiceForm({
           <div className="flex flex-col gap-0.5 justify-end">
             <span className="text-xs text-slate-500">Подитог</span>
             <span className="text-sm font-medium">
-              {itemsSubtotal.toLocaleString("ru-RU", { minimumFractionDigits: 2 })} ₽
+              {itemsSubtotal.toLocaleString("ru-RU", {
+                minimumFractionDigits: 2,
+              })}{" "}
+              ₽
             </span>
           </div>
         )}
@@ -592,7 +829,9 @@ export function CreateInvoiceForm({
                   name={field}
                   type="text"
                   value={buyer[field]}
-                  onChange={(e) => setBuyer((prev) => ({ ...prev, [field]: e.target.value }))}
+                  onChange={(e) =>
+                    setBuyer((prev) => ({ ...prev, [field]: e.target.value }))
+                  }
                   className="admin-form-input h-8 text-sm"
                 />
               </div>
@@ -652,31 +891,88 @@ export function CreateInvoiceForm({
         {/* Hidden seller fields when collapsed (use defaults from settings) */}
         {!showSeller && (
           <>
-            <input type="hidden" name="sellerLegalName" value={sellerSettings.sellerLegalName} />
-            <input type="hidden" name="sellerInn" value={sellerSettings.sellerInn} />
-            <input type="hidden" name="sellerKpp" value={sellerSettings.sellerKpp} />
-            <input type="hidden" name="sellerBankName" value={sellerSettings.sellerBankName} />
-            <input type="hidden" name="sellerShortBankName" value={sellerSettings.sellerShortBankName} />
-            <input type="hidden" name="sellerBik" value={sellerSettings.sellerBik} />
-            <input type="hidden" name="sellerBankAccNo" value={sellerSettings.sellerBankAccNo} />
-            <input type="hidden" name="sellerAccNo" value={sellerSettings.sellerAccNo} />
+            <input
+              type="hidden"
+              name="sellerLegalName"
+              value={sellerSettings.sellerLegalName}
+            />
+            <input
+              type="hidden"
+              name="sellerInn"
+              value={sellerSettings.sellerInn}
+            />
+            <input
+              type="hidden"
+              name="sellerKpp"
+              value={sellerSettings.sellerKpp}
+            />
+            <input
+              type="hidden"
+              name="sellerBankName"
+              value={sellerSettings.sellerBankName}
+            />
+            <input
+              type="hidden"
+              name="sellerShortBankName"
+              value={sellerSettings.sellerShortBankName}
+            />
+            <input
+              type="hidden"
+              name="sellerBik"
+              value={sellerSettings.sellerBik}
+            />
+            <input
+              type="hidden"
+              name="sellerBankAccNo"
+              value={sellerSettings.sellerBankAccNo}
+            />
+            <input
+              type="hidden"
+              name="sellerAccNo"
+              value={sellerSettings.sellerAccNo}
+            />
           </>
         )}
       </div>
 
-      <FormButton>Создать счёт</FormButton>
+      <FormButton>
+        {isEditMode ? "Сохранить изменения" : "Создать счёт"}
+      </FormButton>
 
       {formState.errors?._form && (
-        <p className="text-red-600 text-sm mt-2">{formState.errors._form.join(", ")}</p>
+        <p className="text-red-600 text-sm mt-2">
+          {formState.errors._form.join(", ")}
+        </p>
       )}
-      {formState.success && (
-        <p className="text-green-600 text-sm mt-2">{formState.success.message}</p>
+      {formState.success && !isEditMode && (
+        <p className="text-green-600 text-sm mt-2">
+          {formState.success.message}
+        </p>
       )}
     </form>
   );
 
+  if (isEditMode) {
+    return (
+      <div
+        className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+        style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          <div className="px-3 pt-14 pb-2 bg-white border-t border-slate-200">
+            {formContent}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <CollapsibleAddSection label="Создать новый счёт" success={!!formState.success} showLabel>
+    <CollapsibleAddSection
+      label="Создать новый счёт"
+      success={!!formState.success}
+      showLabel
+    >
       {formContent}
     </CollapsibleAddSection>
   );

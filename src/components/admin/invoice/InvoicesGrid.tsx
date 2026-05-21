@@ -1,7 +1,12 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import { PriceUnitEnum, InvoiceTypeEnum } from "@prisma/client";
+import { Pencil } from "lucide-react";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deleteInvoice } from "@/actions/invoice/deleteInvoice";
+import { CreateInvoiceForm, type InitialInvoice } from "./CreateInvoiceForm";
+import { type ProductOption } from "@/components/admin/order/AddOrderItemForm";
 
 const COLS = "grid-cols-[72px_84px_148px_1fr_48px_68px_84px_88px]";
 
@@ -33,8 +38,14 @@ const TYPE_CONFIG: Record<InvoiceTypeEnum, { label: string; cls: string }> = {
   BANK: { label: "Безналичные", cls: "bg-blue-50 text-blue-700" },
 };
 
+type PartnerOption = { id: string; names: string[]; legalEntities: { id: string; name: string; inn: string | null; kpp: string | null; bankName: string | null; bik: string | null; checkingAccount: string | null; correspondentAccount: string | null }[] };
+type OrderOption = { id: string; year: number; sequenceNumber: number };
+type SellerSettings = { sellerLegalName: string; sellerInn: string; sellerKpp: string; sellerBankName: string; sellerShortBankName: string; sellerBik: string; sellerBankAccNo: string; sellerAccNo: string };
+
 type InvoiceItem = {
   id: string;
+  productId: string;
+  productVariantId: string;
   quantity: number;
   quantityM2: number | null;
   priceUnit: PriceUnitEnum;
@@ -50,15 +61,49 @@ type Invoice = {
   sequenceNumber: number;
   invoiceDate: Date;
   invoiceType: InvoiceTypeEnum;
+  partnerId: string;
+  orderId: string | null;
   deliveryPriceRub: number;
   discountPercent: number;
   totalRub: number;
   buyerLegalName: string;
+  buyerInn: string;
+  buyerKpp: string;
+  buyerBankName: string;
+  buyerBik: string;
+  buyerBankAccNo: string;
+  buyerAccNo: string;
+  sellerLegalName: string;
+  sellerInn: string;
+  sellerKpp: string;
+  sellerBankName: string;
+  sellerShortBankName: string;
+  sellerBik: string;
+  sellerBankAccNo: string;
+  sellerAccNo: string;
   partner: { names: { name: string; isPrimary: boolean }[] };
   items: InvoiceItem[];
 };
 
-export function InvoicesGrid({ invoices }: { invoices: Invoice[] }) {
+export function InvoicesGrid({
+  invoices,
+  partners,
+  orders,
+  products,
+  sellerSettings,
+  usdRate,
+  rmbRate,
+}: {
+  invoices: Invoice[];
+  partners: PartnerOption[];
+  orders: OrderOption[];
+  products: ProductOption[];
+  sellerSettings: SellerSettings;
+  usdRate: number | null;
+  rmbRate: number | null;
+}) {
+  const [openInvoiceId, setOpenInvoiceId] = useState<string | null>(null);
+
   if (invoices.length === 0) {
     return <p className="text-sm text-slate-400 mt-6">Счетов пока нет</p>;
   }
@@ -273,8 +318,74 @@ export function InvoicesGrid({ invoices }: { invoices: Invoice[] }) {
                 {/* Type badge sidebar */}
                 <div className="md:w-36 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-100 px-3 py-2 flex flex-row flex-wrap md:flex-col gap-1">
                   <Badge {...TYPE_CONFIG[inv.invoiceType]} />
+                  <button
+                    type="button"
+                    onClick={() => setOpenInvoiceId(openInvoiceId === inv.id ? null : inv.id)}
+                    className="text-slate-400 hover:text-blue-500 mt-1"
+                    title="Редактировать"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
+
+              {/* Edit form */}
+              <CreateInvoiceForm
+                partners={partners}
+                orders={orders}
+                products={products}
+                sellerSettings={{
+                  sellerLegalName: inv.sellerLegalName,
+                  sellerInn: inv.sellerInn,
+                  sellerKpp: inv.sellerKpp,
+                  sellerBankName: inv.sellerBankName,
+                  sellerShortBankName: inv.sellerShortBankName,
+                  sellerBik: inv.sellerBik,
+                  sellerBankAccNo: inv.sellerBankAccNo,
+                  sellerAccNo: inv.sellerAccNo,
+                }}
+                nextSeqNum={inv.sequenceNumber}
+                year={inv.year}
+                usdRate={usdRate}
+                rmbRate={rmbRate}
+                isOpen={openInvoiceId === inv.id}
+                onToggle={() => setOpenInvoiceId(openInvoiceId === inv.id ? null : inv.id)}
+                initialInvoice={{
+                  id: inv.id,
+                  sequenceNumber: inv.sequenceNumber,
+                  year: inv.year,
+                  invoiceDate: inv.invoiceDate,
+                  invoiceType: inv.invoiceType,
+                  partnerId: inv.partnerId,
+                  orderId: inv.orderId,
+                  deliveryPriceRub: inv.deliveryPriceRub,
+                  discountPercent: inv.discountPercent,
+                  sellerLegalName: inv.sellerLegalName,
+                  sellerInn: inv.sellerInn,
+                  sellerKpp: inv.sellerKpp,
+                  sellerBankName: inv.sellerBankName,
+                  sellerShortBankName: inv.sellerShortBankName,
+                  sellerBik: inv.sellerBik,
+                  sellerBankAccNo: inv.sellerBankAccNo,
+                  sellerAccNo: inv.sellerAccNo,
+                  buyerLegalName: inv.buyerLegalName,
+                  buyerInn: inv.buyerInn,
+                  buyerKpp: inv.buyerKpp,
+                  buyerBankName: inv.buyerBankName,
+                  buyerBik: inv.buyerBik,
+                  buyerBankAccNo: inv.buyerBankAccNo,
+                  buyerAccNo: inv.buyerAccNo,
+                  items: inv.items.map((item) => ({
+                    productId: item.productId,
+                    productVariantId: item.productVariantId,
+                    quantity: item.quantity,
+                    quantityM2: item.quantityM2,
+                    priceUnit: item.priceUnit,
+                    priceRub: item.priceRub,
+                    totalRub: item.totalRub,
+                  })),
+                }}
+              />
             </div>
           );
         })}
