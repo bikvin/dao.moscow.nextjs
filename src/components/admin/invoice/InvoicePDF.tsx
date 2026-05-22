@@ -258,19 +258,20 @@ export function InvoicePDF({ invoice }: { invoice: InvoicePDFData }) {
     ? "Предприниматель"
     : "Руководитель";
 
+  const sellerDisplayDetails = isBank ? [
+    invoice.sellerLegalName,
+    invoice.sellerInn ? `ИНН ${invoice.sellerInn}` : "",
+    invoice.sellerKpp ? `КПП ${invoice.sellerKpp}` : "",
+    invoice.sellerAddress || "",
+    invoice.sellerPhone ? `тел. ${invoice.sellerPhone}` : "",
+  ].filter(Boolean).join(", ") : "";
+
   const buyerDetails = [
     invoice.buyerLegalName,
     invoice.buyerInn ? `ИНН ${invoice.buyerInn}` : "",
     invoice.buyerKpp ? `КПП ${invoice.buyerKpp}` : "",
   ].filter(Boolean).join(", ");
 
-  const sellerDetails = [
-    invoice.sellerLegalName,
-    invoice.sellerInn ? `ИНН ${invoice.sellerInn}` : "",
-    invoice.sellerKpp ? `КПП ${invoice.sellerKpp}` : "",
-    invoice.sellerAddress || "",
-    invoice.sellerPhone ? `тел. ${invoice.sellerPhone}` : "",
-  ].filter(Boolean).join(", ");
 
   return (
     <Document>
@@ -281,20 +282,20 @@ export function InvoicePDF({ invoice }: { invoice: InvoicePDFData }) {
           <View style={s.bankLeft}>
             <View style={s.bankLeftTop}>
               <Text style={s.bankBold}>
-                {invoice.sellerShortBankName || invoice.sellerBankName}
+                {isBank ? (invoice.sellerShortBankName || invoice.sellerBankName) : ""}
               </Text>
               <Text style={s.bankSmall}>{"Банк получателя"}</Text>
             </View>
             <View style={s.bankInnKppRow}>
               <View style={s.bankInnCell}>
-                <Text>{invoice.sellerInn ? `ИНН ${invoice.sellerInn}` : "ИНН"}</Text>
+                <Text>{isBank ? (invoice.sellerInn ? `ИНН ${invoice.sellerInn}` : "ИНН") : "ИНН"}</Text>
               </View>
               <View style={s.bankKppCell}>
-                <Text>{invoice.sellerKpp ? `КПП ${invoice.sellerKpp}` : "КПП"}</Text>
+                <Text>{isBank ? (invoice.sellerKpp ? `КПП ${invoice.sellerKpp}` : "КПП") : "КПП"}</Text>
               </View>
             </View>
             <View style={s.bankLeftBot}>
-              {invoice.sellerLegalName ? (
+              {isBank && invoice.sellerLegalName ? (
                 <Text style={s.bankBold}>{invoice.sellerLegalName}</Text>
               ) : null}
               <Text style={s.bankSmall}>{"Получатель"}</Text>
@@ -313,13 +314,13 @@ export function InvoicePDF({ invoice }: { invoice: InvoicePDFData }) {
           </View>
           <View style={s.bankRight}>
             <View style={s.bankRightCell}>
-              <Text style={s.bankBold}>{invoice.sellerBik}</Text>
+              <Text style={s.bankBold}>{isBank ? invoice.sellerBik : ""}</Text>
             </View>
             <View style={s.bankRightCell}>
-              <Text style={s.bankBold}>{invoice.sellerBankAccNo}</Text>
+              <Text style={s.bankBold}>{isBank ? invoice.sellerBankAccNo : ""}</Text>
             </View>
             <View style={s.bankRightCellLast}>
-              <Text style={s.bankBold}>{invoice.sellerAccNo}</Text>
+              <Text style={s.bankBold}>{isBank ? invoice.sellerAccNo : ""}</Text>
             </View>
           </View>
         </View>
@@ -335,7 +336,7 @@ export function InvoicePDF({ invoice }: { invoice: InvoicePDFData }) {
         <View style={s.partiesTable}>
           <View style={s.partyRow}>
             <Text style={s.partyLabel}>{"Поставщик (Исполнитель):"}</Text>
-            <Text style={s.partyValue}>{sellerDetails}</Text>
+            <Text style={s.partyValue}>{sellerDisplayDetails}</Text>
           </View>
           {isBank && buyerDetails ? (
             <View style={s.partyRow}>
@@ -444,7 +445,9 @@ export function InvoicePDF({ invoice }: { invoice: InvoicePDFData }) {
         <View style={s.sigRow}>
           <Text style={s.sigLabel}>{sellerTitle}</Text>
           <View style={s.sigLine} />
-          <Text style={s.sigName}>{invoice.sellerLegalName.replace(/^ИП\s+/, "").split(" ").map((w, i) => i === 0 ? w : w[0] + ".").join(" ")}</Text>
+          {isBank ? (
+            <Text style={s.sigName}>{invoice.sellerLegalName.replace(/^ИП\s+/, "").split(" ").map((w, i) => i === 0 ? w : w[0] + ".").join(" ")}</Text>
+          ) : null}
         </View>
 
       </Page>
