@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { PriceUnitEnum, InvoiceTypeEnum } from "@prisma/client";
-import { Download, FileSpreadsheet, Pencil } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Pencil } from "lucide-react";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deleteInvoice } from "@/actions/invoice/deleteInvoice";
 import { CreateInvoiceForm, type InitialInvoice } from "./CreateInvoiceForm";
@@ -375,6 +375,28 @@ export function InvoicesGrid({
                   >
                     <FileSpreadsheet className="w-4 h-4" />
                   </a>
+                  {inv.invoiceType === InvoiceTypeEnum.CASH && (
+                    <>
+                      <a
+                        href={`/api/invoices/${inv.id}/tov-nakl/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-slate-400 hover:text-blue-500 mt-1"
+                        title="Товарная накладная PDF"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </a>
+                      <a
+                        href={`/api/invoices/${inv.id}/tov-nakl/xlsx`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-slate-400 hover:text-green-500 mt-1"
+                        title="Товарная накладная Excel"
+                      >
+                        <FileSpreadsheet className="w-4 h-4" />
+                      </a>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => setOpenInvoiceId(openInvoiceId === inv.id ? null : inv.id)}
