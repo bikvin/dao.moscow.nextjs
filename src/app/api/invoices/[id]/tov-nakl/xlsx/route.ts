@@ -67,7 +67,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const totalKop = invoice.totalRub;
   const totalQty = invoice.items.reduce((s, i) => s + (i.priceUnit === PriceUnitEnum.M2 && i.quantityM2 !== null ? i.quantityM2 : i.quantity), 0);
-  const sellerShort = seller.legalName.startsWith("ИП") ? seller.legalName.replace(/^ИП\s+/,"").split(" ").map((w,i)=>i===0?w:w[0]+".").join(" ") : "";
   const sellerTitle = seller.legalName.startsWith("ИП") ? "Индивидуальный предприниматель" : "Руководитель";
 
   const wb = new ExcelJS.Workbook();
@@ -77,7 +76,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   ws.columns = [
     { width: 2 },   // A padding
     { width: 4 },   // B №
-    { width: 28 },  // C name
+    { width: 12 },  // C name
     { width: 8 },   // D code
     { width: 6 },   // E unit name
     { width: 6 },   // F ОКЕИ
@@ -89,8 +88,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     { width: 11 },  // L price
     { width: 12 },  // M amt
     { width: 7 },   // N vatR
-    { width: 11 },  // O vatA
-    { width: 12 },  // P total
+    { width: 20 },  // O codes-label
+    { width: 8 },   // P codes-label2
+    { width: 12 },  // Q total
   ];
 
   const C = 1; // column offset
@@ -108,90 +108,181 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     c.alignment = { horizontal: opts.align ?? "left", vertical: opts.vAlign ?? "middle", wrapText: opts.wrap ?? false };
   }
 
+  const basisNumber = `Счет №${invoice.sequenceNumber}`;
+  const basisDate = fmtShort(invoice.invoiceDate);
+
+  // Codes table border helpers — thick box on col 16 (Q) only
+  const cLbl  = (_row: number) => { /* col 14 (O): no border */ };
+  const cVal  = (row: number) => { gc(row, 16).border = { left: MED, bottom: THIN, right: MED } as ExcelJS.Borders; };
+  const cFirst = (row: number) => {
+    gc(row, 16).border = { top: MED, left: MED, bottom: THIN, right: MED } as ExcelJS.Borders;
+  };
+
   let r = 1;
 
-  // ── Row 1: form identifier ─────────────────────────────────────────────────
+  // ── Row 1: form identifier label ─────────────────────────────────────────
+  ws.getRow(r).height = 10;
+  mg(r, 1, r, 16);
+  setCell(r, 1, "Унифицированная форма № ТОРГ-12. Утверждена постановлением Госкомстата России от 25.12.98 № 132", { small: true, align: "right" });
+  r++;
+
+  // ── Row 2: "Коды" header ──────────────────────────────────────────────────
   ws.getRow(r).height = 10;
   mg(r, 1, r, 13);
   setCell(r, 1, "");
-  mg(r, 14, r, 15);
-  setCell(r, 14, "Унифицированная форма № ТОРГ-12. Утверждена постановлением Госкомстата России от 25.12.98 № 132", { small: true, align: "right" });
+  setCell(r, 14, "");
+  setCell(r, 15, "");
+  setCell(r, 16, "Коды", { small: true, align: "center" });
+  gc(r, 16).border = b("T", "L", "R");
   r++;
 
-  // ── Row 2-3: codes ─────────────────────────────────────────────────────────
+  // ── Rows 2–3: Грузоотправитель + ОКУД / ОКПО sender ──────────────────────
   ws.getRow(r).height = 11;
   mg(r, 1, r+1, 13);
-  // Грузоотправитель label
-  setCell(r, 1, sellerStr, { wrap: true });
-
-  // Codes right side
-  setCell(r, 14, "Форма по ОКУД", { small: true });
-  gc(r, 14).border = all();
-  setCell(r, 15, "0330212", { bold: true, align: "center" });
-  gc(r, 15).border = all();
+  setCell(r, 1, "");
+  mg(r, 14, r, 15);
+  setCell(r, 14, "Форма по ОКУД", { small: true, align: "right" });
+  setCell(r, 16, "0330212", { bold: true, align: "center" });
+  cFirst(r);
   r++;
   ws.getRow(r).height = 11;
-  setCell(r, 14, "по ОКПО", { small: true });
-  gc(r, 14).border = all();
-  setCell(r, 15, "");
-  gc(r, 15).border = all();
+  setCell(r, 15, "по ОКПО", { small: true, align: "right" });
+  setCell(r, 16, "0202757706", { bold: true, align: "center" });
+  cLbl(r); cVal(r);
   r++;
 
-  // ── Party label row ────────────────────────────────────────────────────────
+  // ── Row 4: border line + empty codes row ─────────────────────────────────
   ws.getRow(r).height = 9;
-  mg(r, 1, r, 15);
-  setCell(r, 1, "организация-грузоотправитель, адрес, телефон, факс, банковские реквизиты", { small: true });
+  mg(r, 1, r, 13);
+  setCell(r, 1, "");
   gc(r, 1).border = b("B");
+  setCell(r, 14, "");
+  gc(r, 14).border = b("B");
+  setCell(r, 15, "");
+  setCell(r, 16, "");
+  cLbl(r); cVal(r);
   r++;
 
-  // Helper for party rows
-  function addParty(label: string, value: string) {
-    ws.getRow(r).height = 22;
-    mg(r, 1, r, 1);
-    setCell(r, 1, label, { bold: true });
-    mg(r, 2, r, 14);
-    setCell(r, 2, value, { wrap: true });
-    gc(r, 2).border = b("B");
-    setCell(r, 15, "по ОКПО", { small: true, align: "right" });
-    r++;
-    ws.getRow(r).height = 8;
-    mg(r, 2, r, 15);
-    setCell(r, 2, "организация, адрес, телефон, факс, банковские реквизиты", { small: true });
-    gc(r, 2).border = b("B");
-    r++;
-  }
+  // ── Row 5: Грузоотправитель hint + Вид деятельности по ОКДП ─────────────
+  ws.getRow(r).height = 8;
+  mg(r, 1, r, 13);
+  setCell(r, 1, "организация-грузоотправитель, адрес, телефон, факс, банковские реквизиты", { small: true, align: "center" });
+  mg(r, 14, r, 15);
+  setCell(r, 14, "Вид деятельности по ОКДП", { small: true, align: "right", wrap: true });
+  setCell(r, 16, "");
+  cVal(r);
+  r++;
 
-  addParty("Грузополучатель", buyerStr);
-  addParty("Поставщик", sellerStr);
-  addParty("Плательщик", buyerStr);
+  // ── Row 6: структурное подразделение border + ОКПО buyer ─────────────────
+  ws.getRow(r).height = 9;
+  mg(r, 1, r, 13);
+  setCell(r, 1, "");
+  gc(r, 1).border = b("B");
+  gc(r, 14).border = b("B");
+  setCell(r, 15, "по ОКПО", { small: true, align: "right" });
+  setCell(r, 16, "");
+  cLbl(r); cVal(r);
+  r++;
 
-  // ── Basis ──────────────────────────────────────────────────────────────────
+  // ── Row 7: структурное подразделение hint + ОКПО seller ──────────────────
+  ws.getRow(r).height = 8;
+  mg(r, 1, r, 13);
+  setCell(r, 1, "структурное подразделение", { small: true, align: "center" });
+  setCell(r, 15, "по ОКПО", { small: true, align: "right" });
+  setCell(r, 16, "0202757706", { bold: true, align: "center" });
+  cLbl(r); cVal(r);
+  r++;
+
+  // ── Row 8: Грузополучатель + ОКПО payer ───────────────────────────────────
+  ws.getRow(r).height = 22;
+  mg(r, 1, r, 2);
+  setCell(r, 1, "Грузополучатель", { bold: true });
+  mg(r, 3, r, 13);
+  setCell(r, 3, buyerStr, { wrap: true });
+  gc(r, 3).border = b("B");
+  gc(r, 14).border = b("B");
+  setCell(r, 15, "по ОКПО", { small: true, align: "right" });
+  setCell(r, 16, "");
+  cLbl(r); cVal(r);
+  r++;
+
+  // ── Row 9: Грузополучатель hint + Основание номер ─────────────────────────
+  ws.getRow(r).height = 8;
+  mg(r, 3, r, 13);
+  setCell(r, 3, "организация, адрес, телефон, факс, банковские реквизиты", { small: true, align: "center" });
+  setCell(r, 15, "номер", { small: true, align: "right" });
+  gc(r, 15).border = all();
+  setCell(r, 16, basisNumber, { bold: true, align: "center" });
+  cLbl(r); cVal(r);
+  r++;
+
+  // ── Row 10: Поставщик + Основание дата ───────────────────────────────────
+  ws.getRow(r).height = 22;
+  mg(r, 1, r, 2);
+  setCell(r, 1, "Поставщик", { bold: true });
+  mg(r, 3, r, 13);
+  setCell(r, 3, "", { wrap: true });
+  gc(r, 3).border = b("B");
+  gc(r, 14).border = b("B");
+  setCell(r, 15, "дата", { small: true, align: "right" });
+  gc(r, 15).border = all();
+  setCell(r, 16, basisDate, { bold: true, align: "center" });
+  cLbl(r); cVal(r);
+  r++;
+
+  // ── Row 11: Поставщик hint + Транспортная накладная номер ────────────────
+  ws.getRow(r).height = 10;
+  mg(r, 3, r, 13);
+  setCell(r, 3, "организация, адрес, телефон, факс, банковские реквизиты", { small: true, align: "center" });
+  setCell(r, 14, "Транспортная накладная", { small: true, align: "right" });
+  setCell(r, 15, "номер", { small: true, align: "right" });
+  gc(r, 15).border = all();
+  setCell(r, 16, "");
+  cVal(r);
+  r++;
+
+  // ── Row 12: Плательщик + Транспортная накладная дата ─────────────────────
+  ws.getRow(r).height = 22;
+  mg(r, 1, r, 2);
+  setCell(r, 1, "Плательщик", { bold: true });
+  mg(r, 3, r, 13);
+  setCell(r, 3, buyerStr, { wrap: true });
+  gc(r, 3).border = b("B");
+  gc(r, 14).border = b("B");
+  setCell(r, 15, "дата", { small: true, align: "right" });
+  gc(r, 15).border = all();
+  setCell(r, 16, "");
+  cLbl(r); cVal(r);
+  r++;
+
+  // ── Row 13: Плательщик hint + Вид операции (last row, thick bottom) ───────
+  ws.getRow(r).height = 8;
+  mg(r, 3, r, 13);
+  setCell(r, 3, "организация, адрес, телефон, факс, банковские реквизиты", { small: true, align: "center" });
+  setCell(r, 15, "Вид операции", { small: true, align: "right" });
+  setCell(r, 16, "");
+  gc(r, 16).border = { left: MED, bottom: MED, right: MED } as ExcelJS.Borders;
+  r++;
+
+  // ── Basis ─────────────────────────────────────────────────────────────────
   ws.getRow(r).height = 13;
+  mg(r, 1, r, 2);
   setCell(r, 1, "Основание", { bold: true });
-  mg(r, 2, r, 11);
-  setCell(r, 2, `Счет №${invoice.sequenceNumber} от ${fmtShort(invoice.invoiceDate)}`);
-  gc(r, 2).border = b("B");
-  setCell(r, 12, "номер", { small: true });
-  mg(r, 13, r, 15);
-  setCell(r, 13, `Счет №${invoice.sequenceNumber}`, { bold: true });
-  gc(r, 13).border = b("B");
+  mg(r, 3, r, 11);
+  setCell(r, 3, `${basisNumber} от ${basisDate}`);
+  gc(r, 3).border = b("B");
   r++;
   ws.getRow(r).height = 9;
-  mg(r, 2, r, 11);
-  setCell(r, 2, "договор, заказ-наряд", { small: true });
-  gc(r, 2).border = b("B");
-  setCell(r, 12, "дата", { small: true });
-  mg(r, 13, r, 15);
-  setCell(r, 13, fmtShort(invoice.invoiceDate));
-  gc(r, 13).border = b("B");
+  mg(r, 3, r, 11);
+  setCell(r, 3, "договор, заказ-наряд", { small: true, align: "center" });
+  r++;
+
+  // ── Margin row ────────────────────────────────────────────────────────────
+  ws.getRow(r).height = 10;
   r++;
 
   // ── Title row ──────────────────────────────────────────────────────────────
   ws.getRow(r).height = 16;
-  mg(r, 1, r, 4);
-  setCell(r, 1, "ТОВАРНАЯ НАКЛАДНАЯ", { bold: true, align: "center" });
-  gc(r, 1).font = { name: "Arial", size: 11, bold: true };
-
   mg(r, 5, r, 6);
   setCell(r, 5, "Номер документа", { small: true, align: "center" });
   gc(r, 5).border = all();
@@ -199,32 +290,20 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   setCell(r, 7, "Дата составления", { small: true, align: "center" });
   gc(r, 7).border = all();
 
-  setCell(r, 9, "Транспортная накладная", { small: true });
-  mg(r, 9, r, 11);
-  gc(r, 9).border = b("T","L","R");
-  setCell(r, 12, "номер", { small: true });
-  mg(r, 12, r, 15);
-  gc(r, 12).border = b("T","R","B");
   r++;
 
   ws.getRow(r).height = 14;
+  mg(r, 1, r, 4);
+  setCell(r, 1, "ТОВАРНАЯ НАКЛАДНАЯ", { bold: true, align: "center" });
+  gc(r, 1).font = { name: "Arial", size: 11, bold: true };
   mg(r, 5, r, 6);
   setCell(r, 5, String(invoice.sequenceNumber), { align: "center" });
   gc(r, 5).border = all();
   mg(r, 7, r, 8);
   setCell(r, 7, fmtShort(invoice.invoiceDate), { align: "center" });
   gc(r, 7).border = all();
-  mg(r, 9, r, 11);
-  gc(r, 9).border = b("B","L","R");
-  setCell(r, 12, "дата", { small: true });
-  mg(r, 12, r, 15);
-  gc(r, 12).border = b("B","R");
   r++;
 
-  ws.getRow(r).height = 11;
-  mg(r, 9, r, 15);
-  setCell(r, 9, "Вид операции", { small: true });
-  gc(r, 9).border = b("B");
   r++;
 
   // ── Table header ───────────────────────────────────────────────────────────
@@ -273,7 +352,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   mg(r, 13, r, 14);
   gc(r, 13).border = all();
 
-  mg(r, 15, r+1, 15);
+  mg(r, 15, r+1, 16);
   setCell(r, 15, "Сумма с учетом НДС, руб. коп.", { small: true, align: "center", wrap: true });
   gc(r, 15).border = all();
   r++;
@@ -316,6 +395,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
   setCell(r, 1, "", {});
   gc(r, 1).border = all();
+  mg(r, 15, r, 16);
   r++;
 
   // ── Data rows ──────────────────────────────────────────────────────────────
@@ -333,18 +413,33 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       gc(r, i + 1).border = all();
       if ([11,12,15].includes(i + 1) && typeof v === "number") gc(r, i + 1).numFmt = "#,##0.00";
     });
+    mg(r, 15, r, 16);
     r++;
   });
+
+  if (invoice.deliveryPriceRub > 0) {
+    ws.getRow(r).height = 14;
+    const n = invoice.items.length + 1;
+    const vals = [n, "Доставка", "", "усл", "799", "", "", 1, "", "", invoice.deliveryPriceRub/100, invoice.deliveryPriceRub/100, "Без НДС", "", invoice.deliveryPriceRub/100];
+    const aligns: ExcelJS.Alignment["horizontal"][] = ["center","left","center","center","center","center","center","right","center","right","right","right","center","right","right"];
+    vals.forEach((v, i) => {
+      setCell(r, i + 1, v, { align: aligns[i] });
+      gc(r, i + 1).border = all();
+      if ([11,12,15].includes(i + 1) && typeof v === "number") gc(r, i + 1).numFmt = "#,##0.00";
+    });
+    mg(r, 15, r, 16);
+    r++;
+  }
 
   // ── Итого / Всего ──────────────────────────────────────────────────────────
   for (const label of ["Итого", "Всего по накладной"]) {
     ws.getRow(r).height = 13;
     mg(r, 1, r, 9);
     setCell(r, 1, label, { bold: true, align: "right" });
-    gc(r, 1).border = b("B");
+    gc(r, 1).border = {};
 
     setCell(r, 10, totalQty);
-    gc(r, 10).border = all();
+    gc(r, 10).border = b("T","L","R");
     setCell(r, 11, "Х", { align: "center" });
     gc(r, 11).border = all();
     setCell(r, 12, num(totalKop), { align: "right", bold: true });
@@ -353,15 +448,17 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     gc(r, 13).border = all();
     setCell(r, 14, "Х", { align: "center" });
     gc(r, 14).border = all();
+    mg(r, 15, r, 16);
     setCell(r, 15, num(totalKop), { align: "right", bold: true });
     gc(r, 15).border = all();
+    gc(r, 15).numFmt = "#,##0.00";
     r++;
   }
 
   // ── Attachment / count line ────────────────────────────────────────────────
   ws.getRow(r).height = 12;
-  mg(r, 1, r, 15);
-  setCell(r, 1, `Товарная накладная имеет приложение на _____________ и содержит ${invoice.items.length === 1 ? "Один" : invoice.items.length} порядковых номеров записей`, { wrap: false });
+  mg(r, 1, r, 16);
+  setCell(r, 1, `Товарная накладная имеет приложение на _____________ и содержит ${invoice.items.length + (invoice.deliveryPriceRub > 0 ? 1 : 0)} порядковых номеров записей`, { wrap: false });
   r++;
 
   // ── Amount in words ────────────────────────────────────────────────────────
@@ -370,12 +467,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   setCell(r, 1, "Всего отпущено на сумму", { bold: true });
   r++;
   ws.getRow(r).height = 13;
-  mg(r, 1, r, 15);
+  mg(r, 1, r, 16);
   setCell(r, 1, amountInWords(totalKop), { bold: true });
   gc(r, 1).border = b("B");
   r++;
   ws.getRow(r).height = 9;
-  mg(r, 1, r, 15);
+  mg(r, 1, r, 16);
   setCell(r, 1, "прописью", { small: true });
   r++;
 
@@ -388,11 +485,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   mg(r, 6, r, 8);
   setCell(r, 6, "");
   gc(r, 6).border = b("B");
-  setCell(r, 9, sellerShort);
+  setCell(r, 9, "");
   mg(r, 9, r, 11);
   setCell(r, 12, "Груз принял");
   mg(r, 12, r, 13);
-  mg(r, 14, r, 15);
+  mg(r, 14, r, 16);
   gc(r, 14).border = b("B");
   r++;
 
@@ -406,7 +503,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   setCell(r, 12, "должность", { small: true });
   mg(r, 12, r, 13);
   setCell(r, 14, "подпись", { small: true, align: "center" });
-  mg(r, 14, r, 15);
+  mg(r, 14, r, 16);
   r++;
 
   ws.getRow(r).height = 14;
@@ -420,7 +517,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   setCell(r, 12, "Груз получил");
   mg(r, 12, r, 12);
   setCell(r, 13, "грузополучатель");
-  mg(r, 13, r, 15);
+  mg(r, 13, r, 16);
   r++;
 
   ws.getRow(r).height = 9;
@@ -430,7 +527,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   mg(r, 9, r, 11);
   setCell(r, 12, "должность", { small: true });
   setCell(r, 13, "подпись", { small: true, align: "center" });
-  setCell(r, 15, "расшифровка подписи", { small: true });
+  setCell(r, 16, "расшифровка подписи", { small: true });
   r++;
 
   ws.getRow(r).height = 14;
@@ -464,9 +561,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   mg(r, 12, r, 13);
   gc(r, 12).border = b("B");
   setCell(r, 14, "20");
-  gc(r, 15).border = b("B");
-  setCell(r, 15, "");
-  setCell(r, 16, "года");
+  gc(r, 16).border = b("B");
+  setCell(r, 16, "");
+  setCell(r, 17, "года");
   r++;
 
   const buffer = await wb.xlsx.writeBuffer();
