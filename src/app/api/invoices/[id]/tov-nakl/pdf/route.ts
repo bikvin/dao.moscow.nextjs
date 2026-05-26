@@ -31,7 +31,7 @@ const SELLER_FIELDS = [
 ] as const;
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   registerFonts();
@@ -105,7 +105,9 @@ export async function GET(
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="tov-nakl-${invoice.sequenceNumber}.pdf"`,
+      "Content-Disposition": req.nextUrl.searchParams.has("inline")
+        ? `inline; filename="tov-nakl-${invoice.sequenceNumber}.pdf"`
+        : `attachment; filename="tov-nakl-${invoice.sequenceNumber}.pdf"`,
     },
   });
 }

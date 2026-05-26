@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { PriceUnitEnum, InvoiceTypeEnum } from "@prisma/client";
-import { Download, FileSpreadsheet, FileText, Pencil } from "lucide-react";
+import { Download, Eye, FileSpreadsheet, FileText, Pencil } from "lucide-react";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deleteInvoice } from "@/actions/invoice/deleteInvoice";
 import { CreateInvoiceForm, type InitialInvoice } from "./CreateInvoiceForm";
@@ -382,9 +382,18 @@ export function InvoicesGrid({
                         target="_blank"
                         rel="noreferrer"
                         className="text-slate-400 hover:text-blue-500 mt-1"
-                        title="Товарная накладная PDF"
+                        title="Товарная накладная PDF (скачать)"
                       >
                         <FileText className="w-4 h-4" />
+                      </a>
+                      <a
+                        href={`/api/invoices/${inv.id}/tov-nakl/pdf?inline`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-slate-400 hover:text-blue-500 mt-1"
+                        title="Товарная накладная PDF (просмотр)"
+                      >
+                        <Eye className="w-4 h-4" />
                       </a>
                       <a
                         href={`/api/invoices/${inv.id}/tov-nakl/xlsx`}

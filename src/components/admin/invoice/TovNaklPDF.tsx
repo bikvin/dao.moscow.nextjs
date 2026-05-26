@@ -2,6 +2,7 @@ import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PriceUnitEnum } from "@prisma/client";
 import { type InvoicePDFData } from "./InvoicePDF";
+import { CodesTableView, CODES_RIGHT_WIDTH } from "./CodesTablePDF";
 
 export type { InvoicePDFData as TovNaklData };
 
@@ -71,16 +72,16 @@ const W = {
   n:    20,
   name: 175,
   code:  48,
-  unNm:  32,
-  unCd:  24,
-  pack:  24,
-  inOne: 26,
-  pcs:   26,
+  unNm:  48,
+  unCd:  28,
+  pack:  34,
+  inOne: 40,
+  pcs:   30,
   wGr:   34,
   wNt:   34,
   price: 64,
   amt:   70,
-  vatR:  28,
+  vatR:  36,
   vatA:  60,
   total: 70,
 };
@@ -91,7 +92,6 @@ const B = { borderWidth: 0.5, borderColor: "#000", borderStyle: "solid" } as con
 const BT = { borderTopWidth: 0.5, borderTopColor: "#000", borderTopStyle: "solid" } as const;
 const BR = { borderRightWidth: 0.5, borderRightColor: "#000", borderRightStyle: "solid" } as const;
 const BB = { borderBottomWidth: 0.5, borderBottomColor: "#000", borderBottomStyle: "solid" } as const;
-const BL = { borderLeftWidth: 0.5, borderLeftColor: "#000", borderLeftStyle: "solid" } as const;
 
 const s = StyleSheet.create({
   page: {
@@ -105,57 +105,46 @@ const s = StyleSheet.create({
   },
 
   // ── Form header ────────────────────────────────
-  formHeaderRow: { flexDirection: "row", marginBottom: 2 },
-  formHeaderLeft: { flex: 1 },
-  formHeaderRight: { width: 140, alignItems: "flex-end" },
   formTitle: { fontSize: 6, color: "#444", textAlign: "right" },
-  codesBox: { flexDirection: "row", ...B, marginTop: 1 },
-  codesLabel: { fontSize: 6, padding: "1 2", borderRightWidth: 0.5, borderRightColor: "#000", borderRightStyle: "solid" },
-  codesVal: { fontSize: 6, padding: "1 4", fontWeight: "bold" },
 
   // ── Party rows ─────────────────────────────────
   partyRow: { flexDirection: "row", marginBottom: 1 },
   partyLabel: { width: 80, fontSize: 7, fontWeight: "bold" },
   partyValue: { flex: 1, fontSize: 7, ...BB },
-  partyOkpoWrap: { width: 90, flexDirection: "row", alignItems: "flex-end", paddingLeft: 4 },
-  partyOkpoLabel: { fontSize: 6, color: "#444" },
-  partyOkpoVal: { fontSize: 7, ...BB, flex: 1, marginLeft: 2 },
-  partySmall: { fontSize: 5.5, color: "#444", marginBottom: 2 },
+  partySmall: { fontSize: 5.5, color: "#444", marginBottom: 2, textAlign: "center" },
 
-  subRow: { flexDirection: "row", marginBottom: 4 },
+  subRow: { flexDirection: "row", marginBottom: 0 },
   subLeft: { flex: 1, ...BB },
-  subRight: { flex: 1, textAlign: "right", fontSize: 6, color: "#444" },
 
   // ── Basis row ──────────────────────────────────
   basisRow: { flexDirection: "row", marginBottom: 1 },
   basisLabel: { fontSize: 7, fontWeight: "bold", marginRight: 4 },
   basisValue: { flex: 1, fontSize: 7, ...BB },
-  basisNumWrap: { width: 120, flexDirection: "row" },
-  basisNumLabel: { fontSize: 6, color: "#444" },
-  basisNumVal: { fontSize: 7, ...BB, flex: 1, marginLeft: 2 },
 
   // ── Title section ──────────────────────────────
-  titleSection: { flexDirection: "row", alignItems: "flex-start", marginBottom: 4, marginTop: 2 },
-  titleLeft: { width: 200 },
-  titleMain: { fontSize: 11, fontWeight: "bold", textAlign: "center" },
+  titleSection: { flexDirection: "row", justifyContent: "center", alignItems: "flex-end", marginBottom: 4, marginTop: 20 },
+  titleLeft: { marginRight: 6 },
+  titleMain: { fontSize: 9, fontWeight: "bold", textAlign: "center" },
   titleSub: { fontSize: 6, color: "#444", textAlign: "center" },
-  titleMid: { flex: 1, flexDirection: "row", ...B },
-  titleCell: { flex: 1, padding: "2 4", ...BR },
-  titleCellLast: { flex: 1, padding: "2 4" },
-  titleCellLabel: { fontSize: 5.5, color: "#444" },
-  titleCellVal: { fontSize: 7 },
-  titleRight: { width: 120, ...B, padding: "2 4" },
-  titleRightLabel: { fontSize: 5.5, color: "#444" },
-  titleRightRow: { flexDirection: "row", ...BB, paddingBottom: 1, marginBottom: 1 },
-  titleRightRowLast: { flexDirection: "row" },
+  titleMid: { flexDirection: "column" },
+  titleLabelRow: { flexDirection: "row", ...B },
+  // label row — thin right-border separator between the two columns
+  titleCell: { width: 80, padding: "2 4", textAlign: "center", fontSize: 7, color: "#444", ...BR },
+  titleCellLast: { width: 75, padding: "2 4", textAlign: "center", fontSize: 7, color: "#444" },
+  // value row — thick outer border around the whole row
+  titleValRow: { flexDirection: "row", borderWidth: 1, borderColor: "#000", borderStyle: "solid" },
+  titleValCell: { width: 80, padding: "2 4", textAlign: "center", fontSize: 9, fontWeight: "bold", ...BR },
+  titleValCellLast: { width: 75, padding: "2 4", textAlign: "center", fontSize: 9, fontWeight: "bold" },
 
   // ── Items table ────────────────────────────────
-  table: { ...B, marginBottom: 2 },
+  table: { ...B },
   tRow: { flexDirection: "row", ...BB },
   tRowLast: { flexDirection: "row" },
 
   // header cells
-  hCell: { padding: "1 2", ...BR, textAlign: "center", fontSize: 6 },
+  hCell: { padding: "1 2", textAlign: "center", fontSize: 6 },
+  // View wrapper for single-column header cells — stretches to full row height so BR covers full height
+  hCellV: { ...BR, justifyContent: "center" },
 
   // data cells
   dN:    { width: W.n,    padding: "1 2", ...BR, textAlign: "center" },
@@ -195,17 +184,6 @@ const s = StyleSheet.create({
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function TovNaklPDF({ invoice }: { invoice: InvoicePDFData }) {
-  const sellerStr = [
-    invoice.sellerLegalName,
-    invoice.sellerInn ? `ИНН ${invoice.sellerInn}` : "",
-    invoice.sellerKpp ? `КПП ${invoice.sellerKpp}` : "",
-    invoice.sellerAddress || "",
-    invoice.sellerPhone ? `тел.: ${invoice.sellerPhone}` : "",
-    invoice.sellerAccNo ? `р/с ${invoice.sellerAccNo}` : "",
-    invoice.sellerBankName ? `в банке ${invoice.sellerBankName}` : "",
-    invoice.sellerBik ? `БИК ${invoice.sellerBik}` : "",
-    invoice.sellerBankAccNo ? `к/с ${invoice.sellerBankAccNo}` : "",
-  ].filter(Boolean).join(", ");
 
   const buyerStr = [
     invoice.buyerLegalName,
@@ -223,172 +201,159 @@ export function TovNaklPDF({ invoice }: { invoice: InvoicePDFData }) {
   const qty = invoice.items.reduce((s, i) =>
     s + (i.priceUnit === PriceUnitEnum.M2 && i.quantityM2 !== null ? i.quantityM2 : i.quantity), 0);
 
-  const sellerShort = invoice.sellerLegalName.startsWith("ИП")
-    ? invoice.sellerLegalName.replace(/^ИП\s+/, "").split(" ").map((w, i) => i === 0 ? w : w[0] + ".").join(" ")
-    : "";
   const sellerTitle = invoice.sellerLegalName.startsWith("ИП") ? "Индивидуальный предприниматель" : "Руководитель";
 
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={s.page}>
 
-        {/* ── Form header ── */}
-        <View style={s.formHeaderRow}>
-          <View style={s.formHeaderLeft}>
-            <View style={s.partyRow}>
-              <Text style={s.partyLabel}>{"Грузоотправитель"}</Text>
-              <Text style={s.partyValue}>{sellerStr}</Text>
-              <View style={s.partyOkpoWrap}>
-                <Text style={s.partyOkpoLabel}>{"по ОКПО"}</Text>
-                <Text style={s.partyOkpoVal}>{""}</Text>
+        {/* ── Header: left content + absolutely positioned codes table ── */}
+        <View>
+
+          {/* ── Left content (right padding reserves space for codes table) ── */}
+          <View>
+            {/* Form title lines */}
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 1 }}>
+              <View>
+                <Text style={s.formTitle}>{"Унифицированная форма № ТОРГ-12"}</Text>
+                <Text style={s.formTitle}>{"Утверждена постановлением Госкомстата России от 25.12.98 № 132"}</Text>
               </View>
             </View>
-            <Text style={s.partySmall}>{"организация-грузоотправитель, адрес, телефон, факс, банковские реквизиты"}</Text>
-          </View>
-          <View style={s.formHeaderRight}>
-            <Text style={s.formTitle}>{"Унифицированная форма № ТОРГ-12"}</Text>
-            <Text style={s.formTitle}>{"Утверждена постановлением Госкомстата России от 25.12.98 № 132"}</Text>
-            <View style={s.codesBox}>
-              <Text style={s.codesLabel}>{"Форма по ОКУД"}</Text>
-              <Text style={s.codesVal}>{"0330212"}</Text>
-            </View>
-            <View style={s.codesBox}>
-              <Text style={s.codesLabel}>{"по ОКПО"}</Text>
-              <Text style={s.codesVal}>{""}</Text>
-            </View>
-          </View>
-        </View>
 
-        {/* Структурное подразделение row */}
-        <View style={s.subRow}>
-          <Text style={[s.subLeft, { flex: 1, marginRight: 8 }]}>{""}</Text>
-          <Text style={s.partySmall}>{"структурное подразделение"}</Text>
-          <Text style={[s.subLeft, { flex: 1, marginLeft: 8 }]}>{""}</Text>
-          <Text style={[s.subRight, { width: 120 }]}>{"Вид деятельности по ОКДП"}</Text>
-        </View>
+            {/* Party + basis rows — width stops before codes table label+value columns */}
+            <View style={{ marginRight: CODES_RIGHT_WIDTH + 10, marginTop: 25 }}>
 
-        {/* Грузополучатель */}
-        <View style={s.partyRow}>
-          <Text style={s.partyLabel}>{"Грузополучатель"}</Text>
-          <Text style={s.partyValue}>{buyerStr}</Text>
-          <View style={s.partyOkpoWrap}>
-            <Text style={s.partyOkpoLabel}>{"по ОКПО"}</Text>
-            <Text style={s.partyOkpoVal}>{""}</Text>
-          </View>
-        </View>
-        <Text style={s.partySmall}>{"организация, адрес, телефон, факс, банковские реквизиты"}</Text>
+              {/* Грузоотправитель */}
+              <View style={s.partyRow}>
+                <Text style={s.partyValue}>{""}</Text>
+              </View>
+              <Text style={s.partySmall}>{"организация-грузоотправитель, адрес, телефон, факс, банковские реквизиты"}</Text>
 
-        {/* Поставщик */}
-        <View style={s.partyRow}>
-          <Text style={s.partyLabel}>{"Поставщик"}</Text>
-          <Text style={s.partyValue}>{sellerStr}</Text>
-          <View style={s.partyOkpoWrap}>
-            <Text style={s.partyOkpoLabel}>{"по ОКПО"}</Text>
-            <Text style={s.partyOkpoVal}>{""}</Text>
-          </View>
-        </View>
-        <Text style={s.partySmall}>{"организация, адрес, телефон, факс, банковские реквизиты"}</Text>
+              {/* Структурное подразделение */}
+              <View style={s.partyRow}>
+                <Text style={s.partyValue}>{""}</Text>
+              </View>
+              <Text style={s.partySmall}>{"структурное подразделение"}</Text>
 
-        {/* Плательщик */}
-        <View style={s.partyRow}>
-          <Text style={s.partyLabel}>{"Плательщик"}</Text>
-          <Text style={s.partyValue}>{buyerStr}</Text>
-          <View style={s.partyOkpoWrap}>
-            <Text style={s.partyOkpoLabel}>{"по ОКПО"}</Text>
-            <Text style={s.partyOkpoVal}>{""}</Text>
-          </View>
-        </View>
-        <Text style={s.partySmall}>{"организация, адрес, телефон, факс, банковские реквизиты"}</Text>
+              {/* Грузополучатель */}
+              <View style={s.partyRow}>
+                <Text style={s.partyLabel}>{"Грузополучатель"}</Text>
+                <Text style={s.partyValue}>{buyerStr}</Text>
+              </View>
+              <Text style={s.partySmall}>{"организация, адрес, телефон, факс, банковские реквизиты"}</Text>
 
-        {/* Основание */}
-        <View style={s.basisRow}>
-          <Text style={s.basisLabel}>{"Основание"}</Text>
-          <Text style={s.basisValue}>{basis}</Text>
-          <View style={s.basisNumWrap}>
-            <Text style={s.basisNumLabel}>{"номер"}</Text>
-            <Text style={s.basisNumVal}>{`Счет №${invoice.sequenceNumber}`}</Text>
-          </View>
-        </View>
-        <View style={[s.basisRow, { marginBottom: 3 }]}>
-          <Text style={[s.partySmall, { flex: 1 }]}>{"договор, заказ-наряд"}</Text>
-          <View style={s.basisNumWrap}>
-            <Text style={s.basisNumLabel}>{"дата"}</Text>
-            <Text style={s.basisNumVal}>{fmtShort(invoice.invoiceDate)}</Text>
-          </View>
-        </View>
+              {/* Поставщик */}
+              <View style={s.partyRow}>
+                <Text style={s.partyLabel}>{"Поставщик"}</Text>
+                <Text style={s.partyValue}>{""}</Text>
+              </View>
+              <Text style={s.partySmall}>{"организация, адрес, телефон, факс, банковские реквизиты"}</Text>
 
-        {/* ── Title section ── */}
-        <View style={s.titleSection}>
-          <View style={s.titleLeft}>
-            <Text style={s.titleMain}>{"ТОВАРНАЯ НАКЛАДНАЯ"}</Text>
-            <Text style={s.titleSub}>{"наименование документа"}</Text>
-          </View>
-          <View style={s.titleMid}>
-            <View style={s.titleCell}>
-              <Text style={s.titleCellLabel}>{"Номер документа"}</Text>
-              <Text style={s.titleCellVal}>{String(invoice.sequenceNumber)}</Text>
+              {/* Плательщик */}
+              <View style={s.partyRow}>
+                <Text style={s.partyLabel}>{"Плательщик"}</Text>
+                <Text style={s.partyValue}>{buyerStr}</Text>
+              </View>
+              <Text style={s.partySmall}>{"организация, адрес, телефон, факс, банковские реквизиты"}</Text>
+
+              {/* Основание */}
+              <View style={s.basisRow}>
+                <Text style={s.basisLabel}>{"Основание"}</Text>
+                <Text style={s.basisValue}>{basis}</Text>
+              </View>
+              <View style={[s.basisRow, { marginBottom: 3 }]}>
+                <Text style={[s.partySmall, { flex: 1 }]}>{"договор, заказ-наряд"}</Text>
+              </View>
+
             </View>
-            <View style={s.titleCellLast}>
-              <Text style={s.titleCellLabel}>{"Дата составления"}</Text>
-              <Text style={s.titleCellVal}>{fmtShort(invoice.invoiceDate)}</Text>
+
+            {/* Title section */}
+            <View style={s.titleSection}>
+              <View style={s.titleLeft}>
+                <Text style={s.titleMain}>{"ТОВАРНАЯ НАКЛАДНАЯ"}</Text>
+              </View>
+              <View style={s.titleMid}>
+                {/* Label row */}
+                <View style={s.titleLabelRow}>
+                  <Text style={s.titleCell}>{"Номер документа"}</Text>
+                  <Text style={s.titleCellLast}>{"Дата составления"}</Text>
+                </View>
+                {/* Value row — thick outer border */}
+                <View style={s.titleValRow}>
+                  <Text style={s.titleValCell}>{String(invoice.sequenceNumber)}</Text>
+                  <Text style={s.titleValCellLast}>{fmtShort(invoice.invoiceDate)}</Text>
+                </View>
+              </View>
             </View>
           </View>
-          <View style={s.titleRight}>
-            <Text style={s.titleRightLabel}>{"Транспортная накладная"}</Text>
-            <View style={s.titleRightRow}>
-              <Text style={[s.titleRightLabel, { marginRight: 4 }]}>{"номер"}</Text>
-              <Text style={s.partyOkpoVal}>{""}</Text>
-            </View>
-            <View style={s.titleRightRow}>
-              <Text style={[s.titleRightLabel, { marginRight: 4 }]}>{"дата"}</Text>
-              <Text style={s.partyOkpoVal}>{""}</Text>
-            </View>
-            <View style={s.titleRightRowLast}>
-              <Text style={s.titleRightLabel}>{"Вид операции"}</Text>
-            </View>
+
+          {/* ── Codes table — absolutely positioned top-right ── */}
+          <View style={{ position: "absolute", top: 16, right: 0 }}>
+            <CodesTableView data={{
+              senderOkpo:  "0202757706",
+              sellerOkpo:  "0202757706",
+              basisNumber: `Счет №${invoice.sequenceNumber}`,
+              basisDate:   fmtShort(invoice.invoiceDate),
+            }} />
           </View>
+
         </View>
+        <Text style={{ fontSize: 7, textAlign: "right", marginBottom: 4 }}>{"Страница 1"}</Text>
 
         {/* ── Items table ── */}
         <View style={s.table}>
 
           {/* Header row 1 */}
           <View style={s.tRow}>
-            <Text style={[s.hCell, { width: W.n,    fontWeight: "bold" }]}>{"Но-\nмер\nпо\nпо-\nрядку"}</Text>
-            <View style={{ width: W.name + W.code, ...BR }}>
-              <Text style={[s.hCell, { ...BB, borderRightWidth: 0 }]}>{"Товар"}</Text>
-              <View style={{ flexDirection: "row" }}>
-                <Text style={[s.hCell, { flex: 1 }]}>{"наименование, характеристика, сорт, артикул товара"}</Text>
-                <Text style={[s.hCell, { width: W.code }]}>{"код"}</Text>
-              </View>
+            <View style={[s.hCellV, { width: W.n }]}>
+              <Text style={[s.hCell, { fontWeight: "bold" }]}>{"Но-\nмер\nпо\nпо-\nрядку"}</Text>
             </View>
-            <View style={{ width: W.unNm + W.unCd, ...BR }}>
-              <Text style={[s.hCell, { ...BB, borderRightWidth: 0 }]}>{"Единица измерения"}</Text>
-              <View style={{ flexDirection: "row" }}>
-                <Text style={[s.hCell, { width: W.unNm }]}>{"наименование"}</Text>
-                <Text style={[s.hCell, { width: W.unCd }]}>{"код по ОКЕИ"}</Text>
+            <View style={{ width: W.name + W.code, flexDirection: "row", ...BR }}>
+              <View style={{ flex: 1, ...BR }}>
+                <Text style={[s.hCell, { ...BB }]}>{"Товар"}</Text>
+                <Text style={s.hCell}>{"наименование, характеристика, сорт, артикул товара"}</Text>
               </View>
+              <Text style={[s.hCell, { width: W.code, alignSelf: "flex-end" }]}>{"код"}</Text>
             </View>
-            <Text style={[s.hCell, { width: W.pack }]}>{"Вид упаковки"}</Text>
-            <View style={{ width: W.inOne + W.pcs, ...BR }}>
-              <Text style={[s.hCell, { ...BB, borderRightWidth: 0 }]}>{"Количество"}</Text>
-              <View style={{ flexDirection: "row" }}>
-                <Text style={[s.hCell, { width: W.inOne }]}>{"в одном месте"}</Text>
-                <Text style={[s.hCell, { width: W.pcs }]}>{"мест, штук"}</Text>
+            <View style={{ width: W.unNm + W.unCd, flexDirection: "row", ...BR }}>
+              <View style={{ width: W.unNm, ...BR }}>
+                <Text style={[s.hCell, { ...BB }]}>{"Единица измерения"}</Text>
+                <Text style={s.hCell}>{"наименование"}</Text>
               </View>
+              <Text style={[s.hCell, { width: W.unCd, alignSelf: "flex-end" }]}>{"код по ОКЕИ"}</Text>
             </View>
-            <Text style={[s.hCell, { width: W.wGr }]}>{"Масса брутто"}</Text>
-            <Text style={[s.hCell, { width: W.wNt }]}>{"Количество (масса нетто)"}</Text>
-            <Text style={[s.hCell, { width: W.price }]}>{"Цена, руб. коп."}</Text>
-            <Text style={[s.hCell, { width: W.amt }]}>{"Сумма без учета НДС, руб. коп."}</Text>
-            <View style={{ width: W.vatR + W.vatA, ...BR }}>
-              <Text style={[s.hCell, { ...BB, borderRightWidth: 0 }]}>{"НДС"}</Text>
-              <View style={{ flexDirection: "row" }}>
-                <Text style={[s.hCell, { width: W.vatR }]}>{"ставка, %"}</Text>
-                <Text style={[s.hCell, { width: W.vatA }]}>{"сумма, руб. коп."}</Text>
+            <View style={[s.hCellV, { width: W.pack }]}>
+              <Text style={s.hCell}>{"Вид упаковки"}</Text>
+            </View>
+            <View style={{ width: W.inOne + W.pcs, flexDirection: "row", ...BR }}>
+              <View style={{ width: W.inOne, ...BR }}>
+                <Text style={[s.hCell, { ...BB }]}>{"Количество"}</Text>
+                <Text style={s.hCell}>{"в одном месте"}</Text>
               </View>
+              <Text style={[s.hCell, { width: W.pcs, alignSelf: "flex-end" }]}>{"мест, штук"}</Text>
             </View>
-            <Text style={[s.hCell, { width: W.total, borderRightWidth: 0 }]}>{"Сумма с учетом НДС, руб. коп."}</Text>
+            <View style={[s.hCellV, { width: W.wGr }]}>
+              <Text style={s.hCell}>{"Масса брутто"}</Text>
+            </View>
+            <View style={[s.hCellV, { width: W.wNt }]}>
+              <Text style={s.hCell}>{"Количество (масса нетто)"}</Text>
+            </View>
+            <View style={[s.hCellV, { width: W.price }]}>
+              <Text style={s.hCell}>{"Цена, руб. коп."}</Text>
+            </View>
+            <View style={[s.hCellV, { width: W.amt }]}>
+              <Text style={s.hCell}>{"Сумма без учета НДС, руб. коп."}</Text>
+            </View>
+            <View style={{ width: W.vatR + W.vatA, flexDirection: "row", ...BR }}>
+              <View style={{ width: W.vatR, ...BR }}>
+                <Text style={[s.hCell, { ...BB }]}>{"НДС"}</Text>
+                <Text style={s.hCell}>{"ставка, %"}</Text>
+              </View>
+              <Text style={[s.hCell, { width: W.vatA, alignSelf: "flex-end" }]}>{"сумма, руб. коп."}</Text>
+            </View>
+            <View style={[s.hCellV, { width: W.total, borderRightWidth: 0 }]}>
+              <Text style={s.hCell}>{"Сумма с учетом НДС, руб. коп."}</Text>
+            </View>
           </View>
 
           {/* Column numbers row */}
@@ -411,8 +376,7 @@ export function TovNaklPDF({ invoice }: { invoice: InvoicePDFData }) {
               : String(item.quantity);
             const unitName = isM2 ? "м2" : "шт";
             const unitCode = isM2 ? "055" : "796";
-            const isLast = idx === invoice.items.length - 1;
-
+            const isLast = idx === invoice.items.length - 1 && invoice.deliveryPriceRub === 0;
             return (
               <View key={idx} style={isLast ? s.tRowLast : s.tRow}>
                 <Text style={s.dN}>{String(idx + 1)}</Text>
@@ -433,58 +397,141 @@ export function TovNaklPDF({ invoice }: { invoice: InvoicePDFData }) {
               </View>
             );
           })}
-        </View>
+          {invoice.deliveryPriceRub > 0 && (
+            <View style={s.tRowLast}>
+              <Text style={s.dN}>{String(invoice.items.length + 1)}</Text>
+              <Text style={s.dName}>{"Доставка"}</Text>
+              <Text style={s.dCode}>{""}</Text>
+              <Text style={s.dUnNm}>{"усл"}</Text>
+              <Text style={s.dUnCd}>{"799"}</Text>
+              <Text style={s.dPack}>{""}</Text>
+              <Text style={s.dInOne}>{""}</Text>
+              <Text style={s.dPcs}>{"1"}</Text>
+              <Text style={s.dWGr}>{""}</Text>
+              <Text style={s.dWNt}>{""}</Text>
+              <Text style={s.dPrice}>{num(invoice.deliveryPriceRub)}</Text>
+              <Text style={s.dAmt}>{num(invoice.deliveryPriceRub)}</Text>
+              <Text style={s.dVatR}>{"Без НДС"}</Text>
+              <Text style={s.dVatA}>{""}</Text>
+              <Text style={s.dTotal}>{num(invoice.deliveryPriceRub)}</Text>
+            </View>
+          )}
 
-        {/* Итого / Всего */}
-        {[
-          { label: "Итого", qty: qty.toFixed(3).replace(".", ","), amt: num(total) },
-          { label: "Всего по накладной", qty: qty.toFixed(3).replace(".", ","), amt: num(total) },
-        ].map((row, i) => (
-          <View key={i} style={{ flexDirection: "row", ...BB, marginBottom: 1 }}>
-            <Text style={{ flex: 1, textAlign: "right", paddingRight: 4, fontSize: 7, fontWeight: "bold", padding: "1 4" }}>{row.label}</Text>
-            <Text style={{ width: W.wNt, textAlign: "right", padding: "1 2", ...BL, ...BR, fontSize: 7 }}>{row.qty}</Text>
-            <Text style={{ width: W.price + W.amt, textAlign: "right", padding: "1 2", ...BR, fontSize: 7 }}>{"Х"}</Text>
-            <Text style={{ width: W.vatR + W.vatA, textAlign: "right", padding: "1 2", ...BL, ...BR, fontSize: 7 }}>{"Х"}</Text>
-            <Text style={{ width: W.total, textAlign: "right", padding: "1 2", fontSize: 7, fontWeight: "bold" }}>{row.amt}</Text>
+          {/* ── Итого row (inside table so right border = table's outer BR) ── */}
+          <View style={{ flexDirection: "row", ...BT }}>
+            <View style={{ width: W.n+W.name+W.code+W.unNm+W.unCd+W.pack+W.inOne, ...BR }}>
+              <Text style={{ textAlign: "right", padding: "1 4", fontSize: 7, fontWeight: "bold" }}>{"Итого"}</Text>
+            </View>
+            <View style={{ flex: 1, flexDirection: "row", ...BB }}>
+              <Text style={{ width: W.pcs, padding: "1 2", ...BR, fontSize: 7 }}>{""}</Text>
+              <Text style={{ width: W.wGr, padding: "1 2", ...BR, fontSize: 7 }}>{""}</Text>
+              <Text style={{ width: W.wNt, padding: "1 2", ...BR, textAlign: "right", fontSize: 7 }}>{qty.toFixed(3).replace(".", ",")}</Text>
+              <Text style={{ width: W.price, padding: "1 2", ...BR, textAlign: "center", fontSize: 7 }}>{"Х"}</Text>
+              <Text style={{ width: W.amt, padding: "1 2", ...BR, textAlign: "right", fontSize: 7 }}>{num(total)}</Text>
+              <Text style={{ width: W.vatR, padding: "1 2", ...BR, textAlign: "center", fontSize: 7 }}>{"Х"}</Text>
+              <Text style={{ width: W.vatA, padding: "1 2", ...BR, fontSize: 7 }}>{""}</Text>
+              <Text style={{ width: W.total, padding: "1 2", textAlign: "right", fontSize: 7, fontWeight: "bold" }}>{num(total)}</Text>
+            </View>
           </View>
-        ))}
+          {/* ── Всего по накладной row ── */}
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ width: W.n+W.name+W.code+W.unNm+W.unCd+W.pack+W.inOne, ...BR }}>
+              <Text style={{ textAlign: "right", padding: "1 4", fontSize: 7, fontWeight: "bold" }}>{"Всего по накладной"}</Text>
+            </View>
+            <View style={{ flex: 1, flexDirection: "row" }}>
+              <Text style={{ width: W.pcs, padding: "1 2", ...BR, fontSize: 7 }}>{""}</Text>
+              <Text style={{ width: W.wGr, padding: "1 2", ...BR, fontSize: 7 }}>{""}</Text>
+              <Text style={{ width: W.wNt, padding: "1 2", ...BR, textAlign: "right", fontSize: 7 }}>{qty.toFixed(3).replace(".", ",")}</Text>
+              <Text style={{ width: W.price, padding: "1 2", ...BR, textAlign: "center", fontSize: 7 }}>{"Х"}</Text>
+              <Text style={{ width: W.amt, padding: "1 2", ...BR, textAlign: "right", fontSize: 7 }}>{num(total)}</Text>
+              <Text style={{ width: W.vatR, padding: "1 2", ...BR, textAlign: "center", fontSize: 7 }}>{"Х"}</Text>
+              <Text style={{ width: W.vatA, padding: "1 2", ...BR, fontSize: 7 }}>{""}</Text>
+              <Text style={{ width: W.total, padding: "1 2", textAlign: "right", fontSize: 7, fontWeight: "bold" }}>{num(total)}</Text>
+            </View>
+          </View>
+
+        </View>
 
         {/* ── Footer ── */}
-        <View style={{ flexDirection: "row", marginTop: 4, marginBottom: 2 }}>
-          <Text style={{ fontSize: 7, flex: 1 }}>
-            {"Товарная накладная имеет приложение на "}
-            <Text style={{ ...BB }}>{"               "}</Text>
-            {" и содержит "}
-            <Text style={{ fontWeight: "bold" }}>{invoice.items.length === 1 ? "Один" : String(invoice.items.length)}</Text>
-            {" порядковых номеров записей"}
-          </Text>
-        </View>
-
-        <View style={{ flexDirection: "row", marginBottom: 2 }}>
+        {/* Row: "Товарная накладная имеет приложение" + right "порядковых номеров записей" */}
+        <View style={{ flexDirection: "row", marginTop: 4, marginBottom: 1 }}>
           <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", marginBottom: 1 }}>
-              <Text style={{ fontSize: 7, width: 80 }}>{"Масса груза (нетто)"}</Text>
-              <Text style={{ flex: 1, ...BB }}>{""}</Text>
+            <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+              <Text style={{ fontSize: 7 }}>{"Товарная накладная имеет приложение на"}</Text>
+              <Text style={{ flex: 1, ...BB, marginHorizontal: 4 }}>{""}</Text>
             </View>
-            <Text style={{ fontSize: 5.5, color: "#444", marginLeft: 80 }}>{"прописью"}</Text>
+            <Text style={{ fontSize: 5.5, color: "#444", marginTop: 1 }}>{"прописью"}</Text>
           </View>
-          <View style={{ flex: 1, paddingLeft: 8 }}>
-            <View style={{ flexDirection: "row", marginBottom: 1 }}>
-              <Text style={{ fontSize: 7, width: 80 }}>{"Масса груза (брутто)"}</Text>
-              <Text style={{ flex: 1, ...BB }}>{""}</Text>
-            </View>
-            <Text style={{ fontSize: 5.5, color: "#444", marginLeft: 80 }}>{"прописью"}</Text>
+          <View style={{ width: 140, paddingLeft: 8 }}>
+            <Text style={{ fontSize: 6, color: "#444" }}>{"порядковых номеров записей"}</Text>
+            <Text style={{ flex: 1, ...BB, marginTop: 2 }}>{""}</Text>
           </View>
         </View>
 
-        <View style={{ marginBottom: 4 }}>
-          <View style={{ flexDirection: "row", marginBottom: 1 }}>
-            <Text style={{ fontSize: 7, fontWeight: "bold", marginRight: 4 }}>{"Всего отпущено на сумму"}</Text>
+        {/* Масса груза (нетто) + Масса груза (брутто) */}
+        <View style={{ flexDirection: "row", marginBottom: 1, marginTop: 2 }}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 1 }}>
+              <Text style={{ fontSize: 7, marginRight: 4 }}>{"Масса груза (нетто)"}</Text>
+              <Text style={{ flex: 1, ...BB }}>{""}</Text>
+            </View>
+            <Text style={{ fontSize: 5.5, color: "#444" }}>{"прописью"}</Text>
           </View>
-          <View style={{ flexDirection: "row", marginBottom: 1 }}>
-            <Text style={{ fontSize: 7, fontWeight: "bold", ...BB, flex: 1 }}>{amountInWords(total)}</Text>
+        </View>
+        <View style={{ flexDirection: "row", marginBottom: 1 }}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 1 }}>
+              <Text style={{ fontSize: 7, marginRight: 4 }}>{"Всего мест"}</Text>
+              <Text style={{ width: 60, ...BB, marginRight: 8 }}>{""}</Text>
+              <Text style={{ fontSize: 7, marginRight: 4 }}>{"Масса груза (брутто)"}</Text>
+              <Text style={{ flex: 1, ...BB }}>{""}</Text>
+            </View>
+            <View style={{ flexDirection: "row" }}>
+              <Text style={{ fontSize: 5.5, color: "#444", width: 100 }}>{"прописью"}</Text>
+              <Text style={{ fontSize: 5.5, color: "#444" }}>{"прописью"}</Text>
+            </View>
           </View>
-          <Text style={{ fontSize: 5.5, color: "#444" }}>{"прописью"}</Text>
+        </View>
+
+        {/* Приложение + По доверенности */}
+        <View style={{ flexDirection: "row", marginBottom: 1, marginTop: 2 }}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+              <Text style={{ fontSize: 7 }}>{"Приложение (паспорта, сертификаты и т.п.) на"}</Text>
+              <Text style={{ width: 40, ...BB, marginHorizontal: 4 }}>{""}</Text>
+              <Text style={{ fontSize: 7 }}>{"листах"}</Text>
+            </View>
+            <Text style={{ fontSize: 5.5, color: "#444", marginTop: 1 }}>{"прописью"}</Text>
+          </View>
+          <View style={{ width: 200, paddingLeft: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+              <Text style={{ fontSize: 7 }}>{"По доверенности №"}</Text>
+              <Text style={{ width: 50, ...BB, marginHorizontal: 4 }}>{""}</Text>
+              <Text style={{ fontSize: 7 }}>{"от"}</Text>
+              <Text style={{ flex: 1, ...BB, marginLeft: 4 }}>{""}</Text>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 1 }}>
+              <Text style={{ fontSize: 7, marginRight: 4 }}>{"выданной"}</Text>
+              <Text style={{ flex: 1, ...BB }}>{""}</Text>
+            </View>
+            <Text style={{ fontSize: 5.5, color: "#444", marginTop: 1 }}>{"кем, кому (организация, должность, фамилия, и. о.)"}</Text>
+          </View>
+        </View>
+
+        {/* Всего отпущено на сумму */}
+        <View style={{ flexDirection: "row", marginBottom: 1, marginTop: 3 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, fontWeight: "bold" }}>{"Всего отпущено на сумму"}</Text>
+            <Text style={{ fontSize: 7, fontWeight: "bold", ...BB, marginTop: 1 }}>{amountInWords(total)}</Text>
+            <Text style={{ fontSize: 5.5, color: "#444", marginTop: 1 }}>{"прописью"}</Text>
+          </View>
+          <View style={{ width: 200, paddingLeft: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+              <Text style={{ fontSize: 7, marginRight: 4 }}>{"выданной"}</Text>
+              <Text style={{ flex: 1, ...BB }}>{""}</Text>
+            </View>
+            <Text style={{ fontSize: 5.5, color: "#444", marginTop: 1 }}>{"кем, кому (организация, должность, фамилия, и. о.)"}</Text>
+          </View>
         </View>
 
         {/* ── Signatures ── */}
@@ -494,7 +541,7 @@ export function TovNaklPDF({ invoice }: { invoice: InvoicePDFData }) {
               <Text style={[s.sigLabel, { width: 70 }]}>{"Отпуск груза разрешил"}</Text>
               <Text style={[s.sigLabel, { width: 80 }]}>{sellerTitle}</Text>
               <View style={{ ...BB, flex: 1, marginRight: 4 }} />
-              <Text style={{ fontSize: 7, width: 60 }}>{sellerShort}</Text>
+              <Text style={{ fontSize: 7, width: 60 }}>{""}</Text>
             </View>
             <View style={{ flexDirection: "row", marginBottom: 4 }}>
               <Text style={[s.sigHint, { width: 70 }]}>{""}</Text>
