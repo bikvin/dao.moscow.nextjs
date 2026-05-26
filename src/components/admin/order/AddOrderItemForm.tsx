@@ -302,6 +302,7 @@ export function AddOrderItemForm({
         <Field label="Итого (₽)">
           <div className="flex items-center gap-2">
             <input
+              name="itemTotal"
               type="number"
               placeholder="0"
               value={total}

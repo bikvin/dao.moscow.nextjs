@@ -41,6 +41,7 @@ export type InitialOrder = {
     priceInCents: number;
     priceCurrency: CurrencyEnum;
     priceRub: number;
+    totalRub: number;
   }>;
 };
 
@@ -325,6 +326,7 @@ function ItemRow({
 
       <Field label="Итого (₽):">
         <input
+          name="itemTotal"
           type="number"
           placeholder="0"
           value={item.total}
@@ -415,7 +417,6 @@ export function CreateOrderForm({
   const [items, setItems] = useState<ItemState[]>(
     initialOrder?.items.length
       ? initialOrder.items.map((item) => {
-          const product = products.find((p) => p.id === item.productId);
           const priceRubStr = (item.priceRub / 100).toString();
           const qtyStr = item.quantity.toString();
           return {
@@ -427,7 +428,7 @@ export function CreateOrderForm({
             price: (item.priceInCents / 100).toString(),
             currency: item.priceCurrency,
             priceRub: priceRubStr,
-            total: calcTotalFromPriceRub(priceRubStr, qtyStr, item.priceUnit, product),
+            total: (item.totalRub / 100).toString(),
           };
         })
       : [emptyItem()]

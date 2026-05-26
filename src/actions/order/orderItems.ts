@@ -41,8 +41,10 @@ export async function addOrderItem(
   const priceInCents = Math.round(result.data.price * 100);
   const priceRubKopecks = Math.round(result.data.priceRub * 100);
 
-  const totalRub =
-    result.data.priceUnit === PriceUnitEnum.M2 && quantityM2 !== null
+  const itemTotalStr = formData.get("itemTotal") as string;
+  const totalRub = itemTotalStr
+    ? Math.round((parseFloat(itemTotalStr) || 0) * 100)
+    : result.data.priceUnit === PriceUnitEnum.M2 && quantityM2 !== null
       ? Math.round(quantityM2 * priceRubKopecks)
       : result.data.quantity * priceRubKopecks;
 

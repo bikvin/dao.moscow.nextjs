@@ -483,6 +483,7 @@ function ItemRow({
       <div className="flex flex-col gap-0.5">
         <label className="text-xs text-slate-400">Итого ₽</label>
         <input
+          name="itemTotal"
           type="number"
           step="0.01"
           min="0"

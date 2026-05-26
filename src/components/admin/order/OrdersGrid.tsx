@@ -655,6 +655,7 @@ export function OrdersGrid({
                           priceInCents: item.priceInCents,
                           priceCurrency: item.priceCurrency,
                           priceRub: item.priceRub,
+                          totalRub: item.totalRub,
                         })),
                       }}
                     />

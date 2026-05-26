@@ -49,6 +49,7 @@ export async function createInvoice(
   const priceUnits = formData.getAll("priceUnit") as string[];
   const priceRubs = formData.getAll("priceRub") as string[];
   const quantityM2s = formData.getAll("quantityM2") as string[];
+  const itemTotals = formData.getAll("itemTotal") as string[];
 
   // Seller fields
   const sellerLegalName = (formData.get("sellerLegalName") as string) || "";
@@ -117,8 +118,9 @@ export async function createInvoice(
         const priceRubKopecks = Math.round((parseFloat(priceRubs[i]) || 0) * 100);
         const quantityM2 = quantityM2s[i] ? parseFloat(quantityM2s[i]) : null;
 
-        const itemTotal =
-          priceUnit === PriceUnitEnum.M2 && quantityM2 !== null
+        const itemTotal = itemTotals[i]
+          ? Math.round((parseFloat(itemTotals[i]) || 0) * 100)
+          : priceUnit === PriceUnitEnum.M2 && quantityM2 !== null
             ? Math.round(quantityM2 * priceRubKopecks)
             : qty * priceRubKopecks;
 
