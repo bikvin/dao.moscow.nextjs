@@ -87,7 +87,7 @@ const topMenuList: TopMenuItem[] = [
       },
       {
         type: "dropdown",
-        name: "Счета",
+        name: "Счета и накладные",
         data: [
           { type: "link", name: "Все счета", link: "/admin/invoices" },
         ],

@@ -129,7 +129,7 @@ export default async function InvoicesPage() {
     <>
       <TopMenu />
       <div className="max-w-screen-xl mx-auto px-4 pb-16">
-        <h1 className="admin-form-header mt-10">Счета</h1>
+        <h1 className="admin-form-header mt-10">Счета и накладные</h1>
 
         <InvoicesGrid
           invoices={invoices}
