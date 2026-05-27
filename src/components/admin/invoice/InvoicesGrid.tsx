@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { PriceUnitEnum, InvoiceTypeEnum } from "@prisma/client";
-import { Download, Eye, FileSpreadsheet, FileText, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deleteInvoice } from "@/actions/invoice/deleteInvoice";
 import { CreateInvoiceForm, type InitialInvoice } from "./CreateInvoiceForm";
@@ -183,7 +183,15 @@ export function InvoicesGrid({
                   message={`Удалить счёт №${inv.sequenceNumber}/${inv.year}?`}
                 />
               </div>
-              <div className="flex flex-col md:flex-row md:items-start">
+              <div className="relative flex flex-col md:flex-row md:items-start">
+              <button
+                type="button"
+                onClick={() => setOpenInvoiceId(openInvoiceId === inv.id ? null : inv.id)}
+                className="absolute bottom-2 left-2 z-10 text-slate-400 hover:text-blue-500"
+                title="Редактировать"
+              >
+                <Pencil className="w-5 h-5" />
+              </button>
                 {/* Desktop grid */}
                 <div
                   className={`hidden md:grid flex-1 min-w-0 ${COLS} gap-x-3 px-3 py-2 items-start`}
@@ -357,63 +365,54 @@ export function InvoicesGrid({
                 {/* Type badge sidebar */}
                 <div className="md:w-36 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-100 px-3 py-2 flex flex-row flex-wrap md:flex-col gap-1">
                   <Badge {...TYPE_CONFIG[inv.invoiceType]} />
-                  <a
-                    href={`/api/invoices/${inv.id}/pdf`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-slate-400 hover:text-blue-500 mt-1"
-                    title="Скачать PDF"
-                  >
-                    <Download className="w-4 h-4" />
-                  </a>
-                  <a
-                    href={`/api/invoices/${inv.id}/xlsx`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-slate-400 hover:text-green-500 mt-1"
-                    title="Скачать Excel"
-                  >
-                    <FileSpreadsheet className="w-4 h-4" />
-                  </a>
+                  <div className="flex flex-col gap-0.5 mt-1">
+                    <span className="text-xs text-slate-900">Скачать счет:</span>
+                    <div className="flex gap-2">
+                      <a
+                        href={`/api/invoices/${inv.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-red-500 hover:text-red-600 text-xs"
+                        title="Скачать PDF"
+                      >
+                        PDF
+                      </a>
+                      <a
+                        href={`/api/invoices/${inv.id}/xlsx`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-green-600 hover:text-green-700 text-xs"
+                        title="Скачать Excel"
+                      >
+                        Excel
+                      </a>
+                    </div>
+                  </div>
                   {inv.invoiceType === InvoiceTypeEnum.CASH && (
-                    <>
-                      <a
-                        href={`/api/invoices/${inv.id}/tov-nakl/pdf`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-slate-400 hover:text-blue-500 mt-1"
-                        title="Товарная накладная PDF (скачать)"
-                      >
-                        <FileText className="w-4 h-4" />
-                      </a>
-                      <a
-                        href={`/api/invoices/${inv.id}/tov-nakl/pdf?inline`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-slate-400 hover:text-blue-500 mt-1"
-                        title="Товарная накладная PDF (просмотр)"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </a>
-                      <a
-                        href={`/api/invoices/${inv.id}/tov-nakl/xlsx`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-slate-400 hover:text-green-500 mt-1"
-                        title="Товарная накладная Excel"
-                      >
-                        <FileSpreadsheet className="w-4 h-4" />
-                      </a>
-                    </>
+                    <div className="flex flex-col gap-0.5 mt-1">
+                      <span className="text-xs text-slate-900">Скачать накладную:</span>
+                      <div className="flex gap-2">
+                        <a
+                          href={`/api/invoices/${inv.id}/tov-nakl/pdf`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-red-500 hover:text-red-600 text-xs"
+                          title="Товарная накладная PDF (скачать)"
+                        >
+                          PDF
+                        </a>
+                        <a
+                          href={`/api/invoices/${inv.id}/tov-nakl/xlsx`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-green-600 hover:text-green-700 text-xs"
+                          title="Товарная накладная Excel"
+                        >
+                          Excel
+                        </a>
+                      </div>
+                    </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setOpenInvoiceId(openInvoiceId === inv.id ? null : inv.id)}
-                    className="text-slate-400 hover:text-blue-500"
-                    title="Редактировать"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
                 </div>
               </div>
 
