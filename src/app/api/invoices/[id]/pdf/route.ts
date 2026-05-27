@@ -114,12 +114,14 @@ export async function GET(
     element as React.ReactElement<DocumentProps>
   );
 
-  const filename = `schet-${invoice.sequenceNumber}.pdf`;
+  const d = new Date(invoice.invoiceDate);
+  const dateStr = d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }).replace(" г.", "");
+  const filename = `Счет № ${invoice.sequenceNumber} от ${dateStr} г.pdf`;
 
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
     },
   });
 }

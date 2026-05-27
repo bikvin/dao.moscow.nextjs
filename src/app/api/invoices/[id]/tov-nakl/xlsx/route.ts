@@ -568,10 +568,14 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const buffer = await wb.xlsx.writeBuffer();
 
+  const invoiceDate = new Date(invoice.invoiceDate);
+  const dateStr = invoiceDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }).replace(" г.", "");
+  const filename = `Товарная накладная № ${invoice.sequenceNumber} от ${dateStr} г.xlsx`;
+
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="tov-nakl-${invoice.sequenceNumber}.xlsx"`,
+      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
     },
   });
 }

@@ -511,12 +511,14 @@ export async function GET(
 
   // ── Output ────────────────────────────────────────────────────────────────
   const buffer = await wb.xlsx.writeBuffer();
-  const filename = `schet-${invoice.sequenceNumber}.xlsx`;
+  const d = new Date(invoice.invoiceDate);
+  const dateStr = d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }).replace(" г.", "");
+  const filename = `Счет № ${invoice.sequenceNumber} от ${dateStr} г.xlsx`;
 
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
     },
   });
 }

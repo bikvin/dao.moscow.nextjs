@@ -102,12 +102,15 @@ export async function GET(
   const element = React.createElement(TovNaklPDF, { invoice: data }) as any;
   const buffer = await renderToBuffer(element as React.ReactElement<DocumentProps>);
 
+  const d = new Date(invoice.invoiceDate);
+  const dateStr = d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }).replace(" г.", "");
+  const filename = `Товарная накладная № ${invoice.sequenceNumber} от ${dateStr} г.pdf`;
+  const disposition = req.nextUrl.searchParams.has("inline") ? "inline" : "attachment";
+
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": req.nextUrl.searchParams.has("inline")
-        ? `inline; filename="tov-nakl-${invoice.sequenceNumber}.pdf"`
-        : `attachment; filename="tov-nakl-${invoice.sequenceNumber}.pdf"`,
+      "Content-Disposition": `${disposition}; filename*=UTF-8''${encodeURIComponent(filename)}`,
     },
   });
 }
