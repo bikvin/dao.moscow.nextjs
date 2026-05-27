@@ -36,42 +36,11 @@ type TopMenuDropDown = TopMenuItemBase & {
 type TopMenuItem = TopMenuItemLink | TopMenuDropDown;
 const topMenuList: TopMenuItem[] = [
   {
-    name: "Заказы",
-    type: "dropdown",
-    data: [
-      {
-        type: "link",
-        name: "Все заказы",
-        link: "/admin",
-      },
-      {
-        type: "link",
-        name: "Способы доставки",
-        link: "/admin/orders/delivery-methods",
-      },
-      {
-        type: "link",
-        name: "Способы оплаты",
-        link: "/admin/orders/payment-methods",
-      },
-    ],
-  },
-  {
-    type: "link",
-    name: "Склад",
-    link: "/admin/warehouse",
-  },
-
-  {
-    type: "link",
-    name: "Прайс-лист",
-    link: "/admin/prices",
-  },
-
-  {
     name: "Продажи",
     type: "dropdown",
     data: [
+      { type: "link", name: "Заказы", link: "/admin" },
+      { type: "link", name: "Счета и накладные", link: "/admin/invoices" },
       {
         type: "dropdown",
         name: "Товары",
@@ -83,13 +52,6 @@ const topMenuList: TopMenuItem[] = [
           { type: "link", name: "Резервы",         link: "/admin/products/product-reserves" },
           { type: "link", name: "Размеры чипа",    link: "/admin/products/chip-sizes" },
           { type: "link", name: "Импорт цен",      link: "/admin/import" },
-        ],
-      },
-      {
-        type: "dropdown",
-        name: "Счета и накладные",
-        data: [
-          { type: "link", name: "Все счета", link: "/admin/invoices" },
         ],
       },
       {
@@ -106,6 +68,18 @@ const topMenuList: TopMenuItem[] = [
         ],
       },
     ],
+  },
+
+  {
+    type: "link",
+    name: "Склад",
+    link: "/admin/warehouse",
+  },
+
+  {
+    type: "link",
+    name: "Прайс-лист",
+    link: "/admin/prices",
   },
 
   {
@@ -128,6 +102,16 @@ const topMenuList: TopMenuItem[] = [
           { type: "link", name: "Все пользователи",     link: "/admin/users/all-users" },
           { type: "link", name: "Создать пользователя", link: "/admin/users/create" },
         ],
+      },
+      {
+        type: "link",
+        name: "Способы доставки",
+        link: "/admin/orders/delivery-methods",
+      },
+      {
+        type: "link",
+        name: "Способы оплаты",
+        link: "/admin/orders/payment-methods",
       },
       {
         type: "link",
