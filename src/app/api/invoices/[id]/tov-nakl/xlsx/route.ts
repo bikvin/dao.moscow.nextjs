@@ -2,30 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { db } from "@/db";
 import { InvoiceTypeEnum, PriceUnitEnum } from "@prisma/client";
-
-const MONTHS_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-
-function fmtShort(date: Date): string { return new Date(date).toLocaleDateString("ru-RU"); }
-
-function num(kopecks: number): string {
-  return new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(kopecks / 100);
-}
-
-const H = ["","сто","двести","триста","четыреста","пятьсот","шестьсот","семьсот","восемьсот","девятьсот"];
-const T = ["","десять","двадцать","тридцать","сорок","пятьдесят","шестьдесят","семьдесят","восемьдесят","девяносто"];
-const TN = ["десять","одиннадцать","двенадцать","тринадцать","четырнадцать","пятнадцать","шестнадцать","семнадцать","восемнадцать","девятнадцать"];
-const OM = ["","один","два","три","четыре","пять","шесть","семь","восемь","девять"];
-const OF = ["","одна","две","три","четыре","пять","шесть","семь","восемь","девять"];
-function pl(n: number, a: string, b: string, c: string) { const m=Math.abs(n)%100,d=Math.abs(n)%10; if(m>=11&&m<=19)return c; if(d===1)return a; if(d>=2&&d<=4)return b; return c; }
-function tri(n: number, fem: boolean): string { const p: string[]=[],h=Math.floor(n/100),rem=n%100; if(h)p.push(H[h]); if(rem>=10&&rem<=19)p.push(TN[rem-10]); else{const t=Math.floor(rem/10),o=rem%10;if(t)p.push(T[t]);if(o)p.push(fem?OF[o]:OM[o]);} return p.join(" "); }
-function amountInWords(kopecks: number): string {
-  const rub=Math.floor(kopecks/100),kop=kopecks%100,parts: string[]=[];
-  const mil=Math.floor(rub/1_000_000); if(mil){parts.push(tri(mil,false));parts.push(pl(mil,"миллион","миллиона","миллионов"));}
-  const th=Math.floor((rub%1_000_000)/1_000); if(th){parts.push(tri(th,true));parts.push(pl(th,"тысяча","тысячи","тысяч"));}
-  const rem=rub%1_000; if(rem)parts.push(tri(rem,false)); if(!parts.length)parts.push("ноль");
-  const w=`${parts.join(" ")} ${pl(rub,"рубль","рубля","рублей")} ${kop.toString().padStart(2,"0")} ${pl(kop,"копейка","копейки","копеек")}`;
-  return w.charAt(0).toUpperCase()+w.slice(1);
-}
+import { fmtShort, num, amountInWords, MONTHS_GEN } from "@/lib/invoice/formatters";
 
 type BS = ExcelJS.BorderStyle;
 const THIN: ExcelJS.Border = { style: "thin" as BS, color: { argb: "FF000000" } };
