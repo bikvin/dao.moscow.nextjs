@@ -641,15 +641,14 @@ export function CreateInvoiceForm({
         onToggle?.();
       } else {
         const newId = formState.success.invoiceId;
+        setFormKey((k) => k + 1);
+        setPartnerId("");
+        setInvoiceType(InvoiceTypeEnum.CASH);
+        setItems([{ ...EMPTY_ITEM }]);
+        setShowSeller(false);
+        setBuyer(EMPTY_BUYER);
         if (newId) {
           router.push(`/admin/invoices?tab=${invoiceType}&newInvoiceId=${newId}`, { scroll: false });
-        } else {
-          setFormKey((k) => k + 1);
-          setPartnerId("");
-          setInvoiceType(InvoiceTypeEnum.CASH);
-          setItems([{ ...EMPTY_ITEM }]);
-          setShowSeller(false);
-          setBuyer(EMPTY_BUYER);
         }
       }
     }
