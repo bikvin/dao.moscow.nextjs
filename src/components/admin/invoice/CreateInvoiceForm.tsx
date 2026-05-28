@@ -29,6 +29,8 @@ type LegalEntity = {
   name: string;
   inn: string | null;
   kpp: string | null;
+  legalAddress: string | null;
+  phones: string | null;
   bankName: string | null;
   bik: string | null;
   checkingAccount: string | null;
@@ -99,6 +101,8 @@ export type InitialInvoice = {
   buyerLegalName: string;
   buyerInn: string;
   buyerKpp: string;
+  buyerAddress: string;
+  buyerPhone: string;
   buyerBankName: string;
   buyerBik: string;
   buyerBankAccNo: string;
@@ -567,6 +571,8 @@ export function CreateInvoiceForm({
     buyerLegalName: "",
     buyerInn: "",
     buyerKpp: "",
+    buyerAddress: "",
+    buyerPhone: "",
     buyerBankName: "",
     buyerBik: "",
     buyerBankAccNo: "",
@@ -627,6 +633,8 @@ export function CreateInvoiceForm({
           buyerLegalName: initialInvoice.buyerLegalName,
           buyerInn: initialInvoice.buyerInn,
           buyerKpp: initialInvoice.buyerKpp,
+          buyerAddress: initialInvoice.buyerAddress,
+          buyerPhone: initialInvoice.buyerPhone,
           buyerBankName: initialInvoice.buyerBankName,
           buyerBik: initialInvoice.buyerBik,
           buyerBankAccNo: initialInvoice.buyerBankAccNo,
@@ -670,6 +678,8 @@ export function CreateInvoiceForm({
         buyerLegalName: le.name ?? "",
         buyerInn: le.inn ?? "",
         buyerKpp: le.kpp ?? "",
+        buyerAddress: le.legalAddress ?? "",
+        buyerPhone: le.phones ?? "",
         buyerBankName: le.bankName ?? "",
         buyerBik: le.bik ?? "",
         buyerBankAccNo: le.correspondentAccount ?? "",
@@ -880,6 +890,8 @@ export function CreateInvoiceForm({
                 ["buyerLegalName", "Наименование"],
                 ["buyerInn", "ИНН"],
                 ["buyerKpp", "КПП"],
+                ["buyerAddress", "Адрес"],
+                ["buyerPhone", "Телефон"],
                 ["buyerBankName", "Банк"],
                 ["buyerBik", "БИК"],
                 ["buyerBankAccNo", "Корр. счёт"],
@@ -909,6 +921,8 @@ export function CreateInvoiceForm({
           <input type="hidden" name="buyerLegalName" value="" />
           <input type="hidden" name="buyerInn" value="" />
           <input type="hidden" name="buyerKpp" value="" />
+          <input type="hidden" name="buyerAddress" value="" />
+          <input type="hidden" name="buyerPhone" value="" />
           <input type="hidden" name="buyerBankName" value="" />
           <input type="hidden" name="buyerBik" value="" />
           <input type="hidden" name="buyerBankAccNo" value="" />

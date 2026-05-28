@@ -150,6 +150,8 @@ export default async function InvoicesPage({
       name: le.name,
       inn: le.inn,
       kpp: le.kpp,
+      legalAddress: le.legalAddress,
+      phones: le.phones,
       bankName: le.bankName,
       bik: le.bik,
       checkingAccount: le.checkingAccount,

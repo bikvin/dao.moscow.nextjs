@@ -655,6 +655,8 @@ model Invoice {
   buyerLegalName  String @default("")
   buyerInn        String @default("")
   buyerKpp        String @default("")
+  buyerAddress    String @default("")
+  buyerPhone      String @default("")
   buyerBankName   String @default("")
   buyerBik        String @default("")
   buyerBankAccNo  String @default("")

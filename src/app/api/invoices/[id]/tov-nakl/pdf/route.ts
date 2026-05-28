@@ -83,6 +83,8 @@ export async function GET(
     buyerLegalName:  invoice.buyerLegalName,
     buyerInn:        invoice.buyerInn,
     buyerKpp:        invoice.buyerKpp,
+    buyerAddress:    invoice.buyerAddress,
+    buyerPhone:      invoice.buyerPhone,
     buyerBankName:   invoice.buyerBankName,
     buyerBik:        invoice.buyerBik,
     buyerBankAccNo:  invoice.buyerBankAccNo,
