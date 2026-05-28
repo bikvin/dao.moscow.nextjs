@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ChipSize, Price, PriceTypeEnum, PriceUnitEnum, Product, ProductGroup } from "@prisma/client";
 
 type ProductWithPrices = Product & { prices: Price[]; chipSize: ChipSize | null };
@@ -81,7 +82,7 @@ export function PriceListTable({
     }))
     .filter((group) => group.products.length > 0);
 
-  const cols = "grid-cols-[2fr_120px_80px_80px_1fr_1fr]";
+  const cols = "grid-cols-[40px_2fr_120px_80px_80px_1fr_1fr]";
 
   return (
     <>
@@ -96,6 +97,7 @@ export function PriceListTable({
       {/* Header */}
       <div className={`sticky top-0 bg-white z-10`}>
         <div className={`grid ${cols} gap-6 px-3 text-xs text-slate-400 border-b pb-2`}>
+          <div></div>
           <div>Товар</div>
           <div className="text-center">Размер сетки</div>
           <div className="text-center">Толщина</div>
@@ -124,6 +126,22 @@ export function PriceListTable({
                   key={product.id}
                   className={`grid ${cols} gap-6 px-3 py-2 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors items-center`}
                 >
+                  <div className="w-10 h-10 relative flex-shrink-0">
+                    {(() => {
+                      const imageFileName = JSON.parse(product.fileNamesArr)[0]?.name || null;
+                      return imageFileName ? (
+                        <Image
+                          src={`${process.env.NEXT_PUBLIC_AWS_S3_BUCKET_PROTOCOL}://${process.env.NEXT_PUBLIC_AWS_S3_BUCKET_LINK}/${product.imageGroupName}/${imageFileName}`}
+                          alt={product.sku}
+                          fill
+                          sizes="40px"
+                          className="object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded bg-slate-200" />
+                      );
+                    })()}
+                  </div>
                   <div className="text-sm font-medium">{product.sku}</div>
                   <div className="text-center text-sm text-slate-500">{product.width_mm}×{product.length_mm}мм</div>
                   <div className="text-center text-sm text-slate-500">{product.thickness_mm} мм</div>
