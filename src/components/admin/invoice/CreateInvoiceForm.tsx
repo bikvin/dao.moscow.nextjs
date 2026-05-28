@@ -2,6 +2,7 @@
 
 import { useFormState } from "react-dom";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   createInvoice,
   type CreateInvoiceFormState,
@@ -57,6 +58,22 @@ type SellerSettings = {
   sellerBik: string;
   sellerBankAccNo: string;
   sellerAccNo: string;
+};
+
+export type InitialOrder = {
+  id: string;
+  partnerId: string;
+  deliveryPriceRub: number;
+  discountPercent: number;
+  items: {
+    productId: string;
+    productVariantId: string;
+    quantity: number;
+    quantityM2: number | null;
+    priceUnit: PriceUnitEnum;
+    priceRub: number;
+    totalRub: number;
+  }[];
 };
 
 export type InitialInvoice = {
@@ -516,8 +533,10 @@ export function CreateInvoiceForm({
   usdRate,
   rmbRate,
   initialInvoice,
+  initialOrder,
   isOpen,
   onToggle,
+  onInvoiceTypeChange,
 }: {
   partners: PartnerOption[];
   orders: OrderOption[];
@@ -529,9 +548,12 @@ export function CreateInvoiceForm({
   usdRate: number | null;
   rmbRate: number | null;
   initialInvoice?: InitialInvoice;
+  initialOrder?: InitialOrder;
   isOpen?: boolean;
   onToggle?: () => void;
+  onInvoiceTypeChange?: (type: InvoiceTypeEnum) => void;
 }) {
+  const router = useRouter();
   const isEditMode = !!initialInvoice;
   const boundAction = isEditMode
     ? updateInvoice.bind(null, initialInvoice.id)
@@ -550,6 +572,24 @@ export function CreateInvoiceForm({
     buyerBankAccNo: "",
     buyerAccNo: "",
   };
+
+  function itemsFromOrder(order: InitialOrder): ItemState[] {
+    return order.items.map((item) => {
+      const priceRubStr = (item.priceRub / 100).toFixed(2);
+      const totalStr = (item.totalRub / 100).toFixed(2);
+      return {
+        productId: item.productId,
+        variantId: item.productVariantId,
+        quantity: item.quantity.toString(),
+        priceUnit: PriceUnitEnum.ITEM,
+        priceForUnit: item.priceUnit,
+        price: priceRubStr,
+        currency: CurrencyEnum.RUB,
+        priceRub: priceRubStr,
+        total: totalStr,
+      };
+    });
+  }
 
   function itemsFromInitial(inv: InitialInvoice): ItemState[] {
     return inv.items.map((item) => {
@@ -570,12 +610,14 @@ export function CreateInvoiceForm({
   }
 
   const [formKey, setFormKey] = useState(0);
-  const [partnerId, setPartnerId] = useState(initialInvoice?.partnerId ?? "");
+  const [partnerId, setPartnerId] = useState(initialInvoice?.partnerId ?? initialOrder?.partnerId ?? "");
   const [invoiceType, setInvoiceType] = useState<InvoiceTypeEnum>(
     initialInvoice?.invoiceType ?? defaultInvoiceType ?? InvoiceTypeEnum.CASH,
   );
   const [items, setItems] = useState<ItemState[]>(
-    initialInvoice ? itemsFromInitial(initialInvoice) : [{ ...EMPTY_ITEM }],
+    initialInvoice ? itemsFromInitial(initialInvoice)
+      : initialOrder ? itemsFromOrder(initialOrder)
+      : [{ ...EMPTY_ITEM }],
   );
   const [showSeller, setShowSeller] = useState(false);
 
@@ -598,12 +640,17 @@ export function CreateInvoiceForm({
       if (isEditMode) {
         onToggle?.();
       } else {
-        setFormKey((k) => k + 1);
-        setPartnerId("");
-        setInvoiceType(InvoiceTypeEnum.CASH);
-        setItems([{ ...EMPTY_ITEM }]);
-        setShowSeller(false);
-        setBuyer(EMPTY_BUYER);
+        const newId = formState.success.invoiceId;
+        if (newId) {
+          router.push(`/admin/invoices?tab=${invoiceType}&newInvoiceId=${newId}`, { scroll: false });
+        } else {
+          setFormKey((k) => k + 1);
+          setPartnerId("");
+          setInvoiceType(InvoiceTypeEnum.CASH);
+          setItems([{ ...EMPTY_ITEM }]);
+          setShowSeller(false);
+          setBuyer(EMPTY_BUYER);
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -652,6 +699,9 @@ export function CreateInvoiceForm({
 
   const formContent = (
     <form key={formKey} action={action}>
+      <h2 className="text-base font-semibold mb-4">
+        {isEditMode ? "Редактировать счет" : "Создать счет"}
+      </h2>
       {/* Header fields */}
       <div className="flex flex-wrap gap-4 mb-6">
         {isEditMode ? (
@@ -698,7 +748,11 @@ export function CreateInvoiceForm({
           <select
             name="invoiceType"
             value={invoiceType}
-            onChange={(e) => setInvoiceType(e.target.value as InvoiceTypeEnum)}
+            onChange={(e) => {
+              const t = e.target.value as InvoiceTypeEnum;
+              setInvoiceType(t);
+              onInvoiceTypeChange?.(t);
+            }}
             disabled={isEditMode}
             className="admin-form-input h-8 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -725,7 +779,7 @@ export function CreateInvoiceForm({
           </label>
           <select
             name="orderId"
-            defaultValue={initialInvoice?.orderId ?? ""}
+            defaultValue={initialInvoice?.orderId ?? initialOrder?.id ?? ""}
             className="admin-form-input h-8 text-sm w-40"
           >
             <option value="">— без заказа —</option>
@@ -771,7 +825,7 @@ export function CreateInvoiceForm({
             step="0.1"
             min="0"
             max="100"
-            defaultValue={initialInvoice?.discountPercent ?? 0}
+            defaultValue={initialInvoice?.discountPercent ?? initialOrder?.discountPercent ?? 0}
             className="admin-form-input h-8 text-sm w-20 text-right"
           />
         </div>
@@ -783,7 +837,9 @@ export function CreateInvoiceForm({
             step="0.01"
             min="0"
             defaultValue={
-              initialInvoice ? initialInvoice.deliveryPriceRub / 100 : 0
+              initialInvoice ? initialInvoice.deliveryPriceRub / 100
+                : initialOrder ? initialOrder.deliveryPriceRub / 100
+                : 0
             }
             className="admin-form-input h-8 text-sm w-28 text-right"
           />
@@ -992,6 +1048,7 @@ export function CreateInvoiceForm({
       label="Создать новый счёт"
       success={!!formState.success}
       showLabel
+      defaultOpen={!!initialOrder}
     >
       {formContent}
     </CollapsibleAddSection>

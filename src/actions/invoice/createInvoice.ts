@@ -7,7 +7,7 @@ import { InvoiceTypeEnum, PriceUnitEnum } from "@prisma/client";
 
 export interface CreateInvoiceFormState {
   errors?: { _form?: string[] };
-  success?: { message: string };
+  success?: { message: string; invoiceId: string | null };
 }
 
 const schema = z.object({
@@ -75,8 +75,9 @@ export async function createInvoice(
   const customSeqNumRaw = formData.get("invoiceNumber") as string;
   const customSeqNum = customSeqNumRaw ? parseInt(customSeqNumRaw, 10) : null;
 
+  let createdInvoiceId: string | null = null;
   try {
-    await db.$transaction(async (tx) => {
+    const txResult = await db.$transaction(async (tx) => {
       const invoiceType = result.data.invoiceType;
       const last = await tx.invoice.findFirst({
         where: { year, invoiceType },
@@ -139,7 +140,7 @@ export async function createInvoice(
       const totalRub =
         Math.round(itemsTotal * (1 - discountPercent / 100)) + deliveryPriceRub;
 
-      await tx.invoice.create({
+      const newInvoice = await tx.invoice.create({
         data: {
           year,
           sequenceNumber,
@@ -169,8 +170,11 @@ export async function createInvoice(
           orderId,
           items: { create: itemsData },
         },
+        select: { id: true },
       });
+      return newInvoice.id;
     });
+    createdInvoiceId = txResult;
   } catch (err: unknown) {
     return {
       errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] },
@@ -178,5 +182,5 @@ export async function createInvoice(
   }
 
   revalidatePath("/admin/invoices");
-  return { success: { message: "Счёт создан" } };
+  return { success: { message: "Счёт создан", invoiceId: createdInvoiceId } };
 }

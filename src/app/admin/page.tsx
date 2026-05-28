@@ -24,6 +24,7 @@ export default async function OrdersPage({
     orderType?: string;
     dateFrom?: string;
     dateTo?: string;
+    scrollToOrder?: string;
   };
 }) {
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
@@ -33,6 +34,7 @@ export default async function OrdersPage({
   const orderTypeFilter = searchParams.orderType ?? "";
   const dateFrom = searchParams.dateFrom ?? "";
   const dateTo = searchParams.dateTo ?? "";
+  const scrollToOrder = searchParams.scrollToOrder ?? null;
 
   // Start of previous month
   const now = new Date();
@@ -141,6 +143,16 @@ export default async function OrdersPage({
             productVariant: { select: { variantName: true } },
           },
         },
+        invoices: {
+          select: {
+            id: true,
+            sequenceNumber: true,
+            invoiceDate: true,
+            totalRub: true,
+            invoiceType: true,
+          },
+          orderBy: { sequenceNumber: "asc" },
+        },
       },
       orderBy: [{ year: "asc" }, { sequenceNumber: "asc" }],
       skip: (currentPage - 1) * PAGE_SIZE,
@@ -220,6 +232,7 @@ export default async function OrdersPage({
             paymentMethods={paymentMethods}
             usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
             rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
+            scrollToOrderId={scrollToOrder}
           />
 
           <Pagination

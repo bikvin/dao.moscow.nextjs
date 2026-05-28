@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, FileText } from "lucide-react";
 import { CreateOrderForm } from "./CreateOrderForm";
 import { type ProductOption } from "./AddOrderItemForm";
 import {
@@ -11,6 +11,7 @@ import {
   OrderTypeEnum,
   PriceUnitEnum,
   CurrencyEnum,
+  InvoiceTypeEnum,
 } from "@prisma/client";
 
 const COLS = "grid-cols-[72px_84px_156px_1fr_52px_72px_88px_96px]";
@@ -168,6 +169,7 @@ type Order = {
   reserves: OrderReserve[];
   issues: OrderIssue[];
   receipts: OrderReceipt[];
+  invoices: { id: string; sequenceNumber: number; invoiceDate: Date; totalRub: number; invoiceType: InvoiceTypeEnum }[];
 };
 
 type Option = { id: string; name: string };
@@ -178,14 +180,28 @@ type DeliveryMethodOption = {
 };
 type PartnerOption = { id: string; names: string[] };
 
-function OrderNumber({ order }: { order: Order }) {
+function OrderNumber({ order, rowSpan }: { order: Order; rowSpan?: number }) {
   return (
-    <div className="py-0.5">
+    <div
+      className="py-0.5 flex flex-col"
+      style={rowSpan && rowSpan > 1 ? { gridRow: `span ${rowSpan}` } : undefined}
+    >
       <div className="text-sm font-semibold">{order.sequenceNumber}</div>
       {order.orderType === "RETURN" && (
         <div className="text-xs text-slate-400">
           {ORDER_TYPE_CONFIG[order.orderType].label}
         </div>
+      )}
+      <div className="flex-1" />
+      {order.orderType === OrderTypeEnum.SALE && (
+        <Link
+          href={`/admin/invoices?fromOrderId=${order.id}`}
+          className="flex items-center gap-0.5 text-xs text-slate-400 hover:text-blue-500 leading-tight"
+          title="Создать счет"
+        >
+          <FileText className="w-3.5 h-3.5 shrink-0" />
+          <span>Создать счет</span>
+        </Link>
       )}
     </div>
   );
@@ -199,6 +215,7 @@ export function OrdersGrid({
   paymentMethods,
   usdRate,
   rmbRate,
+  scrollToOrderId,
 }: {
   orders: Order[];
   products: ProductOption[];
@@ -207,9 +224,17 @@ export function OrdersGrid({
   paymentMethods: Option[];
   usdRate: number | null;
   rmbRate: number | null;
+  scrollToOrderId?: string | null;
 }) {
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+  const scrollTargetRef = React.useRef<HTMLDivElement>(null);
   const shipmentDateColorMap = buildShipmentDateColorMap(orders);
+
+  React.useEffect(() => {
+    if (scrollToOrderId && scrollTargetRef.current) {
+      scrollTargetRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [scrollToOrderId]);
 
   // Group orders by year-month
   const monthGroups: { key: string; label: string; orders: typeof orders }[] =
@@ -284,13 +309,14 @@ export function OrdersGrid({
                 return (
                   <div
                     key={order.id}
-                    className="border rounded-md shadow-main overflow-hidden mb-3"
+                    ref={order.id === scrollToOrderId ? scrollTargetRef : undefined}
+                    className={`border rounded-md shadow-main overflow-hidden mb-3${order.id === scrollToOrderId ? " highlight-flash" : ""}`}
                     style={
                       order.status === "RESERVE" ||
                       order.status === "SHIPMENT_PLANNED" ||
                       order.status === "SELF_PICKUP"
-                        ? { backgroundColor: "#fff7da" }
-                        : undefined
+                        ? { "--card-bg": "#fff7da", backgroundColor: "#fff7da" } as React.CSSProperties
+                        : { "--card-bg": "#ffffff" } as React.CSSProperties
                     }
                   >
                     <div className="flex flex-col md:flex-row md:items-start">
@@ -317,11 +343,16 @@ export function OrdersGrid({
                           </>
                         ) : (
                           <>
-                            {order.items.map((item, idx) => (
+                            {(() => {
+                              const rowSpan =
+                                order.items.length +
+                                (order.discountPercent > 0 ? 1 : 0) +
+                                (order.deliveryPriceRub > 0 ? 1 : 0);
+                              return order.items.map((item, idx) => (
                               <React.Fragment key={item.id}>
                                 {idx === 0 ? (
                                   <>
-                                    <OrderNumber order={order} />
+                                    <OrderNumber order={order} rowSpan={rowSpan} />
                                     <div className="text-sm text-slate-600 py-0.5">
                                       {formatDate(order.orderDate)}
                                     </div>
@@ -331,7 +362,6 @@ export function OrdersGrid({
                                   </>
                                 ) : (
                                   <>
-                                    <E />
                                     <E />
                                     <E />
                                   </>
@@ -375,13 +405,13 @@ export function OrdersGrid({
                                     : formatRub(item.totalRub)}
                                 </div>
                               </React.Fragment>
-                            ))}
+                            ));
+                            })()}
                             {order.discountPercent > 0 && (() => {
                               const itemsSubtotal = order.items.reduce((s, i) => s + i.totalRub, 0);
                               const discountAmount = Math.round(itemsSubtotal * order.discountPercent / 100);
                               return (
                                 <>
-                                  <E />
                                   <E />
                                   <E />
                                   <div className="text-sm text-slate-500 italic py-0.5">
@@ -400,7 +430,6 @@ export function OrdersGrid({
                               <>
                                 <E />
                                 <E />
-                                <E />
                                 <div className="text-sm text-slate-500 italic py-0.5">
                                   {order.deliveryMethod?.name ?? "Доставка"}
                                 </div>
@@ -413,7 +442,7 @@ export function OrdersGrid({
                               </>
                             )}
                             <>
-                              <div className="flex items-center py-1 border-t border-slate-200">
+                              <div className="flex items-center gap-3 py-1 border-t border-slate-200">
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -611,6 +640,25 @@ export function OrdersGrid({
                                 Приход создан ({receipt.quantity} шт)
                               </Link>
                             ))}
+                          </div>
+                        )}
+                        {order.invoices.length > 0 && (
+                          <div className="flex flex-col gap-0.5 mt-0.5">
+                            {order.invoices.map((inv) => {
+                              const d = new Date(inv.invoiceDate);
+                              const date = `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getFullYear()).slice(-2)}`;
+                              const amount = Math.round(inv.totalRub / 100).toLocaleString("ru-RU");
+                              const type = inv.invoiceType === InvoiceTypeEnum.CASH ? "нал" : "безнал";
+                              return (
+                                <Link
+                                  key={inv.id}
+                                  href={`/admin/invoices?tab=${inv.invoiceType}&scrollToInvoiceId=${inv.id}`}
+                                  className="text-xs text-violet-600 hover:text-violet-800 hover:underline"
+                                >
+                                  Счет №{inv.sequenceNumber} от {date} {amount}р. {type}
+                                </Link>
+                              );
+                            })}
                           </div>
                         )}
                       </div>

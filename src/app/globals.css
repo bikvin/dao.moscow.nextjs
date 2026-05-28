@@ -76,6 +76,23 @@
   }
 }
 
+@keyframes highlight-fade {
+  0%, 10% {
+    background-color: rgba(252, 231, 243, 1);
+    outline: 1px solid rgba(236, 72, 153, 1);
+    outline-offset: -1px;
+  }
+  100% {
+    background-color: var(--card-bg, #ffffff);
+    outline: 1px solid rgba(236, 72, 153, 0);
+    outline-offset: -1px;
+  }
+}
+
+.highlight-flash {
+  animation: highlight-fade 6s ease-out forwards;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

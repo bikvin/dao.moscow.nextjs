@@ -7,14 +7,16 @@ export function CollapsibleAddSection({
   label,
   success,
   showLabel,
+  defaultOpen,
   children,
 }: {
   label: string;
   success?: boolean;
   showLabel?: boolean;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen ?? false);
 
   useEffect(() => {
     if (success) setOpen(false);

@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PriceUnitEnum, InvoiceTypeEnum } from "@prisma/client";
 import { Pencil } from "lucide-react";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deleteInvoice } from "@/actions/invoice/deleteInvoice";
-import { CreateInvoiceForm, type InitialInvoice } from "./CreateInvoiceForm";
+import { CreateInvoiceForm, type InitialInvoice, type InitialOrder } from "./CreateInvoiceForm";
 import { type ProductOption } from "@/components/admin/order/AddOrderItemForm";
 
 const COLS = "grid-cols-[72px_84px_148px_1fr_48px_68px_84px_88px]";
@@ -97,6 +99,13 @@ export function InvoicesGrid({
   rmbRate,
   nextCashSeqNum,
   nextBankSeqNum,
+  initialOrder,
+  initialInvoiceId,
+  scrollToInvoiceId,
+  newInvoiceId,
+  activeTab,
+  cashCount,
+  bankCount,
 }: {
   invoices: Invoice[];
   partners: PartnerOption[];
@@ -107,29 +116,67 @@ export function InvoicesGrid({
   rmbRate: number | null;
   nextCashSeqNum: number;
   nextBankSeqNum: number;
+  initialOrder?: InitialOrder | null;
+  initialInvoiceId?: string | null;
+  scrollToInvoiceId?: string | null;
+  newInvoiceId?: string | null;
+  activeTab: InvoiceTypeEnum;
+  cashCount: number;
+  bankCount: number;
 }) {
-  const [openInvoiceId, setOpenInvoiceId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<InvoiceTypeEnum>(InvoiceTypeEnum.CASH);
+  const initialInvoice = initialInvoiceId
+    ? invoices.find((inv) => inv.id === initialInvoiceId) ?? null
+    : null;
 
-  const filtered = invoices.filter((inv) => inv.invoiceType === activeTab);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [openInvoiceId, setOpenInvoiceId] = useState<string | null>(
+    initialInvoice?.id ?? null,
+  );
+  const createFormRef = React.useRef<HTMLDivElement>(null);
+  const editInvoiceRef = React.useRef<HTMLDivElement>(null);
+  const scrollInvoiceRef = React.useRef<HTMLDivElement>(null);
+  const newInvoiceRef = React.useRef<HTMLDivElement>(null);
 
-  const TAB_CONFIG: { type: InvoiceTypeEnum; label: string }[] = [
-    { type: InvoiceTypeEnum.CASH, label: "Наличные" },
-    { type: InvoiceTypeEnum.BANK, label: "Безналичные" },
+  React.useEffect(() => {
+    if (initialOrder && createFormRef.current) {
+      createFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [initialOrder]);
+
+  React.useEffect(() => {
+    if (initialInvoice && editInvoiceRef.current) {
+      editInvoiceRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [initialInvoice?.id]);
+
+  React.useEffect(() => {
+    if (scrollToInvoiceId && scrollInvoiceRef.current) {
+      scrollInvoiceRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [scrollToInvoiceId]);
+
+  React.useEffect(() => {
+    if (newInvoiceId && newInvoiceRef.current) {
+      newInvoiceRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [newInvoiceId]);
+
+  const TAB_CONFIG: { type: InvoiceTypeEnum; label: string; count: number }[] = [
+    { type: InvoiceTypeEnum.CASH, label: "Наличные", count: cashCount },
+    { type: InvoiceTypeEnum.BANK, label: "Безналичные", count: bankCount },
   ];
 
   return (
     <div className="mt-4">
       {/* Tabs */}
       <div className="flex gap-1 border-b border-slate-200 mb-4">
-        {TAB_CONFIG.map(({ type, label }) => {
-          const count = invoices.filter((inv) => inv.invoiceType === type).length;
+        {TAB_CONFIG.map(({ type, label, count }) => {
           const isActive = activeTab === type;
           return (
-            <button
+            <Link
               key={type}
-              type="button"
-              onClick={() => { setActiveTab(type); setOpenInvoiceId(null); }}
+              href={`/admin/invoices?tab=${type}`}
               className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 isActive
                   ? "border-blue-500 text-blue-600"
@@ -140,15 +187,15 @@ export function InvoicesGrid({
               <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${isActive ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-500"}`}>
                 {count}
               </span>
-            </button>
+            </Link>
           );
         })}
       </div>
 
-      {filtered.length === 0 && (
+      {invoices.length === 0 && (
         <p className="text-sm text-slate-400 mt-6">Счетов пока нет</p>
       )}
-      {filtered.length > 0 && <>
+      {invoices.length > 0 && <>
       {/* Sticky column headers */}
       <div className="hidden md:flex sticky top-0 bg-white z-10 border-b-2 border-slate-300 text-xs text-slate-400 mb-2 mx-px">
         <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 py-1.5`}>
@@ -165,7 +212,7 @@ export function InvoicesGrid({
       </div>
 
       <div className="flex flex-col">
-        {filtered.map((inv) => {
+        {invoices.map((inv) => {
           const partnerName =
             inv.partner.names.find((n) => n.isPrimary)?.name ??
             inv.partner.names[0]?.name ??
@@ -174,7 +221,8 @@ export function InvoicesGrid({
           return (
             <div
               key={inv.id}
-              className="relative border rounded-md shadow-main overflow-hidden mb-3"
+              ref={inv.id === initialInvoice?.id ? editInvoiceRef : inv.id === scrollToInvoiceId ? scrollInvoiceRef : inv.id === newInvoiceId ? newInvoiceRef : undefined}
+              className={`relative border rounded-md shadow-main overflow-hidden mb-3${inv.id === scrollToInvoiceId || inv.id === newInvoiceId ? " highlight-flash" : ""}`}
             >
               <div className="absolute top-2 right-2 z-10">
                 <DeleteItemButton
@@ -198,8 +246,12 @@ export function InvoicesGrid({
                 >
                   {inv.items.length === 0 ? (
                     <>
-                      <div className="py-0.5 text-sm font-semibold">
-                        {inv.sequenceNumber}
+                      <div className="py-0.5 text-sm font-semibold leading-tight">
+                        <div>{inv.sequenceNumber}</div>
+                        {inv.orderId && (() => {
+                          const o = orders.find((o) => o.id === inv.orderId);
+                          return o ? <Link href={`/admin?status=ALL&scrollToOrder=${inv.orderId}`} className="text-xs text-slate-400 font-normal hover:text-blue-500 hover:underline">зак. {o.sequenceNumber}</Link> : null;
+                        })()}
                       </div>
                       <div className="text-sm text-slate-600 py-0.5">
                         {formatDate(inv.invoiceDate)}
@@ -217,6 +269,10 @@ export function InvoicesGrid({
                             <>
                               <div className="py-0.5 text-sm font-semibold leading-tight">
                                 <div>{inv.sequenceNumber}</div>
+                                {inv.orderId && (() => {
+                                  const o = orders.find((o) => o.id === inv.orderId);
+                                  return o ? <Link href={`/admin?status=ALL&scrollToOrder=${inv.orderId}`} className="text-xs text-slate-400 font-normal hover:text-blue-500 hover:underline">зак. {o.sequenceNumber}</Link> : null;
+                                })()}
                               </div>
                               <div className="text-sm text-slate-600 py-0.5">
                                 {formatDate(inv.invoiceDate)}
@@ -481,9 +537,9 @@ export function InvoicesGrid({
       </div>
       </>}
 
-      <div className="mt-8 border-t border-slate-200 pt-2">
+      <div ref={createFormRef} className="mt-8 border-t border-slate-200 pt-2">
         <CreateInvoiceForm
-          key={activeTab}
+          key={initialOrder?.id ?? "new"}
           partners={partners}
           orders={orders}
           products={products}
@@ -493,6 +549,14 @@ export function InvoicesGrid({
           defaultInvoiceType={activeTab}
           usdRate={usdRate}
           rmbRate={rmbRate}
+          initialOrder={initialOrder ?? undefined}
+          onInvoiceTypeChange={(type) => {
+            const params = new URLSearchParams();
+            params.set("tab", type);
+            const fromOrderId = searchParams.get("fromOrderId");
+            if (fromOrderId) params.set("fromOrderId", fromOrderId);
+            router.push(`/admin/invoices?${params.toString()}`, { scroll: false });
+          }}
         />
       </div>
     </div>
