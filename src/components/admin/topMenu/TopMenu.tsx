@@ -197,7 +197,7 @@ export function TopMenu() {
     <header className="bg-green8  px-8">
       <div className="flex flex-col md:flex-row justify-between max-w-screen-lg mx-auto">
         <h3 className="font-bitter md:text-lg font-bold tracking-widest my-4">
-          Админка
+          <Link href="/admin">Админка</Link>
         </h3>
         <RxHamburgerMenu
           onClick={clickHandler}
