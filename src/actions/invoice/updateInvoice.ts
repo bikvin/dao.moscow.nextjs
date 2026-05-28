@@ -145,5 +145,5 @@ export async function updateInvoice(
   }
 
   revalidatePath("/admin/invoices");
-  return { success: { message: "Счёт обновлён" } };
+  return { success: { message: "Счёт обновлён", invoiceId: null } };
 }

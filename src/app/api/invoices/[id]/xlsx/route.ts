@@ -12,7 +12,7 @@ const THIN: { style: BorderStyle; color: { argb: string } } = { style: "thin", c
 const MEDIUM: { style: BorderStyle; color: { argb: string } } = { style: "medium", color: { argb: "FF000000" } };
 
 function allThin(): ExcelJS.Borders {
-  return { top: THIN, bottom: THIN, left: THIN, right: THIN };
+  return { top: THIN, bottom: THIN, left: THIN, right: THIN, diagonal: {} };
 }
 
 function applyBorder(cell: ExcelJS.Cell, borders: Partial<ExcelJS.Borders>) {

@@ -7,7 +7,7 @@ import { PriceUnitEnum, InvoiceTypeEnum } from "@prisma/client";
 import { Pencil } from "lucide-react";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deleteInvoice } from "@/actions/invoice/deleteInvoice";
-import { CreateInvoiceForm, type InitialInvoice, type InitialOrder } from "./CreateInvoiceForm";
+import { CreateInvoiceForm, type InitialOrder } from "./CreateInvoiceForm";
 import { type ProductOption } from "@/components/admin/order/AddOrderItemForm";
 
 const COLS = "grid-cols-[72px_84px_148px_1fr_48px_68px_84px_88px]";
@@ -148,7 +148,7 @@ export function InvoicesGrid({
     if (initialInvoice && editInvoiceRef.current) {
       editInvoiceRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, [initialInvoice?.id]);
+  }, [initialInvoice]);
 
   React.useEffect(() => {
     if (scrollToInvoiceId && scrollInvoiceRef.current) {

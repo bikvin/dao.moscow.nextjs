@@ -10,7 +10,7 @@ const MED:  ExcelJS.Border = { style: "medium" as BS, color: { argb: "FF000000" 
 function b(...sides: ("T"|"B"|"L"|"R")[]): ExcelJS.Borders {
   return { top: sides.includes("T")?THIN:undefined, bottom: sides.includes("B")?THIN:undefined, left: sides.includes("L")?THIN:undefined, right: sides.includes("R")?THIN:undefined } as ExcelJS.Borders;
 }
-function all(): ExcelJS.Borders { return { top: THIN, bottom: THIN, left: THIN, right: THIN }; }
+function all(): ExcelJS.Borders { return { top: THIN, bottom: THIN, left: THIN, right: THIN, diagonal: {} }; }
 
 const SELLER_FIELDS = ["sellerLegalName","sellerInn","sellerKpp","sellerAddress","sellerPhone","sellerBankName","sellerShortBankName","sellerBik","sellerBankAccNo","sellerAccNo"] as const;
 
@@ -39,7 +39,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     accNo:         sel(invoice.sellerAccNo,         "sellerAccNo"),
   };
 
-  const sellerStr = [seller.legalName, seller.inn?`ИНН ${seller.inn}`:"", seller.kpp?`КПП ${seller.kpp}`:"", seller.address||"", seller.phone?`тел.: ${seller.phone}`:"", seller.accNo?`р/с ${seller.accNo}`:"", seller.bankName?`в банке ${seller.bankName}`:"", seller.bik?`БИК ${seller.bik}`:"", seller.bankAccNo?`к/с ${seller.bankAccNo}`:""].filter(Boolean).join(", ");
+  const _sellerStr = [seller.legalName, seller.inn?`ИНН ${seller.inn}`:"", seller.kpp?`КПП ${seller.kpp}`:"", seller.address||"", seller.phone?`тел.: ${seller.phone}`:"", seller.accNo?`р/с ${seller.accNo}`:"", seller.bankName?`в банке ${seller.bankName}`:"", seller.bik?`БИК ${seller.bik}`:"", seller.bankAccNo?`к/с ${seller.bankAccNo}`:""].filter(Boolean).join(", ");
   const buyerStr  = [invoice.buyerLegalName, invoice.buyerInn?`ИНН ${invoice.buyerInn}`:"", invoice.buyerKpp?`КПП ${invoice.buyerKpp}`:"", invoice.buyerAccNo?`р/с ${invoice.buyerAccNo}`:"", invoice.buyerBankName?`в банке ${invoice.buyerBankName}`:"", invoice.buyerBik?`БИК ${invoice.buyerBik}`:"", invoice.buyerBankAccNo?`к/с ${invoice.buyerBankAccNo}`:""].filter(Boolean).join(", ");
 
   const totalKop = invoice.totalRub;
