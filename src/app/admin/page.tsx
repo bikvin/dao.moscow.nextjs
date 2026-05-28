@@ -64,7 +64,6 @@ export default async function OrdersPage({
           ...productWhere,
           ...orderTypeWhere,
           ...dateWhere,
-          NOT: { status: OrderStatusEnum.CANCELLED, paymentStatus: "NOT_PAID" as const },
           OR: [
             { orderDate: { gte: twoMonthsAgo } },
             {
@@ -76,7 +75,10 @@ export default async function OrdersPage({
                 ],
               },
             },
-            { paymentStatus: "NOT_PAID" as const },
+            {
+              paymentStatus: "NOT_PAID" as const,
+              NOT: { status: OrderStatusEnum.CANCELLED },
+            },
             { status: OrderStatusEnum.CANCELLED, paymentStatus: "PAID" as const },
           ],
         }
