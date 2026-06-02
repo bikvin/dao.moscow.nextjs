@@ -2,24 +2,28 @@ import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { YandexSyncButton } from "@/components/admin/yandex/YandexSyncButton";
 import { YandexPriceSyncButton } from "@/components/admin/yandex/YandexPriceSyncButton";
+import { YandexFetchOrdersButton } from "@/components/admin/yandex/YandexFetchOrdersButton";
 import { DefaultBufferForm } from "@/components/admin/yandex/DefaultBufferForm";
 import { DefaultDivisorForm } from "@/components/admin/yandex/DefaultDivisorForm";
 import { DefaultPriceMarkupForm } from "@/components/admin/yandex/DefaultPriceMarkupForm";
+import { CommissionRateForm } from "@/components/admin/yandex/CommissionRateForm";
 import Link from "next/link";
 import { YandexSyncStatusEnum } from "@prisma/client";
 
 export default async function YandexPage() {
-  const [lastLog, lastPriceLog, bufferSetting, divisorSetting, markupSetting] = await Promise.all([
+  const [lastLog, lastPriceLog, bufferSetting, divisorSetting, markupSetting, commissionRateSetting] = await Promise.all([
     db.yandexSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.yandexPriceSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.settings.findUnique({ where: { field: "yandexDefaultBuffer" } }),
     db.settings.findUnique({ where: { field: "yandexDefaultDivisor" } }),
     db.settings.findUnique({ where: { field: "yandexDefaultPriceMarkup" } }),
+    db.settings.findUnique({ where: { field: "yandexCommissionRate" } }),
   ]);
 
   const globalBuffer = bufferSetting ? parseInt(bufferSetting.value, 10) || 0 : 0;
   const globalDivisor = divisorSetting ? parseInt(divisorSetting.value, 10) : null;
   const globalPriceMarkup = markupSetting ? parseInt(markupSetting.value, 10) || 0 : 0;
+  const commissionRate = commissionRateSetting ? parseInt(commissionRateSetting.value, 10) : null;
 
   return (
     <>
@@ -100,13 +104,21 @@ export default async function YandexPage() {
           <div className="border rounded-md p-4 mt-8 shadow-main">
             <h2 className="text-lg font-medium mb-3">Настройки</h2>
             <p className="text-sm text-slate-500 mb-3">
-              Количество: <code className="bg-slate-100 px-1 rounded">floor((количество − буфер) / делитель)</code>. Цена: розничная × (1 + наценка / 100). Можно переопределить для каждого товара отдельно.
+              Количество: <code className="bg-slate-100 px-1 rounded">floor((количество − буфер) / делитель)</code>. Цена: розничная × (1 + наценка / 100). Комиссия используется для расчёта чистой выручки по заказам. Можно переопределить для каждого товара отдельно.
             </p>
             <div className="flex flex-col gap-3">
               <DefaultBufferForm current={globalBuffer} />
               <DefaultDivisorForm current={globalDivisor} />
               <DefaultPriceMarkupForm current={globalPriceMarkup} />
+              <CommissionRateForm current={commissionRate} />
             </div>
+          </div>
+
+          {/* Orders debug */}
+          <div className="border rounded-md p-4 mt-8 shadow-main">
+            <h2 className="text-lg font-medium mb-2">Заказы</h2>
+            <p className="text-sm text-slate-500 mb-3">Загрузить заказы за последние 30 дней (результат в консоли сервера).</p>
+            <YandexFetchOrdersButton />
           </div>
 
           {/* Navigation */}

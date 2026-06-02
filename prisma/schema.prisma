@@ -85,6 +85,12 @@ enum OrderTypeEnum {
   RETURN
 }
 
+enum OrderSourceEnum {
+  MANUAL
+  YANDEX
+  OZON
+}
+
 enum OrderStatusEnum {
   RESERVE
   SHIPMENT_PLANNED
@@ -593,14 +599,36 @@ model Order {
   paymentMethodId String?
   paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
 
+  source   OrderSourceEnum @default(MANUAL)
+
   items    OrderItem[]
   reserves ProductReserve[]
   issues   ProductIssue[]
   receipts ProductReceipt[]
   invoices Invoice[]
+  yandexData YandexOrderData?
 
   @@unique([year, sequenceNumber])
   @@index([partnerId])
+}
+
+model YandexOrderData {
+  id            String @id @default(uuid())
+  yandexOrderId String @unique
+
+  buyerTotal Int
+
+  feeRub             Float @default(0)
+  deliveryRub        Float @default(0)
+  expressDeliveryRub Float @default(0)
+  crossDeliveryRub   Float @default(0)
+  paymentTransferRub Float @default(0)
+  agencyRub          Float @default(0)
+  loyaltyFeeRub      Float @default(0)
+  sortingRub         Float @default(0)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model OrderItem {
