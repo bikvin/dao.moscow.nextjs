@@ -627,6 +627,8 @@ model YandexOrderData {
   loyaltyFeeRub      Float @default(0)
   sortingRub         Float @default(0)
 
+  feesSettled Boolean @default(false)
+
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
