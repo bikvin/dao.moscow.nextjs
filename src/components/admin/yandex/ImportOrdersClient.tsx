@@ -95,13 +95,14 @@ export function ImportOrdersClient({
   commissionRate: number;
   avgDelivery: number;
 }) {
-  const today = new Date().toISOString().split("T")[0];
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const thirtyDaysAgo = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)
     .toISOString()
     .split("T")[0];
 
   const [fromDate, setFromDate] = useState(thirtyDaysAgo);
-  const [toDate, setToDate] = useState(today);
+  const [toDate, setToDate] = useState(tomorrow);
+  const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
   const [candidates, setCandidates] = useState<OrderCandidate[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // variantSelections[yandexOrderId][offerId] = variantId
@@ -169,6 +170,7 @@ export function ImportOrdersClient({
           mappedStatus: c.mappedStatus,
           sellPrice: c.sellPrice,
           buyerTotal: c.buyerTotal,
+          subsidyTotal: c.subsidyTotal,
           fees: c.fees,
           feesSettled: c.feesSettled,
           // Only include items that have a product and variant selected
@@ -201,8 +203,15 @@ export function ImportOrdersClient({
     });
   }
 
-  const readyCandidates = candidates.filter((c) => isOrderReady(c, variantSelections));
-  const selectedReady = candidates.filter(
+  // Yandex statuses considered "active" — orders that need stock reserved and are not yet delivered
+  const ACTIVE_STATUSES = new Set(["PENDING", "UNPAID", "PROCESSING", "RESERVED"]);
+  const visibleCandidates =
+    statusFilter === "active"
+      ? candidates.filter((c) => ACTIVE_STATUSES.has(c.yandexStatus))
+      : candidates;
+
+  const readyCandidates = visibleCandidates.filter((c) => isOrderReady(c, variantSelections));
+  const selectedReady = visibleCandidates.filter(
     (c) => selectedIds.has(c.yandexOrderId) && isOrderReady(c, variantSelections)
   );
   const selectedSellTotal = selectedReady.reduce((s, c) => s + c.sellPrice, 0);
@@ -233,6 +242,17 @@ export function ImportOrdersClient({
             className="admin-form-input text-sm"
           />
         </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Статус</label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "active" | "all")}
+            className="admin-form-input text-sm"
+          >
+            <option value="active">Активные</option>
+            <option value="all">Все</option>
+          </select>
+        </div>
         <button
           type="button"
           onClick={handleFetch}
@@ -250,14 +270,23 @@ export function ImportOrdersClient({
       {/* Results */}
       {hasFetched && (
         <div className="mt-6">
-          {candidates.length === 0 ? (
-            <p className="text-slate-500 text-sm">Нет новых заказов за выбранный период</p>
+          {visibleCandidates.length === 0 ? (
+            <p className="text-slate-500 text-sm">
+              {candidates.length === 0
+                ? "Нет новых заказов за выбранный период"
+                : "Нет заказов с активным статусом — переключите фильтр на «Все»"}
+            </p>
           ) : (
             <>
               {/* Summary bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <p className="text-sm text-slate-500">
-                  Найдено {candidates.length} заказов, готовы к импорту: {readyCandidates.length}
+                  Найдено {visibleCandidates.length} заказов, готовы к импорту: {readyCandidates.length}
+                  {statusFilter === "active" && candidates.length > visibleCandidates.length && (
+                    <span className="ml-2 text-slate-400">
+                      ({candidates.length - visibleCandidates.length} скрыто фильтром)
+                    </span>
+                  )}
                 </p>
                 {selectedReady.length > 0 && (
                   <p className="text-sm font-medium">
@@ -270,7 +299,7 @@ export function ImportOrdersClient({
 
               {/* Order cards */}
               <div className="flex flex-col gap-3">
-                {candidates.map((c) => {
+                {visibleCandidates.map((c) => {
                   const ready = isOrderReady(c, variantSelections);
                   const net = calcNet(c, commissionRate, avgDelivery);
                   const isSelected = selectedIds.has(c.yandexOrderId);
@@ -320,7 +349,8 @@ export function ImportOrdersClient({
                       {/* Fee breakdown */}
                       <div className="mt-2 pl-7 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
                         <span>Покупатель заплатил: {fmt(c.buyerTotal)} ₽</span>
-                        <span>Продажная цена (до скидки): {fmt(c.sellPrice)} ₽</span>
+                        {c.subsidyTotal > 0 && <span>Субсидия Яндекс: +{fmt(c.subsidyTotal)} ₽</span>}
+                        <span>Выручка продавца: {fmt(c.sellPrice)} ₽</span>
                         <span>Комиссия ({commissionRate}%): −{fmt(Math.round((c.sellPrice * commissionRate) / 100))} ₽</span>
                         {c.feesSettled ? (
                           <>

@@ -64,10 +64,10 @@ export async function fetchOrdersAction(
   _formData: FormData
 ): Promise<FetchOrdersState> {
   try {
-    // Fetch April orders (settled and paid out by now)
+    // Fetch last 30 days
     const orders = (await fetchYandexOrders({
-      fromDate: new Date("2026-04-01"),
-      toDate: new Date("2026-04-30"),
+      fromDate: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000),
+      toDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
     })) as YandexOrder[];
     const nonFake = orders.filter((o) => !o.fake);
 
@@ -91,8 +91,10 @@ export async function fetchOrdersAction(
 
       console.log(
         `\nOrder ${o.id} | ${o.creationDate} | ${o.status}` +
-        `\n  buyerPaid:      ${o.buyerTotal} ₽` +
-        `\n  gross (before discount): ${grossBeforeCommission} ₽  subsidy: ${subsidy} ₽` +
+        `\n  itemsTotal:              ${o.itemsTotal} ₽` +
+        `\n  buyerTotalBeforeDiscount:${grossBeforeCommission} ₽` +
+        `\n  buyerTotal (paid):       ${o.buyerTotal} ₽` +
+        `\n  subsidy:                 ${subsidy} ₽` +
         `\n  FEE commission: ${fee ?? "n/a"} ₽` +
         `\n  delivery cost:  ${delivery ?? "n/a"} ₽` +
         `\n  express delivery: ${expressDelivery ?? "n/a"} ₽` +

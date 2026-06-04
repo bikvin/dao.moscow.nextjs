@@ -616,7 +616,8 @@ model YandexOrderData {
   id            String @id @default(uuid())
   yandexOrderId String @unique
 
-  buyerTotal Int
+  buyerTotal   Int
+  subsidyTotal Float @default(0)
 
   feeRub             Float @default(0)
   deliveryRub        Float @default(0)

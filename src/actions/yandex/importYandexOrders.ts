@@ -34,8 +34,9 @@ export type ImportOrder = {
   yandexOrderId: string;
   orderDate: string;
   mappedStatus: OrderStatusEnum;
-  sellPrice: number;   // buyerTotalBeforeDiscount in rubles — stored as Order.totalRub (×100 kopecks)
-  buyerTotal: number;  // actual buyer payment in rubles — stored in YandexOrderData
+  sellPrice: number;    // buyerTotal + subsidyTotal — actual seller payout basis, stored as Order.totalRub (×100 kopecks)
+  buyerTotal: number;   // actual buyer payment in rubles — stored in YandexOrderData
+  subsidyTotal: number; // Yandex-funded discount reimbursed to seller — stored in YandexOrderData
   fees: CandidateFees;
   feesSettled: boolean;
   items: ImportOrderItem[];
@@ -105,6 +106,7 @@ export async function importYandexOrders(
           data: {
             yandexOrderId: order.yandexOrderId,
             buyerTotal: order.buyerTotal,
+            subsidyTotal: order.subsidyTotal,
             feeRub: order.fees.feeRub,
             deliveryRub: order.fees.deliveryRub,
             expressDeliveryRub: order.fees.expressDeliveryRub,

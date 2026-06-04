@@ -18,8 +18,9 @@ type YandexOrder = {
   id: number;
   status: string;
   creationDate: string;
-  buyerTotal: number;                // actual buyer payment after discounts
-  buyerTotalBeforeDiscount: number;  // full sell price — used as order total
+  buyerTotal: number;                // actual buyer payment after all discounts
+  buyerTotalBeforeDiscount: number;  // listed retail price before any discount
+  subsidies?: { type: string; amount: number }[]; // Yandex-funded discounts reimbursed to seller
   fake: boolean;
   items: YandexOrderItem[];
 };
@@ -64,8 +65,9 @@ export type OrderCandidate = {
   orderDate: string;
   yandexStatus: string;
   mappedStatus: OrderStatusEnum;
-  sellPrice: number;    // buyerTotalBeforeDiscount — gross revenue, used as order total
-  buyerTotal: number;   // actual buyer payment, stored in YandexOrderData for reference
+  sellPrice: number;    // buyerTotal + subsidyTotal — actual seller payout basis
+  buyerTotal: number;   // what the buyer paid out of pocket
+  subsidyTotal: number; // Yandex-funded discount reimbursed to seller
   fees: CandidateFees;
   // true if the stats API returned commission data (order is settled by Yandex).
   // false for new orders — net will be shown as an estimate using stored commission rate.
@@ -158,13 +160,16 @@ export async function fetchOrderCandidates(
       // feesSettled = true only if Yandex returned commission data for this order
       const feesSettled = (stat?.commissions?.length ?? 0) > 0;
 
+      const subsidyTotal = order.subsidies?.reduce((s, x) => s + x.amount, 0) ?? 0;
+
       return {
         yandexOrderId: String(order.id),
         orderDate: order.creationDate,
         yandexStatus: order.status,
         mappedStatus: STATUS_MAP[order.status] ?? OrderStatusEnum.RESERVE,
-        sellPrice: order.buyerTotalBeforeDiscount,
+        sellPrice: order.buyerTotal + subsidyTotal,
         buyerTotal: order.buyerTotal,
+        subsidyTotal,
         feesSettled,
         fees: {
           feeRub: getFee(stat, "FEE"),
