@@ -5,23 +5,7 @@ import type { OrderCandidate } from "@/actions/yandex/fetchOrderCandidates";
 import { fetchOrderCandidates } from "@/actions/yandex/fetchOrderCandidates";
 import type { ImportOrder } from "@/actions/yandex/importYandexOrders";
 import { importYandexOrders } from "@/actions/yandex/importYandexOrders";
-import { OrderStatusEnum } from "@prisma/client";
 
-const STATUS_LABELS: Record<string, string> = {
-  [OrderStatusEnum.RESERVE]: "Резерв",
-  [OrderStatusEnum.SHIPMENT_PLANNED]: "Передан в доставку",
-  [OrderStatusEnum.SHIPPED]: "Доставлен",
-  [OrderStatusEnum.SELF_PICKUP]: "Самовывоз",
-  [OrderStatusEnum.CANCELLED]: "Отменён",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  [OrderStatusEnum.RESERVE]: "bg-blue-100 text-blue-700",
-  [OrderStatusEnum.SHIPMENT_PLANNED]: "bg-yellow-100 text-yellow-700",
-  [OrderStatusEnum.SHIPPED]: "bg-emerald-100 text-emerald-700",
-  [OrderStatusEnum.SELF_PICKUP]: "bg-purple-100 text-purple-700",
-  [OrderStatusEnum.CANCELLED]: "bg-slate-100 text-slate-500",
-};
 
 // Calculates estimated net revenue for an order.
 // If fees are settled (exact data from stats API): use actual fee breakdown.
@@ -102,7 +86,7 @@ export function ImportOrdersClient({
 
   const [fromDate, setFromDate] = useState(thirtyDaysAgo);
   const [toDate, setToDate] = useState(tomorrow);
-  const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [candidates, setCandidates] = useState<OrderCandidate[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // variantSelections[yandexOrderId][offerId] = variantId
@@ -130,14 +114,7 @@ export function ImportOrdersClient({
       const sels = buildInitialSelections(result.candidates);
       setVariantSelections(sels);
       setCandidates(result.candidates);
-      // Auto-select all orders that are ready after initial variant resolution
-      setSelectedIds(
-        new Set(
-          result.candidates
-            .filter((c) => isOrderReady(c, sels))
-            .map((c) => c.yandexOrderId)
-        )
-      );
+      setSelectedIds(new Set());
       setHasFetched(true);
     });
   }
@@ -203,12 +180,15 @@ export function ImportOrdersClient({
     });
   }
 
-  // Yandex statuses considered "active" — orders that need stock reserved and are not yet delivered
+  // "Active" mapped statuses — orders that need stock reserved and are not yet completed
+  // "Active" Yandex statuses — orders that need stock reserved and are not yet completed
   const ACTIVE_STATUSES = new Set(["PENDING", "UNPAID", "PROCESSING", "RESERVED"]);
   const visibleCandidates =
-    statusFilter === "active"
+    statusFilter === "all"
+      ? candidates
+      : statusFilter === "active"
       ? candidates.filter((c) => ACTIVE_STATUSES.has(c.yandexStatus))
-      : candidates;
+      : candidates.filter((c) => c.yandexStatus === statusFilter);
 
   const readyCandidates = visibleCandidates.filter((c) => isOrderReady(c, variantSelections));
   const selectedReady = visibleCandidates.filter(
@@ -246,11 +226,25 @@ export function ImportOrdersClient({
           <label className="text-xs text-slate-500">Статус</label>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "active" | "all")}
+            onChange={(e) => setStatusFilter(e.target.value)}
             className="admin-form-input text-sm"
           >
             <option value="active">Активные</option>
             <option value="all">Все</option>
+            <optgroup label="По статусу Яндекс">
+              <option value="PENDING">PENDING</option>
+              <option value="UNPAID">UNPAID</option>
+              <option value="PROCESSING">PROCESSING</option>
+              <option value="RESERVED">RESERVED</option>
+              <option value="DELIVERY">DELIVERY</option>
+              <option value="PICKUP">PICKUP</option>
+              <option value="DELIVERED">DELIVERED</option>
+              <option value="CANCELLED">CANCELLED</option>
+              <option value="CANCELLED_IN_DELIVERY">CANCELLED_IN_DELIVERY</option>
+              <option value="RETURNED">RETURNED</option>
+              <option value="RETURNED_PART">RETURNED_PART</option>
+              <option value="LOST">LOST</option>
+            </optgroup>
           </select>
         </div>
         <button
@@ -328,12 +322,8 @@ export function ImportOrdersClient({
                         <span className="text-sm text-slate-500">
                           {c.orderDate.slice(0, 10)}
                         </span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            STATUS_COLORS[c.mappedStatus] ?? "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {STATUS_LABELS[c.mappedStatus] ?? c.mappedStatus}
+                        <span className="text-xs text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded-full">
+                          {c.yandexStatus}
                         </span>
                         <span className="ml-auto text-sm font-medium">
                           {fmt(c.sellPrice)} ₽
