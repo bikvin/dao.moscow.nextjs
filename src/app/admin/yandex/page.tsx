@@ -8,11 +8,13 @@ import { DefaultDivisorForm } from "@/components/admin/yandex/DefaultDivisorForm
 import { DefaultPriceMarkupForm } from "@/components/admin/yandex/DefaultPriceMarkupForm";
 import { CommissionRateForm } from "@/components/admin/yandex/CommissionRateForm";
 import { AverageDeliveryForm } from "@/components/admin/yandex/AverageDeliveryForm";
+import { EstimateDeliveryButton } from "@/components/admin/yandex/EstimateDeliveryButton";
+import { YandexPartnerForm } from "@/components/admin/yandex/YandexPartnerForm";
 import Link from "next/link";
 import { YandexSyncStatusEnum } from "@prisma/client";
 
 export default async function YandexPage() {
-  const [lastLog, lastPriceLog, bufferSetting, divisorSetting, markupSetting, commissionRateSetting, avgDeliverySetting] = await Promise.all([
+  const [lastLog, lastPriceLog, bufferSetting, divisorSetting, markupSetting, commissionRateSetting, avgDeliverySetting, partnerIdSetting, partners] = await Promise.all([
     db.yandexSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.yandexPriceSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.settings.findUnique({ where: { field: "yandexDefaultBuffer" } }),
@@ -20,6 +22,11 @@ export default async function YandexPage() {
     db.settings.findUnique({ where: { field: "yandexDefaultPriceMarkup" } }),
     db.settings.findUnique({ where: { field: "yandexCommissionRate" } }),
     db.settings.findUnique({ where: { field: "yandexAverageDeliveryRub" } }),
+    db.settings.findUnique({ where: { field: "yandexPartnerId" } }),
+    db.partner.findMany({
+      include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   const globalBuffer = bufferSetting ? parseInt(bufferSetting.value, 10) || 0 : 0;
@@ -27,6 +34,11 @@ export default async function YandexPage() {
   const globalPriceMarkup = markupSetting ? parseInt(markupSetting.value, 10) || 0 : 0;
   const commissionRate = commissionRateSetting ? parseInt(commissionRateSetting.value, 10) : null;
   const averageDelivery = avgDeliverySetting ? parseInt(avgDeliverySetting.value, 10) : null;
+  const currentPartnerId = partnerIdSetting?.value ?? null;
+  const partnerOptions = partners.map((p) => ({
+    id: p.id,
+    name: p.names[0]?.name ?? p.id,
+  }));
 
   return (
     <>
@@ -107,7 +119,7 @@ export default async function YandexPage() {
           <div className="border rounded-md p-4 mt-8 shadow-main">
             <h2 className="text-lg font-medium mb-3">Настройки</h2>
             <p className="text-sm text-slate-500 mb-3">
-              Количество: <code className="bg-slate-100 px-1 rounded">floor((количество − буфер) / делитель)</code>. Цена: розничная × (1 + наценка / 100). Комиссия используется для расчёта чистой выручки по заказам. Можно переопределить для каждого товара отдельно.
+              Количество: <code className="bg-slate-100 px-1 rounded">floor((количество − буфер) / делитель)</code>. Цена: розничная × (1 + наценка / 100). Комиссия используется для расчёта чистой выручки по заказам. Средняя доставка — стоимость за единицу товара (умножается на количество единиц в заказе). Можно переопределить для каждого товара отдельно.
             </p>
             <div className="flex flex-col gap-3">
               <DefaultBufferForm current={globalBuffer} />
@@ -115,6 +127,8 @@ export default async function YandexPage() {
               <DefaultPriceMarkupForm current={globalPriceMarkup} />
               <CommissionRateForm current={commissionRate} />
               <AverageDeliveryForm current={averageDelivery} />
+              <EstimateDeliveryButton />
+              <YandexPartnerForm partners={partnerOptions} currentPartnerId={currentPartnerId} />
             </div>
           </div>
 
@@ -127,6 +141,9 @@ export default async function YandexPage() {
 
           {/* Navigation */}
           <div className="flex gap-4 mt-8 flex-wrap">
+            <Link className="link-button link-button-green" href="/admin/yandex/import-orders">
+              Импорт заказов
+            </Link>
             <Link className="link-button link-button-green" href="/admin/yandex/mappings">
               Маппинг товаров
             </Link>

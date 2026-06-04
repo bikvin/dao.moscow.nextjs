@@ -64,5 +64,13 @@ Forms use FormData with server actions. Pattern:
 ### Path Aliases
 Use `@/*` for imports from `src/` directory (configured in tsconfig.json)
 
+## Code Comments
+
+Every function must have a comment explaining what it does. Place the comment directly above the function. The comment should describe:
+- What the function does (not just restate the name)
+- Any non-obvious logic, business rules, or edge cases handled inside
+
+This applies to all files: server actions, React components, utility functions, and helpers.
+
 ## Language
 Application UI and validation messages are in **Russian**.

@@ -9,7 +9,7 @@ export function AverageDeliveryForm({ current }: { current: number | null }) {
 
   return (
     <form action={action} className="flex items-center gap-3">
-      <label className="text-sm text-slate-600">Средняя стоимость доставки (₽):</label>
+      <label className="text-sm text-slate-600">Средняя стоимость доставки за единицу (₽/шт):</label>
       <input
         name="averageDelivery"
         type="number"

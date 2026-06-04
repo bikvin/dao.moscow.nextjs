@@ -4,22 +4,26 @@ import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import type { BufferFormState } from "./types";
 
-export async function saveDefaultDivisor(
+export async function saveYandexPartner(
   _formState: BufferFormState,
   formData: FormData
 ): Promise<BufferFormState> {
-  const raw = formData.get("divisor");
-  const value = parseInt(raw?.toString() ?? "3", 10);
+  const value = formData.get("partnerId")?.toString() ?? "";
 
-  if (isNaN(value) || value < 1) {
-    return { errors: { _form: ["Укажите корректное число ≥ 1"] } };
+  if (!value) {
+    return { errors: { _form: ["Выберите партнёра"] } };
+  }
+
+  const exists = await db.partner.findUnique({ where: { id: value }, select: { id: true } });
+  if (!exists) {
+    return { errors: { _form: ["Партнёр не найден"] } };
   }
 
   try {
     await db.settings.upsert({
-      where: { field: "yandexDefaultDivisor" },
-      update: { value: String(value) },
-      create: { field: "yandexDefaultDivisor", value: String(value) },
+      where: { field: "yandexPartnerId" },
+      update: { value },
+      create: { field: "yandexPartnerId", value },
     });
   } catch (err: unknown) {
     return {

@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
-import { BufferFormState } from "./saveDefaultBuffer";
+import type { BufferFormState } from "./types";
 
 export async function saveAverageDelivery(
   _formState: BufferFormState,

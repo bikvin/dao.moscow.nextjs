@@ -2,11 +2,7 @@
 
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
-
-export interface BufferFormState {
-  errors?: { _form?: string[] };
-  success?: { message: string };
-}
+import type { BufferFormState } from "./types";
 
 export async function saveDefaultBuffer(
   _formState: BufferFormState,

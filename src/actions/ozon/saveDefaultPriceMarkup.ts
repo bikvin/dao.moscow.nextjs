@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
-import { BufferFormState } from "@/actions/yandex/saveDefaultBuffer";
+import type { BufferFormState } from "@/actions/yandex/types";
 
 export async function saveOzonDefaultPriceMarkup(
   _formState: BufferFormState,
