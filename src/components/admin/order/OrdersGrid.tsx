@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Pencil, FileText } from "lucide-react";
 import { CreateOrderForm } from "./CreateOrderForm";
 import { type ProductOption } from "./AddOrderItemForm";
+import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
+import { deleteOrder } from "@/actions/order/deleteOrder";
 import {
   OrderStatusEnum,
   PaymentStatusEnum,
@@ -574,6 +576,17 @@ export function OrdersGrid({
 
                       {/* Badges */}
                       <div className="relative md:w-44 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-100 px-3 py-2 flex flex-row flex-wrap md:flex-col gap-1">
+                        <div className="absolute top-2 right-2">
+                          <DeleteItemButton
+                            action={deleteOrder}
+                            fields={{ id: order.id }}
+                            message={
+                              order.invoices.length > 0
+                                ? `Удалить заказ №${order.sequenceNumber}/${order.year}? Связанные счета (${order.invoices.length} шт.) останутся, но будут откреплены от заказа.`
+                                : `Удалить заказ №${order.sequenceNumber}/${order.year}?`
+                            }
+                          />
+                        </div>
                         <div className="flex flex-col gap-1">
                           <Badge
                             label={
