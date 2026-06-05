@@ -75,6 +75,14 @@ export type OrderCandidate = {
   items: CandidateItem[];
 };
 
+// Converts a Yandex date string (DD-MM-YYYY HH:MM:SS) to an ISO 8601 string (YYYY-MM-DDTHH:MM:SS)
+// so that new Date() parses it correctly regardless of locale.
+function parseYandexDate(dateStr: string): string {
+  const [datePart, timePart] = dateStr.split(" ");
+  const [dd, mm, yyyy] = datePart.split("-");
+  return `${yyyy}-${mm}-${dd}${timePart ? "T" + timePart : ""}`;
+}
+
 // Fetches financial stats from Yandex stats/orders API for a batch of order IDs.
 // The stats API only returns data for settled orders. For orders still in transit,
 // the commissions array will be empty (feesSettled = false).
@@ -164,7 +172,7 @@ export async function fetchOrderCandidates(
 
       return {
         yandexOrderId: String(order.id),
-        orderDate: order.creationDate,
+        orderDate: parseYandexDate(order.creationDate),
         yandexStatus: order.status,
         mappedStatus: STATUS_MAP[order.status] ?? OrderStatusEnum.RESERVE,
         sellPrice: order.buyerTotal + subsidyTotal,

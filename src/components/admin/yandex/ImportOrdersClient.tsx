@@ -330,9 +330,11 @@ export function ImportOrdersClient({
                         </span>
                         <span
                           className={`text-sm ${net.exact ? "text-emerald-700 font-medium" : "text-slate-500"}`}
-                          title={net.exact ? "Точное значение" : "Оценка: комиссия + средняя доставка"}
                         >
                           {net.exact ? "" : "~"}{fmt(net.value)} ₽ чистыми
+                          <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded font-normal ${net.exact ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
+                            {net.exact ? "факт" : "оценка"}
+                          </span>
                         </span>
                       </div>
 
