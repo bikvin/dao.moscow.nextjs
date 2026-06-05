@@ -274,19 +274,41 @@ export function ImportOrdersClient({
             <>
               {/* Summary bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <p className="text-sm text-slate-500">
-                  Найдено {visibleCandidates.length} заказов, готовы к импорту: {readyCandidates.length}
-                  {statusFilter === "active" && candidates.length > visibleCandidates.length && (
-                    <span className="ml-2 text-slate-400">
-                      ({candidates.length - visibleCandidates.length} скрыто фильтром)
-                    </span>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-slate-500">
+                    Найдено {visibleCandidates.length} заказов, готовы к импорту: {readyCandidates.length}
+                    {statusFilter === "active" && candidates.length > visibleCandidates.length && (
+                      <span className="ml-2 text-slate-400">
+                        ({candidates.length - visibleCandidates.length} скрыто фильтром)
+                      </span>
+                    )}
+                  </p>
+                  {readyCandidates.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedIds(
+                          selectedReady.length === readyCandidates.length
+                            ? new Set()
+                            : new Set(readyCandidates.map((c) => c.yandexOrderId))
+                        )
+                      }
+                      className="text-xs text-blue-500 hover:text-blue-700 underline"
+                    >
+                      {selectedReady.length === readyCandidates.length ? "Снять всё" : "Выбрать всё"}
+                    </button>
                   )}
-                </p>
+                </div>
                 {selectedReady.length > 0 && (
                   <p className="text-sm font-medium">
                     Выбрано: {selectedReady.length} заказов —{" "}
                     {fmt(selectedSellTotal)} ₽ продажи,{" "}
                     ~{fmt(selectedNetTotal)} ₽ чистыми
+                    {selectedSellTotal > 0 && (
+                      <span className="ml-1.5 text-slate-400 font-normal">
+                        ({(100 * (selectedSellTotal - selectedNetTotal) / selectedSellTotal).toFixed(1)}% издержки)
+                      </span>
+                    )}
                   </p>
                 )}
               </div>
@@ -335,6 +357,11 @@ export function ImportOrdersClient({
                           <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded font-normal ${net.exact ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
                             {net.exact ? "факт" : "оценка"}
                           </span>
+                          {c.sellPrice > 0 && (
+                            <span className="ml-1.5 text-xs text-slate-400">
+                              ({(100 * (c.sellPrice - net.value) / c.sellPrice).toFixed(1)}% издержки)
+                            </span>
+                          )}
                         </span>
                       </div>
 
