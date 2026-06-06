@@ -24,7 +24,10 @@ type YandexOrder = {
   subsidies?: { type: string; amount: number }[]; // Yandex-funded discounts reimbursed to seller
   fake: boolean;
   items: YandexOrderItem[];
-  delivery?: { region?: { name?: string } };
+  delivery?: {
+    region?: { name?: string };
+    shipments?: { shipmentDate?: string }[];
+  };
 };
 
 type OrderStat = {
@@ -72,7 +75,8 @@ export type OrderCandidate = {
   buyerTotal: number;             // what the buyer paid out of pocket
   subsidyTotal: number;           // Yandex-funded discount reimbursed to seller
   buyerTotalBeforeDiscount: number; // sum of item.priceBeforeDiscount × count — commission basis
-  deliveryCity: string | null;    // delivery region name from Yandex API
+  deliveryCity: string | null;      // delivery region name from Yandex API
+  shipmentDate: string | null;      // date Yandex expects handoff to warehouse (DD-MM-YYYY)
   fees: CandidateFees;
   // true if the stats API returned commission data (order is settled by Yandex).
   // false for new orders — net will be shown as an estimate using stored commission rate.
@@ -185,6 +189,7 @@ export async function fetchOrderCandidates(
         subsidyTotal,
         buyerTotalBeforeDiscount: order.buyerTotalBeforeDiscount,
         deliveryCity: order.delivery?.region?.name ?? null,
+        shipmentDate: order.delivery?.shipments?.[0]?.shipmentDate ?? null,
         feesSettled,
         fees: {
           feeRub: getFee(stat, "FEE"),

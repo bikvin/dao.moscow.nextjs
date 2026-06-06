@@ -1,13 +1,14 @@
 import { OrderStatusEnum } from "@prisma/client";
 
 // Maps Yandex order statuses to our internal OrderStatusEnum.
-// DELIVERED → SHIPPED (manager manually confirms physical shipment later).
-// All in-progress statuses → RESERVE (creates a stock reserve on import).
+// DELIVERED → SHIPPED.
+// All in-progress statuses (PROCESSING, DELIVERY, etc.) → SHIPMENT_PLANNED with a planned date badge.
+// PICKUP → SELF_PICKUP.
 export const STATUS_MAP: Record<string, OrderStatusEnum> = {
-  PROCESSING: OrderStatusEnum.RESERVE,
-  PENDING: OrderStatusEnum.RESERVE,
-  RESERVED: OrderStatusEnum.RESERVE,
-  UNPAID: OrderStatusEnum.RESERVE,
+  PROCESSING: OrderStatusEnum.SHIPMENT_PLANNED,
+  PENDING: OrderStatusEnum.SHIPMENT_PLANNED,
+  RESERVED: OrderStatusEnum.SHIPMENT_PLANNED,
+  UNPAID: OrderStatusEnum.SHIPMENT_PLANNED,
   DELIVERY: OrderStatusEnum.SHIPMENT_PLANNED,
   PICKUP: OrderStatusEnum.SELF_PICKUP,
   DELIVERED: OrderStatusEnum.SHIPPED,

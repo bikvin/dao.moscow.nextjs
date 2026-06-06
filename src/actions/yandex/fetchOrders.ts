@@ -77,9 +77,9 @@ export async function fetchOrdersAction(
     const commissionRate = commissionRateSetting ? parseFloat(commissionRateSetting.value) : 0;
     const avgDelivery = avgDeliverySetting ? parseFloat(avgDeliverySetting.value) : 0;
 
-    // Fetch last 30 days
+    // Fetch last 7 days
     const orders = (await fetchYandexOrders({
-      fromDate: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000),
+      fromDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
       toDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
     })) as YandexOrder[];
     const nonFake = orders.filter((o) => !o.fake);
@@ -101,6 +101,14 @@ export async function fetchOrdersAction(
 
       // --- Raw Yandex data ---
       console.log(`\n--- Order ${o.id} | ${o.creationDate} | ${o.status} ---`);
+
+      // Log delivery date fields to help identify which field holds the planned shipment date
+      const delivery = (o as { delivery?: { dates?: Record<string, string>; shipments?: { shipmentDate?: string }[] } }).delivery;
+      console.log("[DELIVERY DATES]", JSON.stringify({
+        "delivery.dates": delivery?.dates ?? null,
+        "shipments[0].shipmentDate": delivery?.shipments?.[0]?.shipmentDate ?? null,
+      }, null, 2));
+
       console.log("[RAW ORDER]", JSON.stringify(o, null, 2));
       if (stat) {
         console.log("[RAW STATS]", JSON.stringify(stat, null, 2));
@@ -148,7 +156,15 @@ export async function fetchOrdersAction(
       }
     });
 
-    console.log(`\n${"=".repeat(60)}\n`);
+    // Compact summary at the bottom so it's always visible (terminal buffer cuts off the top)
+    console.log("\n=== DELIVERY DATES SUMMARY ===");
+    nonFake.forEach((o) => {
+      const d = (o as { delivery?: { dates?: Record<string, string>; shipments?: { shipmentDate?: string }[] } }).delivery;
+      console.log(
+        `  ${o.id} | ${o.status.padEnd(25)} | shipment: ${d?.shipments?.[0]?.shipmentDate ?? "null"} | dates.fromDate: ${d?.dates?.fromDate ?? "null"}`
+      );
+    });
+    console.log(`${"=".repeat(60)}\n`);
 
     return { success: { message: `Получено ${nonFake.length} заказов. Смотрите консоль сервера.` } };
   } catch (err) {

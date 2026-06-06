@@ -39,6 +39,7 @@ export type ImportOrder = {
   subsidyTotal: number;               // Yandex-funded discount — stored in YandexOrderData
   buyerTotalBeforeDiscount: number;   // sum of item.priceBeforeDiscount × count — commission basis
   deliveryCity: string | null;
+  shipmentDate: string | null;      // DD-MM-YYYY — when Yandex expects warehouse handoff
   fees: CandidateFees;
   feesSettled: boolean;
   items: ImportOrderItem[];
@@ -104,6 +105,14 @@ export async function importYandexOrders(
       const status = order.mappedStatus;
       const isShipped = status === OrderStatusEnum.SHIPPED;
 
+      // Parse DD-MM-YYYY shipment date from Yandex into a JS Date
+      const plannedDeliveryDate = (() => {
+        if (!order.shipmentDate) return null;
+        const [dd, mm, yyyy] = order.shipmentDate.split("-");
+        if (!dd || !mm || !yyyy) return null;
+        return new Date(`${yyyy}-${mm}-${dd}`);
+      })();
+
       // Calculate per-order other fees (non-commission) for the net formula.
       // Settled: sum of actual API fees. Unsettled: avgDelivery × total Yandex units.
       const totalYandexUnits = order.items.reduce((s, i) => s + i.count, 0);
@@ -135,6 +144,7 @@ export async function importYandexOrders(
             paymentStatus: isShipped ? PaymentStatusEnum.PAID : PaymentStatusEnum.NOT_PAID,
             // Use orderDate as delivery date for already-delivered orders (exact date not in API)
             deliveryDate: isShipped ? orderDate : null,
+            plannedDeliveryDate: !isShipped ? plannedDeliveryDate : null,
             note: [
               `Заказ № ${order.yandexOrderId}`,
               order.deliveryCity,

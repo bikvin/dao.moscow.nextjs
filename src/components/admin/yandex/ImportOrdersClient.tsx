@@ -174,6 +174,7 @@ export function ImportOrdersClient({
           subsidyTotal: c.subsidyTotal,
           buyerTotalBeforeDiscount: c.buyerTotalBeforeDiscount,
           deliveryCity: c.deliveryCity,
+          shipmentDate: c.shipmentDate,
           fees: c.fees,
           feesSettled: c.feesSettled,
           // Only include items that have a product and variant selected
@@ -208,7 +209,7 @@ export function ImportOrdersClient({
 
   // "Active" mapped statuses — orders that need stock reserved and are not yet completed
   // "Active" Yandex statuses — orders that need stock reserved and are not yet completed
-  const ACTIVE_STATUSES = new Set(["PENDING", "UNPAID", "PROCESSING", "RESERVED"]);
+  const ACTIVE_STATUSES = new Set(["PENDING", "UNPAID", "PROCESSING", "RESERVED", "DELIVERY", "PICKUP"]);
   const visibleCandidates =
     statusFilter === "all"
       ? candidates
