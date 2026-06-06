@@ -172,6 +172,7 @@ type Order = {
   issues: OrderIssue[];
   receipts: OrderReceipt[];
   invoices: { id: string; sequenceNumber: number; invoiceDate: Date; totalRub: number; invoiceType: InvoiceTypeEnum }[];
+  yandexData: { feesSettled: boolean; buyerTotal: number; subsidyTotal: number } | null;
 };
 
 type Option = { id: string; name: string };
@@ -307,6 +308,14 @@ export function OrdersGrid({
                   order.partner.names.find((n) => n.isPrimary)?.name ??
                   order.partner.names[0]?.name ??
                   "—";
+                const isEstimate = order.yandexData != null && !order.yandexData.feesSettled;
+                const approx = (v: string) => isEstimate ? `~${v}` : v;
+                // For estimate orders show net with gross in brackets: ~12 462 (25 432) ₽
+                const fmt0 = (rubles: number) =>
+                  Math.round(rubles).toLocaleString("ru-RU");
+                const orderTotalNode = order.yandexData
+                  ? <span className="flex flex-col items-end gap-0"><span>{isEstimate ? "~" : ""}{fmt0(order.totalRub / 100)} ₽</span><span className="text-xs font-normal text-slate-400">{fmt0(order.yandexData.buyerTotal + order.yandexData.subsidyTotal)} ₽ розн.</span></span>
+                  : <>{formatRub(order.totalRub)}</>;
 
                 return (
                   <div
@@ -399,12 +408,12 @@ export function OrdersGrid({
                                     : "—"}
                                 </div>
                                 <div className="text-sm text-right py-0.5">
-                                  {formatRub(item.priceRub)}
+                                  {approx(formatRub(item.priceRub))}
                                 </div>
                                 <div className="text-sm text-right py-0.5">
                                   {order.orderType === "RETURN"
-                                    ? `-${formatRub(item.totalRub)}`
-                                    : formatRub(item.totalRub)}
+                                    ? `-${approx(formatRub(item.totalRub))}`
+                                    : approx(formatRub(item.totalRub))}
                                 </div>
                               </React.Fragment>
                             ));
@@ -470,9 +479,7 @@ export function OrdersGrid({
                               <E />
                               <E />
                               <div className="text-sm font-semibold text-right py-1 border-t border-slate-200">
-                                {order.orderType === "RETURN"
-                                  ? `-${formatRub(order.totalRub)}`
-                                  : formatRub(order.totalRub)}
+                                {order.orderType === "RETURN" ? <span>-{orderTotalNode}</span> : orderTotalNode}
                               </div>
                             </>
                           </>
@@ -535,8 +542,8 @@ export function OrdersGrid({
                                   : item.quantity}{" "}
                                 шт ·{" "}
                                 {order.orderType === "RETURN"
-                                  ? `-${formatRub(item.totalRub)}`
-                                  : formatRub(item.totalRub)}
+                                  ? `-${approx(formatRub(item.totalRub))}`
+                                  : approx(formatRub(item.totalRub))}
                               </div>
                             </div>
                           );
@@ -567,9 +574,7 @@ export function OrdersGrid({
                             Итого
                           </span>
                           <span>
-                            {order.orderType === "RETURN"
-                              ? `-${formatRub(order.totalRub)}`
-                              : formatRub(order.totalRub)}
+                            {order.orderType === "RETURN" ? <span>-{orderTotalNode}</span> : orderTotalNode}
                           </span>
                         </div>
                       </div>

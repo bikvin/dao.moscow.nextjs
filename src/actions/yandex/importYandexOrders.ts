@@ -24,8 +24,8 @@ const RESERVE_STATUSES = new Set<OrderStatusEnum>([
 
 export type ImportOrderItem = {
   offerId: string;
-  count: number;
-  priceRub: number;  // per item in rubles
+  count: number;                  // Yandex unit count (1 Yandex unit = divisor warehouse units)
+  priceBeforeDiscount: number;    // listed retail price per Yandex unit — commission basis
   productId: string;
   variantId: string;
 };
@@ -34,9 +34,11 @@ export type ImportOrder = {
   yandexOrderId: string;
   orderDate: string;
   mappedStatus: OrderStatusEnum;
-  sellPrice: number;    // buyerTotal + subsidyTotal — actual seller payout basis, stored as Order.totalRub (×100 kopecks)
-  buyerTotal: number;   // actual buyer payment in rubles — stored in YandexOrderData
-  subsidyTotal: number; // Yandex-funded discount reimbursed to seller — stored in YandexOrderData
+  sellPrice: number;                  // buyerTotal + subsidyTotal — actual seller payout basis
+  buyerTotal: number;                 // actual buyer payment — stored in YandexOrderData
+  subsidyTotal: number;               // Yandex-funded discount — stored in YandexOrderData
+  buyerTotalBeforeDiscount: number;   // sum of item.priceBeforeDiscount × count — commission basis
+  deliveryCity: string | null;
   fees: CandidateFees;
   feesSettled: boolean;
   items: ImportOrderItem[];
@@ -46,7 +48,8 @@ export type ImportOrder = {
 // For each order:
 //   - Creates an Order record (source=YANDEX, next sequenceNumber in the year)
 //   - Creates a YandexOrderData record with fee breakdown
-//   - Creates OrderItem records for each mapped product
+//   - Creates OrderItem records for each mapped product, with quantity expanded by divisor
+//     (1 Yandex unit = effectiveDivisor warehouse units) and price set to net per warehouse unit
 //   - Creates ProductReserve (for active orders) or ProductIssue (for delivered orders)
 //     and recalculates warehouse quantities — same logic as manual order creation
 // All of the above runs in a single DB transaction per order.
@@ -57,15 +60,41 @@ export async function importYandexOrders(
   if (orders.length === 0) return { imported: 0 };
 
   try {
-    // Look up partner name once — used as the "client" label on reserves
-    const partner = await db.partner.findUnique({
-      where: { id: partnerId },
-      include: {
-        names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 },
-      },
-    });
+    // Load global settings and partner name once before processing orders
+    const [partner, commissionRateSetting, avgDeliverySetting, globalDivisorSetting] =
+      await Promise.all([
+        db.partner.findUnique({
+          where: { id: partnerId },
+          include: {
+            names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 },
+          },
+        }),
+        db.settings.findUnique({ where: { field: "yandexCommissionRate" } }),
+        db.settings.findUnique({ where: { field: "yandexAverageDeliveryRub" } }),
+        db.settings.findUnique({ where: { field: "yandexDefaultDivisor" } }),
+      ]);
+
     if (!partner) return { error: "Партнёр не найден" };
     const clientName = partner.names[0]?.name ?? "Яндекс Маркет";
+    const commissionRate = commissionRateSetting ? parseFloat(commissionRateSetting.value) : 0;
+    const avgDelivery = avgDeliverySetting ? parseFloat(avgDeliverySetting.value) : 0;
+    const globalDivisor = globalDivisorSetting ? parseInt(globalDivisorSetting.value, 10) : 1;
+
+    // Look up per-SKU divisors from YandexMarketMapping and product dimensions for all items
+    const allOfferIds = [...new Set(orders.flatMap((o) => o.items.map((i) => i.offerId)))];
+    const allProductIds = [...new Set(orders.flatMap((o) => o.items.map((i) => i.productId)))];
+    const [mappings, products] = await Promise.all([
+      db.yandexMarketMapping.findMany({
+        where: { yandexSku: { in: allOfferIds } },
+        select: { yandexSku: true, divisor: true },
+      }),
+      db.product.findMany({
+        where: { id: { in: allProductIds } },
+        select: { id: true, length_mm: true, width_mm: true },
+      }),
+    ]);
+    const divisorBySku = new Map(mappings.map((m) => [m.yandexSku, m.divisor]));
+    const dimensionsById = new Map(products.map((p) => [p.id, p]));
 
     let importedCount = 0;
 
@@ -74,6 +103,15 @@ export async function importYandexOrders(
       const year = orderDate.getFullYear();
       const status = order.mappedStatus;
       const isShipped = status === OrderStatusEnum.SHIPPED;
+
+      // Calculate per-order other fees (non-commission) for the net formula.
+      // Settled: sum of actual API fees. Unsettled: avgDelivery × total Yandex units.
+      const totalYandexUnits = order.items.reduce((s, i) => s + i.count, 0);
+      const otherFees = order.feesSettled
+        ? order.fees.deliveryRub + order.fees.expressDeliveryRub + order.fees.crossDeliveryRub +
+          order.fees.paymentTransferRub + order.fees.agencyRub + order.fees.loyaltyFeeRub +
+          order.fees.sortingRub
+        : avgDelivery * totalYandexUnits;
 
       await db.$transaction(async (tx) => {
         // Auto-assign next sequenceNumber for the year (same as manual order creation)
@@ -97,6 +135,11 @@ export async function importYandexOrders(
             paymentStatus: isShipped ? PaymentStatusEnum.PAID : PaymentStatusEnum.NOT_PAID,
             // Use orderDate as delivery date for already-delivered orders (exact date not in API)
             deliveryDate: isShipped ? orderDate : null,
+            note: [
+              `Заказ № ${order.yandexOrderId}`,
+              order.deliveryCity,
+              "(импортировано)",
+            ].filter(Boolean).join(" "),
             totalRub: 0, // updated below after items are created
           },
         });
@@ -120,22 +163,52 @@ export async function importYandexOrders(
           },
         });
 
-        // Create order items and accumulate total.
-        // Prices stored in kopecks (×100) to match the existing order model convention.
+        // Create order items.
+        // Net per Yandex unit = priceBeforeDiscount × (1 - rate) - otherFees / totalYandexUnits.
+        // Each Yandex unit expands to effectiveDivisor warehouse units.
+        // If product dimensions are available: price stored per m², priceUnit = M2.
+        // Otherwise: price stored per warehouse unit, priceUnit = ITEM (fallback).
         let totalRub = 0;
         const variantQuantities = new Map<string, number>();
 
         for (const item of order.items) {
-          const priceRubKopecks = Math.round(item.priceRub * 100);
-          const itemTotal = item.count * priceRubKopecks;
+          const effectiveDivisor = divisorBySku.get(item.offerId) ?? globalDivisor;
+          const itemNetPerYandexUnit =
+            item.priceBeforeDiscount * (1 - commissionRate / 100) -
+            otherFees / totalYandexUnits;
+          const warehouseQty = item.count * effectiveDivisor;
+
+          // m² area = length × width (in mm²) × quantity / 1_000_000
+          const dims = dimensionsById.get(item.productId);
+          const quantityM2 = dims
+            ? (dims.length_mm * dims.width_mm * warehouseQty) / 1_000_000
+            : null;
+
+          let priceRubKopecks: number;
+          let itemTotal: number;
+          let priceUnit: PriceUnitEnum;
+
+          if (dims && quantityM2) {
+            // Price per m² = net per Yandex unit / (divisor × m²PerUnit)
+            const m2PerYandexUnit = (dims.length_mm * dims.width_mm * effectiveDivisor) / 1_000_000;
+            priceRubKopecks = Math.round((itemNetPerYandexUnit / m2PerYandexUnit) * 100);
+            itemTotal = Math.round(quantityM2 * priceRubKopecks);
+            priceUnit = PriceUnitEnum.M2;
+          } else {
+            // Fallback: price per warehouse unit
+            priceRubKopecks = Math.round((itemNetPerYandexUnit / effectiveDivisor) * 100);
+            itemTotal = warehouseQty * priceRubKopecks;
+            priceUnit = PriceUnitEnum.ITEM;
+          }
 
           await tx.orderItem.create({
             data: {
               orderId: created.id,
               productId: item.productId,
               productVariantId: item.variantId,
-              quantity: item.count,
-              priceUnit: PriceUnitEnum.ITEM, // sold per package, not per m²
+              quantity: warehouseQty,
+              quantityM2,
+              priceUnit,
               priceInCents: priceRubKopecks,
               priceCurrency: CurrencyEnum.RUB,
               priceRub: priceRubKopecks,
@@ -146,7 +219,7 @@ export async function importYandexOrders(
           totalRub += itemTotal;
           variantQuantities.set(
             item.variantId,
-            (variantQuantities.get(item.variantId) ?? 0) + item.count
+            (variantQuantities.get(item.variantId) ?? 0) + warehouseQty
           );
         }
 

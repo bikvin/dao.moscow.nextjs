@@ -1,5 +1,6 @@
 "use server";
 
+import { db } from "@/db";
 import { fetchYandexOrders } from "@/lib/yandex/fetchYandexOrders";
 
 const YANDEX_API_BASE = "https://api.partner.market.yandex.ru/v2";
@@ -12,6 +13,7 @@ type YandexOrder = {
   buyerTotal: number;
   buyerTotalBeforeDiscount: number;
   subsidies?: { type: string; amount: number }[];
+  items?: { offerId: string; offerName: string; count: number; price: number }[];
   fake: boolean;
 };
 
@@ -27,6 +29,7 @@ type FetchOrdersState = {
   success?: { message: string };
 };
 
+// Fetches financial stats from Yandex stats API for a list of order IDs.
 async function fetchOrderStats(orderIds: number[]): Promise<OrderStat[]> {
   const token = process.env.YANDEX_API_TOKEN;
   const campaignId = process.env.YANDEX_CAMPAIGN_ID;
@@ -59,11 +62,21 @@ async function fetchOrderStats(orderIds: number[]): Promise<OrderStat[]> {
   return allStats;
 }
 
+// Debug action: fetches last 30 days of Yandex orders and logs raw API data + net calculations
+// to the server console. Also reads commissionRate and avgDelivery from Settings to mirror
+// the calcNet formula used on the import screen.
 export async function fetchOrdersAction(
   _state: FetchOrdersState,
   _formData: FormData
 ): Promise<FetchOrdersState> {
   try {
+    const [commissionRateSetting, avgDeliverySetting] = await Promise.all([
+      db.settings.findUnique({ where: { field: "yandexCommissionRate" } }),
+      db.settings.findUnique({ where: { field: "yandexAverageDeliveryRub" } }),
+    ]);
+    const commissionRate = commissionRateSetting ? parseFloat(commissionRateSetting.value) : 0;
+    const avgDelivery = avgDeliverySetting ? parseFloat(avgDeliverySetting.value) : 0;
+
     // Fetch last 30 days
     const orders = (await fetchYandexOrders({
       fromDate: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000),
@@ -75,37 +88,69 @@ export async function fetchOrdersAction(
     const stats = await fetchOrderStats(orderIds);
     const statsById = new Map(stats.map((s) => [s.id, s]));
 
-    console.log("\n=== Per-order financials ===");
+    console.log(`\n${"=".repeat(60)}`);
+    console.log(`=== YANDEX DEBUG: ${nonFake.length} orders | commissionRate=${commissionRate}% | avgDelivery=${avgDelivery} ₽/шт ===`);
+    console.log(`${"=".repeat(60)}`);
+
     nonFake.forEach((o) => {
       const stat = statsById.get(o.id);
-      const subsidy = o.subsidies?.reduce((s, x) => s + x.amount, 0) ?? 0;
-      const grossBeforeCommission = o.buyerTotalBeforeDiscount;
+      const subsidyTotal = o.subsidies?.reduce((s, x) => s + x.amount, 0) ?? 0;
+      const sellPrice = o.buyerTotal + subsidyTotal;
+      const totalUnits = o.items?.reduce((s, i) => s + i.count, 0) ?? 0;
+      const feesSettled = (stat?.commissions?.length ?? 0) > 0;
 
-      const fee = stat?.commissions?.find((c) => c.type === "FEE")?.actual ?? null;
-      const delivery = stat?.commissions?.find((c) => c.type === "DELIVERY_TO_CUSTOMER")?.actual ?? null;
-      const expressDelivery = stat?.commissions?.find((c) => c.type === "EXPRESS_DELIVERY_TO_CUSTOMER")?.actual ?? null;
-      const allCommissions = stat?.commissions ?? [];
+      // --- Raw Yandex data ---
+      console.log(`\n--- Order ${o.id} | ${o.creationDate} | ${o.status} ---`);
+      console.log("[RAW ORDER]", JSON.stringify(o, null, 2));
+      if (stat) {
+        console.log("[RAW STATS]", JSON.stringify(stat, null, 2));
+      } else {
+        console.log("[RAW STATS] no stats data (order not yet settled)");
+      }
 
-      const totalDeductions = (fee ?? 0) + (delivery ?? 0) + (expressDelivery ?? 0);
-      const net = stat ? grossBeforeCommission - totalDeductions : null;
+      // --- Calculations (mirrors calcNet in ImportOrdersClient) ---
+      const grossFee = (sellPrice * commissionRate) / 100;
+      console.log("\n[CALC]");
+      console.log(`  buyerTotal:              ${o.buyerTotal} ₽`);
+      console.log(`  buyerTotalBeforeDiscount:${o.buyerTotalBeforeDiscount} ₽`);
+      console.log(`  subsidyTotal:            ${subsidyTotal} ₽`);
+      console.log(`  sellPrice (buyer+subsidy):${sellPrice} ₽`);
+      console.log(`  grossFee (${commissionRate}%):        ${grossFee.toFixed(2)} ₽`);
+      console.log(`  totalUnits:              ${totalUnits}`);
+      console.log(`  feesSettled:             ${feesSettled}`);
 
-      console.log(
-        `\nOrder ${o.id} | ${o.creationDate} | ${o.status}` +
-        `\n  itemsTotal:              ${o.itemsTotal} ₽` +
-        `\n  buyerTotalBeforeDiscount:${grossBeforeCommission} ₽` +
-        `\n  buyerTotal (paid):       ${o.buyerTotal} ₽` +
-        `\n  subsidy:                 ${subsidy} ₽` +
-        `\n  FEE commission: ${fee ?? "n/a"} ₽` +
-        `\n  delivery cost:  ${delivery ?? "n/a"} ₽` +
-        `\n  express delivery: ${expressDelivery ?? "n/a"} ₽` +
-        `\n  net (estimate): ${net ?? "n/a"} ₽` +
-        (allCommissions.length > 0
-          ? `\n  all commissions: ${JSON.stringify(allCommissions)}`
-          : "")
-      );
+      if (feesSettled && stat?.commissions) {
+        const f = stat.commissions;
+        const getFee = (type: string) => f.find((c) => c.type === type)?.actual ?? 0;
+        const delivery = getFee("DELIVERY_TO_CUSTOMER");
+        const expressDelivery = getFee("EXPRESS_DELIVERY_TO_CUSTOMER");
+        const crossDelivery = getFee("CROSSREGIONAL_DELIVERY");
+        const paymentTransfer = getFee("PAYMENT_TRANSFER");
+        const agency = getFee("AGENCY");
+        const loyalty = getFee("LOYALTY_PARTICIPATION_FEE");
+        const sorting = getFee("SORTING");
+        const otherFees = delivery + expressDelivery + crossDelivery + paymentTransfer + agency + loyalty + sorting;
+        const net = Math.round(sellPrice - grossFee - otherFees);
+        console.log(`  delivery:                ${delivery} ₽`);
+        console.log(`  expressDelivery:         ${expressDelivery} ₽`);
+        console.log(`  crossDelivery:           ${crossDelivery} ₽`);
+        console.log(`  paymentTransfer:         ${paymentTransfer} ₽`);
+        console.log(`  agency:                  ${agency} ₽`);
+        console.log(`  loyalty:                 ${loyalty} ₽`);
+        console.log(`  sorting:                 ${sorting} ₽`);
+        console.log(`  otherFees total:         ${otherFees} ₽`);
+        console.log(`  NET (факт):              ${net} ₽  (${((100 * (sellPrice - net)) / sellPrice).toFixed(1)}% издержки)`);
+      } else {
+        const estimatedDelivery = avgDelivery * totalUnits;
+        const net = Math.round(sellPrice - grossFee - estimatedDelivery);
+        console.log(`  avgDelivery × units:     ${avgDelivery} × ${totalUnits} = ${estimatedDelivery} ₽`);
+        console.log(`  NET (оценка):            ${net} ₽  (${((100 * (sellPrice - net)) / sellPrice).toFixed(1)}% издержки)`);
+      }
     });
 
-    return { success: { message: `Получено ${nonFake.length} заказов + финансовые данные. Смотрите консоль сервера.` } };
+    console.log(`\n${"=".repeat(60)}\n`);
+
+    return { success: { message: `Получено ${nonFake.length} заказов. Смотрите консоль сервера.` } };
   } catch (err) {
     return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };
   }

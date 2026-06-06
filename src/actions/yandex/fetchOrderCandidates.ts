@@ -8,10 +8,11 @@ import { STATUS_MAP } from "./yandexStatusMap";
 const YANDEX_API_BASE = "https://api.partner.market.yandex.ru/v2";
 
 type YandexOrderItem = {
-  offerId: string;   // = our product SKU
+  offerId: string;           // = our product SKU
   offerName: string;
   count: number;
-  price: number;     // per item in rubles
+  price: number;             // buyer price per item (after discounts)
+  priceBeforeDiscount: number; // listed retail price per item (commission basis)
 };
 
 type YandexOrder = {
@@ -23,6 +24,7 @@ type YandexOrder = {
   subsidies?: { type: string; amount: number }[]; // Yandex-funded discounts reimbursed to seller
   fake: boolean;
   items: YandexOrderItem[];
+  delivery?: { region?: { name?: string } };
 };
 
 type OrderStat = {
@@ -40,7 +42,8 @@ export type CandidateItem = {
   offerId: string;
   offerName: string;
   count: number;
-  priceRub: number;
+  priceRub: number;             // buyer price per item (after discounts)
+  priceBeforeDiscount: number;  // listed retail price per item (commission basis)
   // null if SKU not found in our product catalog — item will be skipped on import
   product: {
     id: string;
@@ -65,9 +68,11 @@ export type OrderCandidate = {
   orderDate: string;
   yandexStatus: string;
   mappedStatus: OrderStatusEnum;
-  sellPrice: number;    // buyerTotal + subsidyTotal — actual seller payout basis
-  buyerTotal: number;   // what the buyer paid out of pocket
-  subsidyTotal: number; // Yandex-funded discount reimbursed to seller
+  sellPrice: number;              // buyerTotal + subsidyTotal — actual seller payout basis
+  buyerTotal: number;             // what the buyer paid out of pocket
+  subsidyTotal: number;           // Yandex-funded discount reimbursed to seller
+  buyerTotalBeforeDiscount: number; // sum of item.priceBeforeDiscount × count — commission basis
+  deliveryCity: string | null;    // delivery region name from Yandex API
   fees: CandidateFees;
   // true if the stats API returned commission data (order is settled by Yandex).
   // false for new orders — net will be shown as an estimate using stored commission rate.
@@ -178,6 +183,8 @@ export async function fetchOrderCandidates(
         sellPrice: order.buyerTotal + subsidyTotal,
         buyerTotal: order.buyerTotal,
         subsidyTotal,
+        buyerTotalBeforeDiscount: order.buyerTotalBeforeDiscount,
+        deliveryCity: order.delivery?.region?.name ?? null,
         feesSettled,
         fees: {
           feeRub: getFee(stat, "FEE"),
@@ -196,6 +203,7 @@ export async function fetchOrderCandidates(
             offerName: item.offerName,
             count: item.count,
             priceRub: item.price,
+            priceBeforeDiscount: item.priceBeforeDiscount ?? item.price,
             product: product
               ? {
                   id: product.id,

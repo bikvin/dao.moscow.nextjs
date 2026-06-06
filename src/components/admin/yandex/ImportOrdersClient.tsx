@@ -7,25 +7,49 @@ import type { ImportOrder } from "@/actions/yandex/importYandexOrders";
 import { importYandexOrders } from "@/actions/yandex/importYandexOrders";
 
 
-// Calculates estimated net revenue for an order.
-// If fees are settled (exact data from stats API): use actual fee breakdown.
-// If not settled (new order): conservative estimate = sellPrice × (1 - rate%) - avgDelivery × totalUnits.
-// avgDelivery is per unit since Yandex charges delivery per shipped unit, not per order.
+// Calculates the other (non-commission) fees for an order — used in both order-level and
+// per-item net calculations.
+// Settled: sum of all non-FEE commissions from the stats API.
+// Unsettled: avgDelivery × totalUnits (per-unit estimate).
+function calcOtherFees(c: OrderCandidate, avgDelivery: number): number {
+  if (c.feesSettled) {
+    const f = c.fees;
+    return f.deliveryRub + f.expressDeliveryRub + f.crossDeliveryRub +
+      f.paymentTransferRub + f.agencyRub + f.loyaltyFeeRub + f.sortingRub;
+  }
+  const totalUnits = c.items.reduce((s, i) => s + i.count, 0);
+  return avgDelivery * totalUnits;
+}
+
+// Calculates net revenue for the whole order.
+// Commission is based on buyerTotalBeforeDiscount (listed retail price) × rate.
+// Other fees come from calcOtherFees.
 function calcNet(
   c: OrderCandidate,
   commissionRate: number,
   avgDelivery: number
 ): { value: number; exact: boolean } {
-  const grossFee = (c.sellPrice * commissionRate) / 100;
-  if (c.feesSettled) {
-    const f = c.fees;
-    const otherFees =
-      f.deliveryRub + f.expressDeliveryRub + f.crossDeliveryRub +
-      f.paymentTransferRub + f.agencyRub + f.loyaltyFeeRub + f.sortingRub;
-    return { value: Math.round(c.sellPrice - grossFee - otherFees), exact: true };
-  }
+  const commission = (c.buyerTotalBeforeDiscount * commissionRate) / 100;
+  const otherFees = calcOtherFees(c, avgDelivery);
+  return {
+    value: Math.round(c.buyerTotalBeforeDiscount - commission - otherFees),
+    exact: c.feesSettled,
+  };
+}
+
+// Calculates net revenue per unit for a single item.
+// Commission = item.priceBeforeDiscount × rate (same basis as order-level commission).
+// Other fees are distributed equally across all units in the order.
+function calcItemNet(
+  item: OrderCandidate["items"][number],
+  c: OrderCandidate,
+  commissionRate: number,
+  avgDelivery: number
+): number {
   const totalUnits = c.items.reduce((s, i) => s + i.count, 0);
-  return { value: Math.round(c.sellPrice - grossFee - avgDelivery * totalUnits), exact: false };
+  const commission = (item.priceBeforeDiscount * commissionRate) / 100;
+  const otherFeePerUnit = calcOtherFees(c, avgDelivery) / totalUnits;
+  return Math.round(item.priceBeforeDiscount - commission - otherFeePerUnit);
 }
 
 // Returns true if all items with a mapped product have a variant selected.
@@ -148,6 +172,8 @@ export function ImportOrdersClient({
           sellPrice: c.sellPrice,
           buyerTotal: c.buyerTotal,
           subsidyTotal: c.subsidyTotal,
+          buyerTotalBeforeDiscount: c.buyerTotalBeforeDiscount,
+          deliveryCity: c.deliveryCity,
           fees: c.fees,
           feesSettled: c.feesSettled,
           // Only include items that have a product and variant selected
@@ -161,7 +187,7 @@ export function ImportOrdersClient({
             .map((item) => ({
               offerId: item.offerId,
               count: item.count,
-              priceRub: item.priceRub,
+              priceBeforeDiscount: item.priceBeforeDiscount,
               productId: item.product!.id,
               variantId: variantSelections[c.yandexOrderId][item.offerId],
             })),
@@ -389,13 +415,16 @@ export function ImportOrdersClient({
 
                       {/* Items */}
                       <div className="mt-3 flex flex-col gap-2 pl-7">
-                        {c.items.map((item) => (
+                        {c.items.map((item) => {
+                          const itemNet = calcItemNet(item, c, commissionRate, avgDelivery);
+                          return (
                           <div key={item.offerId} className="flex flex-wrap items-center gap-2 text-sm">
                             <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">
                               {item.offerId}
                             </span>
-                            <span className="text-slate-500">× {item.count}</span>
-                            <span className="text-slate-500">{fmt(item.priceRub)} ₽/шт</span>
+                            <span className="text-slate-500">
+                              {item.count} × {fmt(itemNet)} ₽/шт = {fmt(item.count * itemNet)} ₽
+                            </span>
 
                             {!item.product ? (
                               // SKU not found in our product catalog
@@ -432,7 +461,8 @@ export function ImportOrdersClient({
                               </select>
                             )}
                           </div>
-                        ))}
+                        );
+                        })}
 
                         {hasUnmapped && (
                           <p className="text-xs text-slate-400 mt-1">

@@ -155,6 +155,9 @@ export default async function OrdersPage({
           },
           orderBy: { sequenceNumber: "asc" },
         },
+        yandexData: {
+          select: { feesSettled: true, buyerTotal: true, subsidyTotal: true },
+        },
       },
       orderBy: [{ year: "asc" }, { sequenceNumber: "asc" }],
       skip: (currentPage - 1) * PAGE_SIZE,
