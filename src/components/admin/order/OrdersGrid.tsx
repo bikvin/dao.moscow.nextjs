@@ -219,6 +219,7 @@ export function OrdersGrid({
   usdRate,
   rmbRate,
   scrollToOrderId,
+  marketplacePaymentMethodId,
 }: {
   orders: Order[];
   products: ProductOption[];
@@ -228,6 +229,7 @@ export function OrdersGrid({
   usdRate: number | null;
   rmbRate: number | null;
   scrollToOrderId?: string | null;
+  marketplacePaymentMethodId?: string | null;
 }) {
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const scrollTargetRef = React.useRef<HTMLDivElement>(null);
@@ -614,9 +616,9 @@ export function OrdersGrid({
                             }
                           />
 
-                          <Badge
-                            {...PAYMENT_STATUS_CONFIG[order.paymentStatus]}
-                          />
+                          {order.paymentMethodId !== marketplacePaymentMethodId && (
+                            <Badge {...PAYMENT_STATUS_CONFIG[order.paymentStatus]} />
+                          )}
                         </div>
                         {order.reserves.filter((r) => r.status === "ACTIVE")
                           .length > 0 && (
@@ -691,6 +693,7 @@ export function OrdersGrid({
                       products={products}
                       usdRate={usdRate}
                       rmbRate={rmbRate}
+                      marketplacePaymentMethodId={marketplacePaymentMethodId}
                       isOpen={openOrderId === order.id}
                       onToggle={() =>
                         setOpenOrderId(

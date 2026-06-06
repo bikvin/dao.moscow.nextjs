@@ -62,7 +62,7 @@ export async function importYandexOrders(
 
   try {
     // Load global settings and partner name once before processing orders
-    const [partner, commissionRateSetting, avgDeliverySetting, globalDivisorSetting] =
+    const [partner, commissionRateSetting, avgDeliverySetting, globalDivisorSetting, paymentMethodIdSetting] =
       await Promise.all([
         db.partner.findUnique({
           where: { id: partnerId },
@@ -73,6 +73,7 @@ export async function importYandexOrders(
         db.settings.findUnique({ where: { field: "yandexCommissionRate" } }),
         db.settings.findUnique({ where: { field: "yandexAverageDeliveryRub" } }),
         db.settings.findUnique({ where: { field: "yandexDefaultDivisor" } }),
+        db.settings.findUnique({ where: { field: "yandexPaymentMethodId" } }),
       ]);
 
     if (!partner) return { error: "Партнёр не найден" };
@@ -80,6 +81,7 @@ export async function importYandexOrders(
     const commissionRate = commissionRateSetting ? parseFloat(commissionRateSetting.value) : 0;
     const avgDelivery = avgDeliverySetting ? parseFloat(avgDeliverySetting.value) : 0;
     const globalDivisor = globalDivisorSetting ? parseInt(globalDivisorSetting.value, 10) : 1;
+    const marketplacePaymentMethodId = paymentMethodIdSetting?.value ?? null;
 
     // Look up per-SKU divisors from YandexMarketMapping and product dimensions for all items
     const allOfferIds = [...new Set(orders.flatMap((o) => o.items.map((i) => i.offerId)))];
@@ -140,8 +142,8 @@ export async function importYandexOrders(
             status,
             source: OrderSourceEnum.YANDEX,
             partnerId,
-            // Delivered orders are considered paid; active orders are pending Yandex payout
-            paymentStatus: isShipped ? PaymentStatusEnum.PAID : PaymentStatusEnum.NOT_PAID,
+            paymentStatus: PaymentStatusEnum.PAID,
+            paymentMethodId: marketplacePaymentMethodId ?? undefined,
             // Use orderDate as delivery date for already-delivered orders (exact date not in API)
             deliveryDate: isShipped ? orderDate : null,
             plannedDeliveryDate: !isShipped ? plannedDeliveryDate : null,

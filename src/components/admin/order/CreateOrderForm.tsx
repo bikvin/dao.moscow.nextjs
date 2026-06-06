@@ -365,6 +365,7 @@ export function CreateOrderForm({
   isOpen: isOpenProp,
   onToggle,
   nextOrderNumber,
+  marketplacePaymentMethodId,
 }: {
   partners: PartnerOption[];
   deliveryMethods: DeliveryMethodOption[];
@@ -376,6 +377,7 @@ export function CreateOrderForm({
   isOpen?: boolean;
   onToggle?: () => void;
   nextOrderNumber?: number;
+  marketplacePaymentMethodId?: string | null;
 }) {
   const isEditMode = !!initialOrder;
   const boundAction = isEditMode ? updateOrder.bind(null, initialOrder.id) : createOrder;
@@ -675,18 +677,19 @@ export function CreateOrderForm({
           </div>
         </div>
 
-        {/* Payment row 2: status toggle, date */}
+        {/* Payment row 2: status toggle, date — disabled for marketplace payment methods */}
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex flex-col gap-0.5">
             <label className="text-xs text-slate-400">Статус оплаты:</label>
-            <input type="hidden" name="paymentStatus" value={paymentStatus} />
-            <div className="flex items-center gap-2 py-1">
+            <input type="hidden" name="paymentStatus" value={paymentMethodId === marketplacePaymentMethodId ? PaymentStatusEnum.PAID : paymentStatus} />
+            <div className={`flex items-center gap-2 py-1 ${paymentMethodId === marketplacePaymentMethodId ? "opacity-40 cursor-not-allowed" : ""}`}>
               <Switch
-                checked={paymentStatus === PaymentStatusEnum.PAID}
+                checked={paymentMethodId === marketplacePaymentMethodId ? true : paymentStatus === PaymentStatusEnum.PAID}
                 onCheckedChange={(checked) => setPaymentStatus(checked ? PaymentStatusEnum.PAID : PaymentStatusEnum.NOT_PAID)}
+                disabled={paymentMethodId === marketplacePaymentMethodId}
               />
-              <span className={`text-sm font-medium ${paymentStatus === PaymentStatusEnum.PAID ? "text-emerald-700" : "text-slate-400"}`}>
-                {paymentStatus === PaymentStatusEnum.PAID ? "Оплачен" : "Не оплачен"}
+              <span className={`text-sm font-medium ${(paymentMethodId === marketplacePaymentMethodId || paymentStatus === PaymentStatusEnum.PAID) ? "text-emerald-700" : "text-slate-400"}`}>
+                {(paymentMethodId === marketplacePaymentMethodId || paymentStatus === PaymentStatusEnum.PAID) ? "Оплачен" : "Не оплачен"}
               </span>
             </div>
           </div>
@@ -698,7 +701,7 @@ export function CreateOrderForm({
               value={paymentDate}
               onChange={(e) => setPaymentDate(e.target.value)}
               className="admin-form-input text-sm w-36 disabled:opacity-40 disabled:cursor-not-allowed"
-              disabled={paymentStatus !== PaymentStatusEnum.PAID}
+              disabled={paymentMethodId === marketplacePaymentMethodId || paymentStatus !== PaymentStatusEnum.PAID}
             />
           </div>
         </div>

@@ -10,11 +10,12 @@ import { CommissionRateForm } from "@/components/admin/yandex/CommissionRateForm
 import { AverageDeliveryForm } from "@/components/admin/yandex/AverageDeliveryForm";
 import { EstimateDeliveryButton } from "@/components/admin/yandex/EstimateDeliveryButton";
 import { YandexPartnerForm } from "@/components/admin/yandex/YandexPartnerForm";
+import { YandexPaymentMethodForm } from "@/components/admin/yandex/YandexPaymentMethodForm";
 import Link from "next/link";
 import { YandexSyncStatusEnum } from "@prisma/client";
 
 export default async function YandexPage() {
-  const [lastLog, lastPriceLog, bufferSetting, divisorSetting, markupSetting, commissionRateSetting, avgDeliverySetting, partnerIdSetting, partners] = await Promise.all([
+  const [lastLog, lastPriceLog, bufferSetting, divisorSetting, markupSetting, commissionRateSetting, avgDeliverySetting, partnerIdSetting, paymentMethodIdSetting, partners, paymentMethods] = await Promise.all([
     db.yandexSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.yandexPriceSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.settings.findUnique({ where: { field: "yandexDefaultBuffer" } }),
@@ -23,10 +24,12 @@ export default async function YandexPage() {
     db.settings.findUnique({ where: { field: "yandexCommissionRate" } }),
     db.settings.findUnique({ where: { field: "yandexAverageDeliveryRub" } }),
     db.settings.findUnique({ where: { field: "yandexPartnerId" } }),
+    db.settings.findUnique({ where: { field: "yandexPaymentMethodId" } }),
     db.partner.findMany({
       include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
       orderBy: { createdAt: "desc" },
     }),
+    db.paymentMethod.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const globalBuffer = bufferSetting ? parseInt(bufferSetting.value, 10) || 0 : 0;
@@ -35,6 +38,7 @@ export default async function YandexPage() {
   const commissionRate = commissionRateSetting ? parseInt(commissionRateSetting.value, 10) : null;
   const averageDelivery = avgDeliverySetting ? parseInt(avgDeliverySetting.value, 10) : null;
   const currentPartnerId = partnerIdSetting?.value ?? null;
+  const currentPaymentMethodId = paymentMethodIdSetting?.value ?? null;
   const partnerOptions = partners.map((p) => ({
     id: p.id,
     name: p.names[0]?.name ?? p.id,
@@ -129,6 +133,7 @@ export default async function YandexPage() {
               <AverageDeliveryForm current={averageDelivery} />
               <EstimateDeliveryButton />
               <YandexPartnerForm partners={partnerOptions} currentPartnerId={currentPartnerId} />
+              <YandexPaymentMethodForm paymentMethods={paymentMethods} currentPaymentMethodId={currentPaymentMethodId} />
             </div>
           </div>
 

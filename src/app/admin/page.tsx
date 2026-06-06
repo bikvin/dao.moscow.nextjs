@@ -103,6 +103,7 @@ export default async function OrdersPage({
     products,
     usdRateSetting,
     rmbRateSetting,
+    yandexPaymentMethodIdSetting,
     maxSeqOrder,
   ] = await Promise.all([
     db.order.findMany({
@@ -198,6 +199,7 @@ export default async function OrdersPage({
     }),
     db.settings.findUnique({ where: { field: "usdMainRate" } }),
     db.settings.findUnique({ where: { field: "rmbOfficialRate" } }),
+    db.settings.findUnique({ where: { field: "yandexPaymentMethodId" } }),
     db.order.aggregate({
       where: { year: currentYear },
       _max: { sequenceNumber: true },
@@ -238,6 +240,7 @@ export default async function OrdersPage({
             usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
             rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
             scrollToOrderId={scrollToOrder}
+            marketplacePaymentMethodId={yandexPaymentMethodIdSetting?.value ?? null}
           />
 
           <Pagination
@@ -257,6 +260,7 @@ export default async function OrdersPage({
               usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
               rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
               nextOrderNumber={(maxSeqOrder._max.sequenceNumber ?? 0) + 1}
+              marketplacePaymentMethodId={yandexPaymentMethodIdSetting?.value ?? null}
             />
           </div>
         </div>
