@@ -218,7 +218,7 @@ export function OrdersGrid({
   paymentMethods,
   usdRate,
   rmbRate,
-  scrollToOrderId,
+  scrollToOrderIds,
   marketplacePaymentMethodId,
 }: {
   orders: Order[];
@@ -228,18 +228,19 @@ export function OrdersGrid({
   paymentMethods: Option[];
   usdRate: number | null;
   rmbRate: number | null;
-  scrollToOrderId?: string | null;
+  scrollToOrderIds?: string[];
   marketplacePaymentMethodId?: string | null;
 }) {
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const scrollTargetRef = React.useRef<HTMLDivElement>(null);
   const shipmentDateColorMap = buildShipmentDateColorMap(orders);
+  const highlightSet = React.useMemo(() => new Set(scrollToOrderIds ?? []), [scrollToOrderIds]);
 
   React.useEffect(() => {
-    if (scrollToOrderId && scrollTargetRef.current) {
+    if (scrollTargetRef.current) {
       scrollTargetRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [scrollToOrderId]);
+  }, [scrollToOrderIds]);
 
   // Group orders by year-month
   const monthGroups: { key: string; label: string; orders: typeof orders }[] =
@@ -322,8 +323,8 @@ export function OrdersGrid({
                 return (
                   <div
                     key={order.id}
-                    ref={order.id === scrollToOrderId ? scrollTargetRef : undefined}
-                    className={`border rounded-md shadow-main overflow-hidden mb-3${order.id === scrollToOrderId ? " highlight-flash" : ""}`}
+                    ref={highlightSet.size > 0 && order.id === [...highlightSet][0] ? scrollTargetRef : undefined}
+                    className={`border rounded-md shadow-main overflow-hidden mb-3${highlightSet.has(order.id) ? " highlight-flash" : ""}`}
                     style={
                       order.status === "RESERVE" ||
                       order.status === "SHIPMENT_PLANNED" ||

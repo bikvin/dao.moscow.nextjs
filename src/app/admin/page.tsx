@@ -10,6 +10,7 @@ import { Pagination } from "@/components/admin/Pagination";
 import { OrdersGrid } from "@/components/admin/order/OrdersGrid";
 import { CreateOrderForm } from "@/components/admin/order/CreateOrderForm";
 import { OrdersFilterForm } from "@/components/admin/order/OrdersFilterForm";
+import Link from "next/link";
 
 const PAGE_SIZE = 100;
 
@@ -34,7 +35,8 @@ export default async function OrdersPage({
   const orderTypeFilter = searchParams.orderType ?? "";
   const dateFrom = searchParams.dateFrom ?? "";
   const dateTo = searchParams.dateTo ?? "";
-  const scrollToOrder = searchParams.scrollToOrder ?? null;
+  const scrollToOrderParam = searchParams.scrollToOrder ?? null;
+  const scrollToOrderIds = scrollToOrderParam ? scrollToOrderParam.split(",").filter(Boolean) : [];
 
   // Start of previous month
   const now = new Date();
@@ -239,7 +241,7 @@ export default async function OrdersPage({
             paymentMethods={paymentMethods}
             usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
             rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
-            scrollToOrderId={scrollToOrder}
+            scrollToOrderIds={scrollToOrderIds}
             marketplacePaymentMethodId={yandexPaymentMethodIdSetting?.value ?? null}
           />
 
@@ -250,7 +252,7 @@ export default async function OrdersPage({
             searchParams={searchParams}
           />
 
-          {/* Create order form */}
+          {/* Create order form + import shortcut */}
           <div className="mt-20 mb-20">
             <CreateOrderForm
               partners={partnerOptions}
@@ -262,6 +264,14 @@ export default async function OrdersPage({
               nextOrderNumber={(maxSeqOrder._max.sequenceNumber ?? 0) + 1}
               marketplacePaymentMethodId={yandexPaymentMethodIdSetting?.value ?? null}
             />
+            <div className="mt-4">
+              <Link
+                href="/admin/yandex/import-orders"
+                className="text-sm text-blue-500 hover:text-blue-700 hover:underline"
+              >
+                Импорт заказов Яндекс →
+              </Link>
+            </div>
           </div>
         </div>
       </div>

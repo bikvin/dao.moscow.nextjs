@@ -57,8 +57,8 @@ export type ImportOrder = {
 export async function importYandexOrders(
   orders: ImportOrder[],
   partnerId: string
-): Promise<{ imported: number } | { error: string }> {
-  if (orders.length === 0) return { imported: 0 };
+): Promise<{ imported: number; orderIds: string[] } | { error: string }> {
+  if (orders.length === 0) return { imported: 0, orderIds: [] };
 
   try {
     // Load global settings and partner name once before processing orders
@@ -100,6 +100,7 @@ export async function importYandexOrders(
     const dimensionsById = new Map(products.map((p) => [p.id, p]));
 
     let importedCount = 0;
+    const orderIds: string[] = [];
 
     for (const order of orders) {
       const orderDate = new Date(order.orderDate);
@@ -124,7 +125,7 @@ export async function importYandexOrders(
           order.fees.sortingRub
         : avgDelivery * totalYandexUnits;
 
-      await db.$transaction(async (tx) => {
+      const { orderId } = await db.$transaction(async (tx) => {
         // Auto-assign next sequenceNumber for the year (same as manual order creation)
         const last = await tx.order.findFirst({
           where: { year },
@@ -271,13 +272,15 @@ export async function importYandexOrders(
           }
         }
         // CANCELLED orders: no reserve or issue created
+        return { orderId: created.id };
       });
 
+      orderIds.push(orderId);
       importedCount++;
     }
 
     revalidatePath("/admin");
-    return { imported: importedCount };
+    return { imported: importedCount, orderIds };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Ошибка при импорте" };
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { OrderCandidate } from "@/actions/yandex/fetchOrderCandidates";
 import { fetchOrderCandidates } from "@/actions/yandex/fetchOrderCandidates";
 import type { ImportOrder } from "@/actions/yandex/importYandexOrders";
@@ -122,6 +123,7 @@ export function ImportOrdersClient({
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
 
+  const router = useRouter();
   const [isFetching, startFetch] = useTransition();
   const [isImporting, startImport] = useTransition();
 
@@ -199,11 +201,10 @@ export function ImportOrdersClient({
         setImportError(result.error);
         return;
       }
-      // Remove imported orders from the candidate list
-      const importedSet = new Set(toImport.map((o) => o.yandexOrderId));
-      setCandidates((prev) => prev.filter((c) => !importedSet.has(c.yandexOrderId)));
-      setSelectedIds(new Set());
-      setImportSuccess(`Импортировано ${result.imported} заказов`);
+      const target = result.orderIds.length > 0
+        ? `/admin?scrollToOrder=${result.orderIds.join(",")}`
+        : "/admin";
+      router.push(target);
     });
   }
 
