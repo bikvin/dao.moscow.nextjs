@@ -312,12 +312,12 @@ export function OrdersGrid({
                   order.partner.names[0]?.name ??
                   "—";
                 const isEstimate = order.yandexData != null && !order.yandexData.feesSettled;
-                const approx = (v: string) => isEstimate ? `~${v}` : v;
+                const approx = (v: string) => isEstimate ? `≈${v}` : v;
                 // For estimate orders show net with gross in brackets: ~12 462 (25 432) ₽
                 const fmt0 = (rubles: number) =>
                   Math.round(rubles).toLocaleString("ru-RU");
                 const orderTotalNode = order.yandexData
-                  ? <span className="flex flex-col items-end gap-0"><span>{isEstimate ? "~" : ""}{fmt0(order.totalRub / 100)} ₽</span><span className="text-xs font-normal text-slate-400">{fmt0(order.yandexData.buyerTotal + order.yandexData.subsidyTotal)} ₽ розн.</span></span>
+                  ? <span className="flex flex-col items-end gap-0"><span>{isEstimate ? "≈" : ""}{fmt0(order.totalRub / 100)} ₽</span><span className="text-xs font-normal text-slate-400">{fmt0(order.yandexData.buyerTotal + order.yandexData.subsidyTotal)} ₽ розн.</span></span>
                   : <>{formatRub(order.totalRub)}</>;
 
                 return (

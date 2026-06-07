@@ -331,7 +331,7 @@ export function ImportOrdersClient({
                   <p className="text-sm font-medium">
                     Выбрано: {selectedReady.length} заказов —{" "}
                     {fmt(selectedSellTotal)} ₽ продажи,{" "}
-                    ~{fmt(selectedNetTotal)} ₽ чистыми
+                    ≈{fmt(selectedNetTotal)} ₽ чистыми
                     {selectedSellTotal > 0 && (
                       <span className="ml-1.5 text-slate-400 font-normal">
                         ({(100 * (selectedSellTotal - selectedNetTotal) / selectedSellTotal).toFixed(1)}% издержки)
@@ -381,7 +381,7 @@ export function ImportOrdersClient({
                         <span
                           className={`text-sm ${net.exact ? "text-emerald-700 font-medium" : "text-slate-500"}`}
                         >
-                          {net.exact ? "" : "~"}{fmt(net.value)} ₽ чистыми
+                          {net.exact ? "" : "≈"}{fmt(net.value)} ₽ чистыми
                           <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded font-normal ${net.exact ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
                             {net.exact ? "факт" : "оценка"}
                           </span>
