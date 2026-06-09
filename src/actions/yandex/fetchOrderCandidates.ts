@@ -174,8 +174,9 @@ export async function fetchOrderCandidates(
 
     const candidates: OrderCandidate[] = toProcess.map((order) => {
       const stat = statsById.get(order.id);
-      // feesSettled = true only if Yandex returned commission data for this order
-      const feesSettled = (stat?.commissions?.length ?? 0) > 0;
+      // feesSettled = true only when real settlement commissions have arrived.
+      // AGENCY (0.12 ₽/item) is posted early and does not indicate full settlement.
+      const feesSettled = stat?.commissions?.some((c) => c.type !== "AGENCY") ?? false;
 
       const subsidyTotal = order.subsidies?.reduce((s, x) => s + x.amount, 0) ?? 0;
 

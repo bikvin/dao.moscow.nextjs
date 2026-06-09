@@ -11,6 +11,7 @@ import { AverageDeliveryForm } from "@/components/admin/yandex/AverageDeliveryFo
 import { EstimateDeliveryButton } from "@/components/admin/yandex/EstimateDeliveryButton";
 import { YandexPartnerForm } from "@/components/admin/yandex/YandexPartnerForm";
 import { YandexPaymentMethodForm } from "@/components/admin/yandex/YandexPaymentMethodForm";
+import { RecalculateCommissionsButton } from "@/components/admin/yandex/RecalculateCommissionsButton";
 import Link from "next/link";
 import { YandexSyncStatusEnum } from "@prisma/client";
 
@@ -135,6 +136,16 @@ export default async function YandexPage() {
               <YandexPartnerForm partners={partnerOptions} currentPartnerId={currentPartnerId} />
               <YandexPaymentMethodForm paymentMethods={paymentMethods} currentPaymentMethodId={currentPaymentMethodId} />
             </div>
+          </div>
+
+          {/* Commissions recalculation */}
+          <div className="border rounded-md p-4 mt-8 shadow-main">
+            <h2 className="text-lg font-medium mb-2">Пересчёт комиссий</h2>
+            <p className="text-sm text-slate-500 mb-3">
+              Пересчитать чистую выручку по заказам, у которых комиссии ещё не подтверждены (feesSettled = false).
+              Данные запрашиваются из API Яндекс Маркет; если комиссии появились — цены и итоги обновляются.
+            </p>
+            <RecalculateCommissionsButton />
           </div>
 
           {/* Orders debug */}
