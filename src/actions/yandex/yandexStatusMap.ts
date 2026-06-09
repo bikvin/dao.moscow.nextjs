@@ -1,8 +1,7 @@
 import { OrderStatusEnum } from "@prisma/client";
 
 // Maps Yandex order statuses to our internal OrderStatusEnum.
-// DELIVERED → SHIPPED.
-// All in-progress statuses (PROCESSING, DELIVERY, etc.) → SHIPMENT_PLANNED with a planned date badge.
+// All active statuses → SHIPMENT_PLANNED so the manager confirms delivery manually.
 // PICKUP → SELF_PICKUP.
 export const STATUS_MAP: Record<string, OrderStatusEnum> = {
   PROCESSING: OrderStatusEnum.SHIPMENT_PLANNED,
@@ -10,8 +9,8 @@ export const STATUS_MAP: Record<string, OrderStatusEnum> = {
   RESERVED: OrderStatusEnum.SHIPMENT_PLANNED,
   UNPAID: OrderStatusEnum.SHIPMENT_PLANNED,
   DELIVERY: OrderStatusEnum.SHIPMENT_PLANNED,
+  DELIVERED: OrderStatusEnum.SHIPMENT_PLANNED,
   PICKUP: OrderStatusEnum.SELF_PICKUP,
-  DELIVERED: OrderStatusEnum.SHIPPED,
   CANCELLED: OrderStatusEnum.CANCELLED,
   CANCELLED_IN_DELIVERY: OrderStatusEnum.CANCELLED,
   RETURNED: OrderStatusEnum.CANCELLED,
