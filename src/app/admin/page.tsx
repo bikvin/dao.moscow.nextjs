@@ -106,6 +106,7 @@ export default async function OrdersPage({
     usdRateSetting,
     rmbRateSetting,
     yandexPaymentMethodIdSetting,
+    selfPickupDeliveryMethodIdSetting,
     maxSeqOrder,
   ] = await Promise.all([
     db.order.findMany({
@@ -202,6 +203,7 @@ export default async function OrdersPage({
     db.settings.findUnique({ where: { field: "usdMainRate" } }),
     db.settings.findUnique({ where: { field: "rmbOfficialRate" } }),
     db.settings.findUnique({ where: { field: "yandexPaymentMethodId" } }),
+    db.settings.findUnique({ where: { field: "selfPickupDeliveryMethodId" } }),
     db.order.aggregate({
       where: { year: currentYear },
       _max: { sequenceNumber: true },
@@ -243,6 +245,7 @@ export default async function OrdersPage({
             rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
             scrollToOrderIds={scrollToOrderIds}
             marketplacePaymentMethodId={yandexPaymentMethodIdSetting?.value ?? null}
+            selfPickupDeliveryMethodId={selfPickupDeliveryMethodIdSetting?.value ?? null}
           />
 
           <Pagination

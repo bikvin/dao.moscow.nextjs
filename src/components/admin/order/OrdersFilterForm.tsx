@@ -90,7 +90,7 @@ export function OrdersFilterForm({
       >
         <option value="DEFAULT">Актуальные</option>
         <option value="ALL">Все заказы</option>
-        {Object.values(OrderStatusEnum).map((s) => (
+        {Object.values(OrderStatusEnum).filter((s) => s !== OrderStatusEnum.SELF_PICKUP).map((s) => (
           <option key={s} value={s}>{STATUS_LABELS[s]}</option>
         ))}
       </select>

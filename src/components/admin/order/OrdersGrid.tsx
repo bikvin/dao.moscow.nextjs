@@ -220,6 +220,7 @@ export function OrdersGrid({
   rmbRate,
   scrollToOrderIds,
   marketplacePaymentMethodId,
+  selfPickupDeliveryMethodId,
 }: {
   orders: Order[];
   products: ProductOption[];
@@ -230,6 +231,7 @@ export function OrdersGrid({
   rmbRate: number | null;
   scrollToOrderIds?: string[];
   marketplacePaymentMethodId?: string | null;
+  selfPickupDeliveryMethodId?: string | null;
 }) {
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const scrollTargetRef = React.useRef<HTMLDivElement>(null);
@@ -601,7 +603,12 @@ export function OrdersGrid({
                               order.status === "SHIPPED" && order.deliveryDate
                                 ? `${ORDER_STATUS_CONFIG[order.status].label} ${formatDate(order.deliveryDate)}`
                                 : order.status === "SHIPMENT_PLANNED"
-                                  ? `${ORDER_STATUS_CONFIG[order.status].label} ${order.plannedDeliveryDate ? formatShortDate(order.plannedDeliveryDate) : "???"}`
+                                  ? (() => {
+                                      const isPickup = order.deliveryMethodId === selfPickupDeliveryMethodId && selfPickupDeliveryMethodId != null;
+                                      const prefix = isPickup ? "Самовывоз" : ORDER_STATUS_CONFIG[order.status].label;
+                                      const datePart = order.plannedDeliveryDate ? ` ${formatShortDate(order.plannedDeliveryDate)}` : (isPickup ? "" : " ???");
+                                      return prefix + datePart;
+                                    })()
                                   : ORDER_STATUS_CONFIG[order.status].label
                             }
                             cls={

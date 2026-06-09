@@ -10,7 +10,7 @@ export const STATUS_MAP: Record<string, OrderStatusEnum> = {
   UNPAID: OrderStatusEnum.SHIPMENT_PLANNED,
   DELIVERY: OrderStatusEnum.SHIPMENT_PLANNED,
   DELIVERED: OrderStatusEnum.SHIPMENT_PLANNED,
-  PICKUP: OrderStatusEnum.SELF_PICKUP,
+  PICKUP: OrderStatusEnum.SHIPMENT_PLANNED,
   CANCELLED: OrderStatusEnum.CANCELLED,
   CANCELLED_IN_DELIVERY: OrderStatusEnum.CANCELLED,
   RETURNED: OrderStatusEnum.CANCELLED,

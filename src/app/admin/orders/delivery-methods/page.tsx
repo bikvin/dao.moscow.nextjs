@@ -4,9 +4,14 @@ import Link from "next/link";
 import { CreateDeliveryMethodForm, EditDeliveryMethodForm } from "@/components/admin/order/DeliveryMethodForms";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
 import { deleteDeliveryMethod } from "@/actions/order/deliveryMethods";
+import { PickupDeliveryMethodForm } from "@/components/admin/order/PickupDeliveryMethodForm";
 
 export default async function DeliveryMethodsPage() {
-  const methods = await db.deliveryMethod.findMany({ orderBy: { name: "asc" } });
+  const [methods, pickupSetting] = await Promise.all([
+    db.deliveryMethod.findMany({ orderBy: { name: "asc" } }),
+    db.settings.findUnique({ where: { field: "selfPickupDeliveryMethodId" } }),
+  ]);
+  const currentPickupMethodId = pickupSetting?.value ?? null;
 
   return (
     <>
@@ -21,6 +26,11 @@ export default async function DeliveryMethodsPage() {
           <h1 className="admin-form-header mt-2">Способы доставки</h1>
 
           <div className="border rounded-md p-4 shadow-main mt-6">
+            <h2 className="text-base font-semibold text-slate-700 mb-3">Настройки</h2>
+            <PickupDeliveryMethodForm deliveryMethods={methods} currentDeliveryMethodId={currentPickupMethodId} />
+          </div>
+
+          <div className="border rounded-md p-4 shadow-main mt-5">
             <h2 className="text-base font-semibold text-slate-700 mb-3">Добавить способ доставки</h2>
             <CreateDeliveryMethodForm />
           </div>

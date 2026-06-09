@@ -627,7 +627,7 @@ export function CreateOrderForm({
               onChange={(e) => setOrderStatus(e.target.value as OrderStatusEnum)}
               className="admin-form-input text-sm w-52"
             >
-              {Object.values(OrderStatusEnum).map((s) => (
+              {Object.values(OrderStatusEnum).filter((s) => s !== OrderStatusEnum.SELF_PICKUP).map((s) => (
                 <option key={s} value={s}>{ORDER_STATUS_LABELS[s]}</option>
               ))}
             </select>
