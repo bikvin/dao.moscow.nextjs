@@ -366,6 +366,7 @@ export function CreateOrderForm({
   onToggle,
   nextOrderNumber,
   marketplacePaymentMethodId,
+  marketplacePaymentMethodIds,
 }: {
   partners: PartnerOption[];
   deliveryMethods: DeliveryMethodOption[];
@@ -378,7 +379,12 @@ export function CreateOrderForm({
   onToggle?: () => void;
   nextOrderNumber?: number;
   marketplacePaymentMethodId?: string | null;
+  marketplacePaymentMethodIds?: string[];
 }) {
+  // Support both single-ID (from OrdersGrid per-order) and multi-ID (from page-level) interfaces
+  const isMarketplaceMethod = (id: string | null | undefined) =>
+    !!id && (id === marketplacePaymentMethodId || (marketplacePaymentMethodIds?.includes(id) ?? false));
+
   const isEditMode = !!initialOrder;
   const boundAction = isEditMode ? updateOrder.bind(null, initialOrder.id) : createOrder;
   const [formState, action] = useFormState<SubItemFormState, FormData>(boundAction, {});
@@ -681,15 +687,15 @@ export function CreateOrderForm({
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex flex-col gap-0.5">
             <label className="text-xs text-slate-400">Статус оплаты:</label>
-            <input type="hidden" name="paymentStatus" value={paymentMethodId === marketplacePaymentMethodId ? PaymentStatusEnum.PAID : paymentStatus} />
-            <div className={`flex items-center gap-2 py-1 ${paymentMethodId === marketplacePaymentMethodId ? "opacity-40 cursor-not-allowed" : ""}`}>
+            <input type="hidden" name="paymentStatus" value={isMarketplaceMethod(paymentMethodId) ? PaymentStatusEnum.PAID : paymentStatus} />
+            <div className={`flex items-center gap-2 py-1 ${isMarketplaceMethod(paymentMethodId) ? "opacity-40 cursor-not-allowed" : ""}`}>
               <Switch
-                checked={paymentMethodId === marketplacePaymentMethodId ? true : paymentStatus === PaymentStatusEnum.PAID}
+                checked={isMarketplaceMethod(paymentMethodId) ? true : paymentStatus === PaymentStatusEnum.PAID}
                 onCheckedChange={(checked) => setPaymentStatus(checked ? PaymentStatusEnum.PAID : PaymentStatusEnum.NOT_PAID)}
-                disabled={paymentMethodId === marketplacePaymentMethodId}
+                disabled={isMarketplaceMethod(paymentMethodId)}
               />
-              <span className={`text-sm font-medium ${(paymentMethodId === marketplacePaymentMethodId || paymentStatus === PaymentStatusEnum.PAID) ? "text-emerald-700" : "text-slate-400"}`}>
-                {(paymentMethodId === marketplacePaymentMethodId || paymentStatus === PaymentStatusEnum.PAID) ? "Оплачен" : "Не оплачен"}
+              <span className={`text-sm font-medium ${(isMarketplaceMethod(paymentMethodId) || paymentStatus === PaymentStatusEnum.PAID) ? "text-emerald-700" : "text-slate-400"}`}>
+                {(isMarketplaceMethod(paymentMethodId) || paymentStatus === PaymentStatusEnum.PAID) ? "Оплачен" : "Не оплачен"}
               </span>
             </div>
           </div>
@@ -701,7 +707,7 @@ export function CreateOrderForm({
               value={paymentDate}
               onChange={(e) => setPaymentDate(e.target.value)}
               className="admin-form-input text-sm w-36 disabled:opacity-40 disabled:cursor-not-allowed"
-              disabled={paymentMethodId === marketplacePaymentMethodId || paymentStatus !== PaymentStatusEnum.PAID}
+              disabled={isMarketplaceMethod(paymentMethodId) || paymentStatus !== PaymentStatusEnum.PAID}
             />
           </div>
         </div>

@@ -219,7 +219,7 @@ export function OrdersGrid({
   usdRate,
   rmbRate,
   scrollToOrderIds,
-  marketplacePaymentMethodId,
+  marketplacePaymentMethodIds,
   selfPickupDeliveryMethodId,
 }: {
   orders: Order[];
@@ -230,9 +230,13 @@ export function OrdersGrid({
   usdRate: number | null;
   rmbRate: number | null;
   scrollToOrderIds?: string[];
-  marketplacePaymentMethodId?: string | null;
+  marketplacePaymentMethodIds?: string[];
   selfPickupDeliveryMethodId?: string | null;
 }) {
+  const marketplacePaymentMethodIdSet = React.useMemo(
+    () => new Set(marketplacePaymentMethodIds ?? []),
+    [marketplacePaymentMethodIds]
+  );
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const scrollTargetRef = React.useRef<HTMLDivElement>(null);
   const shipmentDateColorMap = buildShipmentDateColorMap(orders);
@@ -624,9 +628,9 @@ export function OrdersGrid({
                             }
                           />
 
-                          {order.paymentMethodId !== marketplacePaymentMethodId && (
+                          {order.paymentMethodId == null || !marketplacePaymentMethodIdSet.has(order.paymentMethodId) ? (
                             <Badge {...PAYMENT_STATUS_CONFIG[order.paymentStatus]} />
-                          )}
+                          ) : null}
                         </div>
                         {order.reserves.filter((r) => r.status === "ACTIVE")
                           .length > 0 && (
@@ -701,7 +705,7 @@ export function OrdersGrid({
                       products={products}
                       usdRate={usdRate}
                       rmbRate={rmbRate}
-                      marketplacePaymentMethodId={marketplacePaymentMethodId}
+                      marketplacePaymentMethodId={order.paymentMethodId != null && marketplacePaymentMethodIdSet.has(order.paymentMethodId) ? order.paymentMethodId : null}
                       isOpen={openOrderId === order.id}
                       onToggle={() =>
                         setOpenOrderId(

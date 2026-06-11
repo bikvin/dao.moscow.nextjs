@@ -8,11 +8,20 @@ import { OzonDefaultDivisorForm } from "@/components/admin/ozon/OzonDefaultDivis
 import { OzonWarehouseIdForm } from "@/components/admin/ozon/OzonWarehouseIdForm";
 import { OzonDefaultPriceMarkupForm } from "@/components/admin/ozon/OzonDefaultPriceMarkupForm";
 import { OzonDefaultCrossedPriceMarkupForm } from "@/components/admin/ozon/OzonDefaultCrossedPriceMarkupForm";
+import { OzonPartnerForm } from "@/components/admin/ozon/OzonPartnerForm";
+import { OzonPaymentMethodForm } from "@/components/admin/ozon/OzonPaymentMethodForm";
+import { OzonAverageServiceFeeForm } from "@/components/admin/ozon/OzonAverageServiceFeeForm";
+import { RecalculateOzonCommissionsButton } from "@/components/admin/ozon/RecalculateOzonCommissionsButton";
 import Link from "next/link";
 import { OzonSyncStatusEnum } from "@prisma/client";
 
 export default async function OzonPage() {
-  const [lastLog, lastPriceLog, bufferSetting, divisorSetting, warehouseSetting, markupSetting, crossedMarkupSetting] = await Promise.all([
+  const [
+    lastLog, lastPriceLog,
+    bufferSetting, divisorSetting, warehouseSetting, markupSetting, crossedMarkupSetting,
+    partnerIdSetting, paymentMethodIdSetting, avgServiceFeeSetting,
+    partners, paymentMethods,
+  ] = await Promise.all([
     db.ozonSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.ozonPriceSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.settings.findUnique({ where: { field: "ozonDefaultBuffer" } }),
@@ -20,6 +29,14 @@ export default async function OzonPage() {
     db.settings.findUnique({ where: { field: "ozonWarehouseId" } }),
     db.settings.findUnique({ where: { field: "ozonDefaultPriceMarkup" } }),
     db.settings.findUnique({ where: { field: "ozonCrossedPriceMarkup" } }),
+    db.settings.findUnique({ where: { field: "ozonPartnerId" } }),
+    db.settings.findUnique({ where: { field: "ozonPaymentMethodId" } }),
+    db.settings.findUnique({ where: { field: "ozonAverageServiceFeeRub" } }),
+    db.partner.findMany({
+      include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.paymentMethod.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const globalBuffer = bufferSetting ? parseInt(bufferSetting.value, 10) || 0 : 0;
@@ -27,6 +44,10 @@ export default async function OzonPage() {
   const warehouseId = warehouseSetting?.value ?? null;
   const globalPriceMarkup = markupSetting ? parseInt(markupSetting.value, 10) || 0 : 0;
   const crossedPriceMarkup = crossedMarkupSetting ? parseInt(crossedMarkupSetting.value, 10) || 0 : 0;
+  const currentPartnerId = partnerIdSetting?.value ?? null;
+  const currentPaymentMethodId = paymentMethodIdSetting?.value ?? null;
+  const avgServiceFee = avgServiceFeeSetting ? parseFloat(avgServiceFeeSetting.value) : null;
+  const partnerOptions = partners.map((p) => ({ id: p.id, name: p.names[0]?.name ?? p.id }));
 
   return (
     <>
@@ -120,11 +141,27 @@ export default async function OzonPage() {
               <OzonDefaultDivisorForm current={globalDivisor} />
               <OzonDefaultPriceMarkupForm current={globalPriceMarkup} />
               <OzonDefaultCrossedPriceMarkupForm current={crossedPriceMarkup} />
+              <OzonAverageServiceFeeForm current={avgServiceFee} />
+              <OzonPartnerForm partners={partnerOptions} currentPartnerId={currentPartnerId} />
+              <OzonPaymentMethodForm paymentMethods={paymentMethods} currentPaymentMethodId={currentPaymentMethodId} />
             </div>
+          </div>
+
+          {/* Commissions recalculation */}
+          <div className="border rounded-md p-4 mt-8 shadow-main">
+            <h2 className="text-lg font-medium mb-2">Пересчёт комиссий</h2>
+            <p className="text-sm text-slate-500 mb-3">
+              Пересчитать чистую выручку по заказам, у которых транзакционные сборы ещё не подтверждены.
+              Данные запрашиваются из API Ozon; если транзакции появились — цены и итоги обновляются.
+            </p>
+            <RecalculateOzonCommissionsButton />
           </div>
 
           {/* Navigation */}
           <div className="flex gap-4 mt-8 flex-wrap">
+            <Link className="link-button link-button-green" href="/admin/ozon/import-orders">
+              Импорт заказов
+            </Link>
             <Link className="link-button link-button-green" href="/admin/ozon/mappings">
               Маппинг товаров
             </Link>

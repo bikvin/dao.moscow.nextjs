@@ -607,6 +607,7 @@ model Order {
   receipts ProductReceipt[]
   invoices Invoice[]
   yandexData YandexOrderData?
+  ozonData   OzonOrderData?
 
   @@unique([year, sequenceNumber])
   @@index([partnerId])
@@ -627,6 +628,28 @@ model YandexOrderData {
   agencyRub          Float @default(0)
   loyaltyFeeRub      Float @default(0)
   sortingRub         Float @default(0)
+
+  feesSettled Boolean @default(false)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OzonOrderData {
+  id            String @id @default(uuid())
+  postingNumber String @unique
+
+  // Per-posting financial data from financial_data on the posting (available on import)
+  buyerPrice       Float @default(0)  // total buyer price for the posting
+  commissionAmount Float @default(0)  // Ozon commission deducted (negative value)
+  payoutAmount     Float @default(0)  // gross seller revenue after commission
+
+  // Service fees from transaction API (populated on settlement)
+  logisticsRub      Float @default(0)  // MarketplaceServiceItemDirectFlowLogistic
+  dropoffRub        Float @default(0)  // DropoffPVZ + RedistributionDropOffApvz
+  lastMileRub       Float @default(0)  // RedistributionLastMileCourier
+  starsMembershipRub Float @default(0) // ItemAgentServiceStarsMembership
+  acquiringRub      Float @default(0)  // MarketplaceRedistributionOfAcquiringOperation
 
   feesSettled Boolean @default(false)
 

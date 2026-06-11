@@ -106,6 +106,7 @@ export default async function OrdersPage({
     usdRateSetting,
     rmbRateSetting,
     yandexPaymentMethodIdSetting,
+    ozonPaymentMethodIdSetting,
     selfPickupDeliveryMethodIdSetting,
     maxSeqOrder,
   ] = await Promise.all([
@@ -203,6 +204,7 @@ export default async function OrdersPage({
     db.settings.findUnique({ where: { field: "usdMainRate" } }),
     db.settings.findUnique({ where: { field: "rmbOfficialRate" } }),
     db.settings.findUnique({ where: { field: "yandexPaymentMethodId" } }),
+    db.settings.findUnique({ where: { field: "ozonPaymentMethodId" } }),
     db.settings.findUnique({ where: { field: "selfPickupDeliveryMethodId" } }),
     db.order.aggregate({
       where: { year: currentYear },
@@ -244,7 +246,10 @@ export default async function OrdersPage({
             usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
             rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
             scrollToOrderIds={scrollToOrderIds}
-            marketplacePaymentMethodId={yandexPaymentMethodIdSetting?.value ?? null}
+            marketplacePaymentMethodIds={[
+              yandexPaymentMethodIdSetting?.value,
+              ozonPaymentMethodIdSetting?.value,
+            ].filter((v): v is string => Boolean(v))}
             selfPickupDeliveryMethodId={selfPickupDeliveryMethodIdSetting?.value ?? null}
           />
 
@@ -265,14 +270,23 @@ export default async function OrdersPage({
               usdRate={usdRateSetting ? parseFloat(usdRateSetting.value) : null}
               rmbRate={rmbRateSetting ? parseFloat(rmbRateSetting.value) : null}
               nextOrderNumber={(maxSeqOrder._max.sequenceNumber ?? 0) + 1}
-              marketplacePaymentMethodId={yandexPaymentMethodIdSetting?.value ?? null}
+              marketplacePaymentMethodIds={[
+                yandexPaymentMethodIdSetting?.value,
+                ozonPaymentMethodIdSetting?.value,
+              ].filter((v): v is string => Boolean(v))}
             />
-            <div className="mt-4">
+            <div className="mt-4 flex gap-4">
               <Link
                 href="/admin/yandex/import-orders"
                 className="text-sm text-blue-500 hover:text-blue-700 hover:underline"
               >
                 Импорт заказов Яндекс →
+              </Link>
+              <Link
+                href="/admin/ozon/import-orders"
+                className="text-sm text-blue-500 hover:text-blue-700 hover:underline"
+              >
+                Импорт заказов Ozon →
               </Link>
             </div>
           </div>

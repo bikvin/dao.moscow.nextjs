@@ -4,6 +4,7 @@ import { syncYandexPrices } from "@/lib/yandex/syncYandexPrices";
 import { syncOzonPrices } from "@/lib/ozon/syncOzonPrices";
 import { removeOzonPromotions } from "@/lib/ozon/removeOzonPromotions";
 import { recalculateYandexCommissions } from "@/lib/yandex/recalculateYandexCommissions";
+import { recalculateOzonCommissions } from "@/lib/ozon/recalculateOzonCommissions";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -54,6 +55,13 @@ export async function GET(request: NextRequest) {
     results.yandexCommissions = updated > 0 ? `updated ${updated} orders` : "no orders to update";
   } catch (err: unknown) {
     results.yandexCommissions = err instanceof Error ? err.message : "error";
+  }
+
+  try {
+    const { updated } = await recalculateOzonCommissions();
+    results.ozonCommissions = updated > 0 ? `updated ${updated} orders` : "no orders to update";
+  } catch (err: unknown) {
+    results.ozonCommissions = err instanceof Error ? err.message : "error";
   }
 
   return NextResponse.json(results);
