@@ -1,70 +1,6 @@
 import { db } from "@/db";
 import { fetchOzonPostings } from "@/lib/ozon/fetchOzonPostings";
-
-const OZON_API_BASE = "https://api-seller.ozon.ru";
-
-type OzonTransaction = {
-  operation_type: string;
-  posting: { posting_number: string };
-  accruals_for_sale: number;
-  sale_commission: number;
-  amount: number;
-  services: { name: string; price: number }[];
-};
-
-// Fetches financial transactions from Ozon for a list of posting numbers.
-// Each posting may have multiple transaction operations (sale, stars, acquiring, etc.).
-async function fetchTransactions(postingNumbers: string[]): Promise<OzonTransaction[]> {
-  const clientId = process.env.OZON_CLIENT_ID;
-  const apiKey = process.env.OZON_API_KEY;
-  if (!clientId || !apiKey) return [];
-
-  const results: OzonTransaction[] = [];
-
-  // Ozon transaction list doesn't support batch by posting_number directly,
-  // so we fetch by a wide date range and filter client-side.
-  // Use a broad 180-day window to cover all unsettled orders.
-  const since = new Date();
-  since.setDate(since.getDate() - 180);
-
-  let page = 1;
-  while (true) {
-    const res = await fetch(`${OZON_API_BASE}/v3/finance/transaction/list`, {
-      method: "POST",
-      headers: {
-        "Client-Id": clientId,
-        "Api-Key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        filter: {
-          date: { from: since.toISOString(), to: new Date().toISOString() },
-          transaction_type: "all",
-        },
-        page,
-        page_size: 1000,
-      }),
-    });
-
-    if (!res.ok) break;
-    const data = await res.json();
-    const ops: OzonTransaction[] = data.result?.operations ?? [];
-
-    const relevant = ops.filter((op) =>
-      postingNumbers.includes(op.posting?.posting_number)
-    );
-    results.push(...relevant);
-
-    if (page >= (data.result?.page_count ?? 1)) break;
-    page++;
-  }
-
-  return results;
-}
-
-function getService(services: { name: string; price: number }[], name: string): number {
-  return services.find((s) => s.name === name)?.price ?? 0;
-}
+import { fetchOzonTransactions, getOzonService, type OzonTransaction } from "@/lib/ozon/fetchOzonTransactions";
 
 // Finds all imported Ozon orders with unsettled fees, fetches transaction data,
 // and for orders where the main sale operation has settled: recalculates per-item
@@ -97,7 +33,8 @@ export async function recalculateOzonCommissions(): Promise<{ updated: number }>
       .map((p) => [p.posting_number, p])
   );
 
-  const transactions = await fetchTransactions(unsettledPostingNumbers);
+  const toDate = new Date();
+  const transactions = await fetchOzonTransactions(fromDate, toDate, unsettledPostingNumbers);
 
   // Group transactions by posting number
   const txByPosting = new Map<string, OzonTransaction[]>();
@@ -151,14 +88,17 @@ export async function recalculateOzonCommissions(): Promise<{ updated: number }>
 
     // Sum all service fees across all transaction operations for this posting
     const allServices = txList.flatMap((tx) => tx.services);
-    const logisticsRub = Math.abs(getService(allServices, "MarketplaceServiceItemDirectFlowLogistic"));
-    const dropoffRub = Math.abs(
-      getService(allServices, "MarketplaceServiceItemDropoffPVZ") +
-      getService(allServices, "MarketplaceServiceItemRedistributionDropOffApvz")
+    const logisticsRub = Math.abs(
+      getOzonService(allServices, "MarketplaceServiceItemDirectFlowLogistic") +
+      getOzonService(allServices, "MarketplaceServiceItemDeliveryToHandoverPlaceOzon")
     );
-    const lastMileRub = Math.abs(getService(allServices, "MarketplaceServiceItemRedistributionLastMileCourier"));
-    const starsMembershipRub = Math.abs(getService(allServices, "ItemAgentServiceStarsMembership"));
-    const acquiringRub = Math.abs(getService(allServices, "MarketplaceRedistributionOfAcquiringOperation"));
+    const dropoffRub = Math.abs(
+      getOzonService(allServices, "MarketplaceServiceItemDropoffPVZ") +
+      getOzonService(allServices, "MarketplaceServiceItemRedistributionDropOffApvz")
+    );
+    const lastMileRub = Math.abs(getOzonService(allServices, "MarketplaceServiceItemRedistributionLastMileCourier"));
+    const starsMembershipRub = Math.abs(getOzonService(allServices, "ItemAgentServiceStarsMembership"));
+    const acquiringRub = Math.abs(getOzonService(allServices, "MarketplaceRedistributionOfAcquiringOperation"));
     const totalServiceFees = logisticsRub + dropoffRub + lastMileRub + starsMembershipRub + acquiringRub;
 
     let newTotalRub = 0;

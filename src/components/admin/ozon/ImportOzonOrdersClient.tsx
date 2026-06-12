@@ -7,21 +7,19 @@ import { fetchOzonOrderCandidates } from "@/actions/ozon/fetchOzonOrderCandidate
 import type { ImportOzonOrder, ImportOzonOrderItem } from "@/actions/ozon/importOzonOrders";
 import { importOzonOrders } from "@/actions/ozon/importOzonOrders";
 
-// Calculates net revenue for the whole order.
-// Returns noData=true when Ozon hasn't provided financial_data yet (delivering orders).
+// Net revenue for the whole order.
+// Uses exact service fees when available (delivered + transactions fetched), else avgServiceFee.
 function calcNet(c: OzonOrderCandidate, avgServiceFee: number): { value: number; exact: boolean; noData: boolean } {
-  if (c.totalPayout === 0) {
-    return { value: 0, exact: false, noData: true };
-  }
+  if (c.totalPayout === 0) return { value: 0, exact: false, noData: true };
+  const fees = c.serviceFeesBreakdown !== null ? c.serviceFeesBreakdown.total : avgServiceFee;
   return {
-    value: Math.round(c.totalPayout - avgServiceFee),
-    exact: c.feesSettled,
+    value: Math.round(c.totalPayout - fees),
+    exact: c.serviceFeesBreakdown !== null,
     noData: false,
   };
 }
 
-// Calculates net revenue per Ozon unit for a single item.
-// Returns null when payout is 0 (financial_data not yet available).
+// Net per Ozon unit for a single item. Returns null when payout not yet available.
 function calcItemNet(
   item: OzonOrderCandidate["items"][number],
   c: OzonOrderCandidate,
@@ -29,14 +27,11 @@ function calcItemNet(
 ): number | null {
   if (item.payout === 0) return null;
   const totalOzonUnits = c.items.reduce((s, i) => s + i.quantity, 0);
-  const payoutPerOzonUnit = item.payout / item.quantity;
-  const feePerOzonUnit = avgServiceFee / totalOzonUnits;
-  return Math.round(payoutPerOzonUnit - feePerOzonUnit);
+  const fees = c.serviceFeesBreakdown !== null ? c.serviceFeesBreakdown.total : avgServiceFee;
+  return Math.round(item.payout / item.quantity - fees / totalOzonUnits);
 }
 
-// Returns true if all items with a mapped product have a variant selected.
-// Items with no product match are skipped and don't block import.
-// Orders with zero importable items are not importable.
+// Returns true if all importable items (with a matched product) have a variant selected.
 function isOrderReady(
   c: OzonOrderCandidate,
   sels: Record<string, Record<string, string>>
@@ -49,8 +44,7 @@ function isOrderReady(
   return importableItems.every((i) => !!orderSels[i.offerId]);
 }
 
-// Auto-initialises variant selections after fetch.
-// Single-variant → auto-select. Multi-variant with main → auto-select main.
+// Auto-initialises variant selections: single-variant → auto-select; multi with main → auto-select main.
 function buildInitialSelections(
   candidates: OzonOrderCandidate[]
 ): Record<string, Record<string, string>> {
@@ -82,15 +76,15 @@ const ACTIVE_OZON_STATUSES = new Set([
   "client_arbitration",
 ]);
 
-const OZON_STATUS_LABELS: Record<string, string> = {
-  awaiting_packaging: "awaiting_packaging",
-  awaiting_deliver:   "awaiting_deliver",
-  delivering:         "delivering",
-  delivered:          "delivered",
-  arbitration:        "arbitration",
-  client_arbitration: "client_arbitration",
-  cancelled:          "cancelled",
-};
+const OZON_STATUS_KEYS = [
+  "awaiting_packaging",
+  "awaiting_deliver",
+  "delivering",
+  "delivered",
+  "arbitration",
+  "client_arbitration",
+  "cancelled",
+];
 
 export function ImportOzonOrdersClient({
   partnerId,
@@ -113,6 +107,7 @@ export function ImportOzonOrdersClient({
   const [variantSelections, setVariantSelections] = useState<
     Record<string, Record<string, string>>
   >({});
+  const [expandedRaw, setExpandedRaw] = useState<Set<string>>(new Set());
   const [hasFetched, setHasFetched] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -134,6 +129,7 @@ export function ImportOzonOrdersClient({
       setVariantSelections(sels);
       setCandidates(result.candidates);
       setSelectedIds(new Set());
+      setExpandedRaw(new Set());
       setHasFetched(true);
     });
   }
@@ -142,6 +138,14 @@ export function ImportOzonOrdersClient({
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  }
+
+  function toggleRaw(postingNumber: string) {
+    setExpandedRaw((prev) => {
+      const next = new Set(prev);
+      if (next.has(postingNumber)) { next.delete(postingNumber); } else { next.add(postingNumber); }
       return next;
     });
   }
@@ -166,6 +170,7 @@ export function ImportOzonOrdersClient({
           shipmentDate: c.shipmentDate,
           totalBuyerPrice: c.totalBuyerPrice,
           totalPayout: c.totalPayout,
+          serviceFeesBreakdown: c.serviceFeesBreakdown,
           items: c.items
             .filter(
               (item) =>
@@ -242,7 +247,7 @@ export function ImportOzonOrdersClient({
             <option value="active">Активные</option>
             <option value="all">Все</option>
             <optgroup label="По статусу Ozon">
-              {Object.keys(OZON_STATUS_LABELS).map((s) => (
+              {OZON_STATUS_KEYS.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </optgroup>
@@ -325,6 +330,8 @@ export function ImportOzonOrdersClient({
                   const net = calcNet(c, avgServiceFee);
                   const isSelected = selectedIds.has(c.postingNumber);
                   const hasUnmapped = c.items.some((i) => !i.product);
+                  const showRaw = expandedRaw.has(c.postingNumber);
+                  const totalCommission = c.items.reduce((s, i) => s + i.commissionAmount, 0);
 
                   return (
                     <div
@@ -352,6 +359,11 @@ export function ImportOzonOrdersClient({
                         <span className="text-xs text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded-full">
                           {c.ozonStatus}
                         </span>
+                        {c.isBuyout && (
+                          <span className="text-xs font-medium bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+                            ЕАЭС выкуп
+                          </span>
+                        )}
                         {c.city && (
                           <span className="text-xs text-slate-400">{c.city}</span>
                         )}
@@ -391,10 +403,32 @@ export function ImportOzonOrdersClient({
                           <>
                             <span>Выплата (после комиссии): {fmt(Math.round(c.totalPayout))} ₽</span>
                             <span>
-                              Комиссия Ozon: −{fmt(Math.round(Math.abs(c.items.reduce((s, i) => s + i.commissionAmount, 0))))} ₽{" "}
-                              ({c.items[0]?.commissionPercent.toFixed(1)}%)
+                              Комиссия Ozon: −{fmt(Math.round(Math.abs(totalCommission)))} ₽
+                              {c.items[0]?.commissionPercent > 0 && ` (${c.items[0].commissionPercent.toFixed(1)}%)`}
+                              <span className="ml-1 text-emerald-600">факт</span>
                             </span>
-                            <span>Сервисные сборы (оценка): −{fmt(Math.round(avgServiceFee))} ₽</span>
+                            {c.serviceFeesBreakdown ? (
+                              <>
+                                {c.serviceFeesBreakdown.logisticsRub > 0 && (
+                                  <span>Логистика: −{fmt(Math.round(c.serviceFeesBreakdown.logisticsRub))} ₽</span>
+                                )}
+                                {c.serviceFeesBreakdown.lastMileRub > 0 && (
+                                  <span>Последняя миля: −{fmt(Math.round(c.serviceFeesBreakdown.lastMileRub))} ₽</span>
+                                )}
+                                {c.serviceFeesBreakdown.dropoffRub > 0 && (
+                                  <span>Dropoff: −{fmt(Math.round(c.serviceFeesBreakdown.dropoffRub))} ₽</span>
+                                )}
+                                {c.serviceFeesBreakdown.starsMembershipRub > 0 && (
+                                  <span>Stars: −{fmt(Math.round(c.serviceFeesBreakdown.starsMembershipRub))} ₽</span>
+                                )}
+                                {c.serviceFeesBreakdown.acquiringRub > 0 && (
+                                  <span>Эквайринг: −{fmt(Math.round(c.serviceFeesBreakdown.acquiringRub))} ₽</span>
+                                )}
+                                <span className="text-emerald-600">Сервисные сборы: факт</span>
+                              </>
+                            ) : (
+                              <span>Сервисные сборы (оценка): −{fmt(Math.round(avgServiceFee))} ₽</span>
+                            )}
                           </>
                         )}
                       </div>
@@ -456,6 +490,53 @@ export function ImportOzonOrdersClient({
                           <p className="text-xs text-slate-400 mt-1">
                             Товары без SKU будут пропущены при импорте
                           </p>
+                        )}
+                      </div>
+
+                      {/* Raw data toggle */}
+                      <div className="mt-3 pl-7">
+                        <button
+                          type="button"
+                          onClick={() => toggleRaw(c.postingNumber)}
+                          className="text-xs text-slate-400 hover:text-slate-600 underline"
+                        >
+                          {showRaw ? "Скрыть сырые данные" : "Показать сырые данные Ozon"}
+                        </button>
+                        {showRaw && (
+                          <div className="mt-2 bg-slate-50 rounded p-3 text-xs font-mono space-y-1 overflow-x-auto">
+                            <p className="font-semibold text-slate-600 mb-1">financial_data (из API):</p>
+                            {c.items.map((item) => (
+                              <div key={item.offerId} className="text-slate-500">
+                                <span className="text-slate-700">{item.offerId}</span>
+                                {" · "}qty: {item.quantity}
+                                {" · "}buyer_price: {item.buyerPrice}
+                                {" · "}payout: {item.payout}
+                                {" · "}commission: {item.commissionAmount} ({item.commissionPercent}%)
+                              </div>
+                            ))}
+                            {c.serviceFeesBreakdown && (
+                              <>
+                                <p className="font-semibold text-slate-600 mt-2 mb-1">Транзакционные сборы (из API):</p>
+                                <div className="text-slate-500">
+                                  logisticsRub: {c.serviceFeesBreakdown.logisticsRub}
+                                  {" · "}lastMileRub: {c.serviceFeesBreakdown.lastMileRub}
+                                  {" · "}dropoffRub: {c.serviceFeesBreakdown.dropoffRub}
+                                  {" · "}starsMembershipRub: {c.serviceFeesBreakdown.starsMembershipRub}
+                                  {" · "}acquiringRub: {c.serviceFeesBreakdown.acquiringRub}
+                                  {" · "}<span className="font-semibold">total: {c.serviceFeesBreakdown.total}</span>
+                                </div>
+                              </>
+                            )}
+                            {!c.serviceFeesBreakdown && c.totalPayout > 0 && (
+                              <p className="text-amber-600 mt-1">Транзакционные сборы недоступны — используется оценка {avgServiceFee} ₽</p>
+                            )}
+                            {c.totalPayout === 0 && !c.isBuyout && (
+                              <p className="text-amber-600 mt-1">financial_data пуст — заказ ещё не обработан Ozon</p>
+                            )}
+                            {c.isBuyout && (
+                              <p className="text-violet-600 mt-1">Выкупной заказ ЕАЭС — выплата из /v1/finance/products/buyout, сервисные сборы из транзакций</p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

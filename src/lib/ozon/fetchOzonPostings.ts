@@ -25,6 +25,7 @@ export type OzonPosting = {
   in_process_at: string;     // ISO date — when order entered processing
   shipment_date: string;     // ISO date — warehouse handoff deadline
   delivering_date: string | null;
+  is_marketplace_buyout: boolean; // true for cross-border EAEU orders where Ozon buys the goods
   products: OzonPostingProduct[];
   financial_data: {
     products: OzonPostingFinancialProduct[];

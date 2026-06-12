@@ -12,7 +12,7 @@ import {
   ProductReserveStatusEnum,
 } from "@prisma/client";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
-import type { OzonCandidateItem } from "./fetchOzonOrderCandidates";
+import type { OzonCandidateItem, OzonServiceFeesBreakdown } from "./fetchOzonOrderCandidates";
 
 const RESERVE_STATUSES = new Set<OrderStatusEnum>([
   OrderStatusEnum.RESERVE,
@@ -33,6 +33,7 @@ export type ImportOzonOrder = {
   shipmentDate: string | null; // ISO string
   totalBuyerPrice: number;
   totalPayout: number;
+  serviceFeesBreakdown: OzonServiceFeesBreakdown | null; // null = use avgServiceFeeRub estimate
   items: ImportOzonOrderItem[];
 };
 
@@ -95,6 +96,8 @@ export async function importOzonOrders(
 
       const plannedDeliveryDate = order.shipmentDate ? new Date(order.shipmentDate) : null;
       const totalOzonUnits = order.items.reduce((s, i) => s + i.quantity, 0);
+      const effectiveServiceFees = order.serviceFeesBreakdown?.total ?? avgServiceFee;
+      const feesSettledOnImport = order.serviceFeesBreakdown !== null;
 
       const { orderId } = await db.$transaction(async (tx) => {
         const last = await tx.order.findFirst({
@@ -131,7 +134,12 @@ export async function importOzonOrders(
             buyerPrice: order.totalBuyerPrice,
             commissionAmount: order.items.reduce((s, i) => s + i.commissionAmount, 0),
             payoutAmount: order.totalPayout,
-            feesSettled: false,
+            feesSettled: feesSettledOnImport,
+            logisticsRub: order.serviceFeesBreakdown?.logisticsRub ?? 0,
+            dropoffRub: order.serviceFeesBreakdown?.dropoffRub ?? 0,
+            lastMileRub: order.serviceFeesBreakdown?.lastMileRub ?? 0,
+            starsMembershipRub: order.serviceFeesBreakdown?.starsMembershipRub ?? 0,
+            acquiringRub: order.serviceFeesBreakdown?.acquiringRub ?? 0,
             orderId: created.id,
           },
         });
@@ -149,7 +157,7 @@ export async function importOzonOrders(
           // Use 0 net as placeholder — recalculation will update once transactions arrive.
           const payoutPerOzonUnit = item.payout > 0 ? item.payout / item.quantity : 0;
           const netPerOzonUnit = payoutPerOzonUnit > 0
-            ? payoutPerOzonUnit - avgServiceFee / totalOzonUnits
+            ? payoutPerOzonUnit - effectiveServiceFees / totalOzonUnits
             : 0;
           const warehouseQty = item.quantity * effectiveDivisor;
 
