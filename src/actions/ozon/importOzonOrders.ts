@@ -206,7 +206,6 @@ export async function importOzonOrders(
 
         await tx.order.update({ where: { id: created.id }, data: { totalRub } });
 
-        const orderLabel = `Ozon заказ #${order.postingNumber}`;
         if (RESERVE_STATUSES.has(status)) {
           for (const [variantId, qty] of variantQuantities) {
             await tx.productReserve.create({
