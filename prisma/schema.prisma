@@ -640,7 +640,7 @@ model OzonOrderData {
   postingNumber String @unique
 
   // Per-posting financial data from financial_data on the posting (available on import)
-  buyerPrice       Float @default(0)  // total buyer price for the posting
+  buyerTotal       Float @default(0)  // total buyer price for the posting
   commissionAmount Float @default(0)  // Ozon commission deducted (negative value)
   payoutAmount     Float @default(0)  // gross seller revenue after commission
 

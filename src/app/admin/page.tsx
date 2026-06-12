@@ -163,6 +163,9 @@ export default async function OrdersPage({
         yandexData: {
           select: { feesSettled: true, buyerTotal: true, subsidyTotal: true },
         },
+        ozonData: {
+          select: { feesSettled: true, buyerTotal: true },
+        },
       },
       orderBy: [{ year: "asc" }, { sequenceNumber: "asc" }],
       skip: (currentPage - 1) * PAGE_SIZE,

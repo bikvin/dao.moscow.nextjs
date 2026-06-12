@@ -52,7 +52,7 @@ export async function importOzonOrders(
   if (orders.length === 0) return { imported: 0, orderIds: [] };
 
   try {
-    const [partner, avgServiceFeeSetting, globalDivisorSetting, paymentMethodIdSetting] =
+    const [partner, avgServiceFeeSetting, avgCommissionSetting, globalDivisorSetting, paymentMethodIdSetting] =
       await Promise.all([
         db.partner.findUnique({
           where: { id: partnerId },
@@ -61,6 +61,7 @@ export async function importOzonOrders(
           },
         }),
         db.settings.findUnique({ where: { field: "ozonAverageServiceFeeRub" } }),
+        db.settings.findUnique({ where: { field: "ozonAverageCommissionPercent" } }),
         db.settings.findUnique({ where: { field: "ozonDefaultDivisor" } }),
         db.settings.findUnique({ where: { field: "ozonPaymentMethodId" } }),
       ]);
@@ -68,6 +69,7 @@ export async function importOzonOrders(
     if (!partner) return { error: "Партнёр не найден" };
     const clientName = partner.names[0]?.name ?? "Ozon";
     const avgServiceFee = avgServiceFeeSetting ? parseFloat(avgServiceFeeSetting.value) : 0;
+    const avgCommissionPercent = avgCommissionSetting ? parseFloat(avgCommissionSetting.value) : 0;
     const globalDivisor = globalDivisorSetting ? parseInt(globalDivisorSetting.value, 10) : 1;
     const marketplacePaymentMethodId = paymentMethodIdSetting?.value ?? null;
 
@@ -131,7 +133,7 @@ export async function importOzonOrders(
         await tx.ozonOrderData.create({
           data: {
             postingNumber: order.postingNumber,
-            buyerPrice: order.totalBuyerPrice,
+            buyerTotal: order.totalBuyerPrice,
             commissionAmount: order.items.reduce((s, i) => s + i.commissionAmount, 0),
             payoutAmount: order.totalPayout,
             feesSettled: feesSettledOnImport,
@@ -153,12 +155,11 @@ export async function importOzonOrders(
           if (!product) continue;
 
           const effectiveDivisor = divisorBySku.get(item.offerId) ?? globalDivisor;
-          // payout is per-item total from financial_data; 0 means financial_data not yet available.
-          // Use 0 net as placeholder — recalculation will update once transactions arrive.
-          const payoutPerOzonUnit = item.payout > 0 ? item.payout / item.quantity : 0;
-          const netPerOzonUnit = payoutPerOzonUnit > 0
-            ? payoutPerOzonUnit - effectiveServiceFees / totalOzonUnits
-            : 0;
+          // payout is per-item total from financial_data; 0 means not yet settled — estimate from commission rate.
+          const payoutPerOzonUnit = item.payout > 0
+            ? item.payout / item.quantity
+            : item.buyerPrice * (1 - avgCommissionPercent / 100);
+          const netPerOzonUnit = payoutPerOzonUnit - effectiveServiceFees / totalOzonUnits;
           const warehouseQty = item.quantity * effectiveDivisor;
 
           const dims = dimensionsById.get(product.id);
