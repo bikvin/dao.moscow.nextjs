@@ -12,6 +12,7 @@ import { EstimateDeliveryButton } from "@/components/admin/yandex/EstimateDelive
 import { YandexPartnerForm } from "@/components/admin/yandex/YandexPartnerForm";
 import { YandexPaymentMethodForm } from "@/components/admin/yandex/YandexPaymentMethodForm";
 import { RecalculateCommissionsButton } from "@/components/admin/yandex/RecalculateCommissionsButton";
+import { YandexDebugReturnForm } from "@/components/admin/yandex/YandexDebugReturnForm";
 import Link from "next/link";
 import { YandexSyncStatusEnum } from "@prisma/client";
 
@@ -150,9 +151,11 @@ export default async function YandexPage() {
 
           {/* Orders debug */}
           <div className="border rounded-md p-4 mt-8 shadow-main">
-            <h2 className="text-lg font-medium mb-2">Заказы</h2>
+            <h2 className="text-lg font-medium mb-2">Отладка</h2>
             <p className="text-sm text-slate-500 mb-3">Загрузить заказы за последние 30 дней (результат в консоли сервера).</p>
             <YandexFetchOrdersButton />
+            <p className="text-sm text-slate-500 mt-4 mb-3">Показать все сырые данные по заказу и его возвратам (заказ, статистика, возвраты).</p>
+            <YandexDebugReturnForm />
           </div>
 
           {/* Navigation */}
