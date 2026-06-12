@@ -4,13 +4,15 @@ import { ImportOzonOrdersClient } from "@/components/admin/ozon/ImportOzonOrders
 import Link from "next/link";
 
 export default async function ImportOzonOrdersPage() {
-  const [partnerIdSetting, avgServiceFeeSetting] = await Promise.all([
+  const [partnerIdSetting, avgServiceFeeSetting, avgCommissionPercentSetting] = await Promise.all([
     db.settings.findUnique({ where: { field: "ozonPartnerId" } }),
     db.settings.findUnique({ where: { field: "ozonAverageServiceFeeRub" } }),
+    db.settings.findUnique({ where: { field: "ozonAverageCommissionPercent" } }),
   ]);
 
   const partnerId = partnerIdSetting?.value ?? null;
   const avgServiceFee = avgServiceFeeSetting ? parseFloat(avgServiceFeeSetting.value) : 0;
+  const avgCommissionPercent = avgCommissionPercentSetting ? parseFloat(avgCommissionPercentSetting.value) : 0;
 
   return (
     <>
@@ -30,6 +32,7 @@ export default async function ImportOzonOrdersPage() {
             <ImportOzonOrdersClient
               partnerId={partnerId}
               avgServiceFee={avgServiceFee}
+              avgCommissionPercent={avgCommissionPercent}
             />
           )}
         </div>

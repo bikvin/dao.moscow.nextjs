@@ -8,10 +8,26 @@ import type { ImportOzonOrder, ImportOzonOrderItem } from "@/actions/ozon/import
 import { importOzonOrders } from "@/actions/ozon/importOzonOrders";
 
 // Net revenue for the whole order.
-// Uses exact service fees when available (delivered + transactions fetched), else avgServiceFee.
-function calcNet(c: OzonOrderCandidate, avgServiceFee: number): { value: number; exact: boolean; noData: boolean } {
-  if (c.totalPayout === 0) return { value: 0, exact: false, noData: true };
-  const fees = c.serviceFeesBreakdown !== null ? c.serviceFeesBreakdown.total : avgServiceFee;
+// If payout is known: exact fees or avgServiceFee×units as estimate.
+// If payout is 0 (financial_data not yet populated): estimate from buyer price × commission rate.
+function calcNet(
+  c: OzonOrderCandidate,
+  avgServiceFee: number,
+  avgCommissionPercent: number
+): { value: number; exact: boolean; noData: boolean } {
+  const totalOzonUnits = c.items.reduce((s, i) => s + i.quantity, 0);
+
+  if (c.totalPayout === 0 && c.isBuyout) return { value: 0, exact: false, noData: true };
+
+  if (c.totalPayout === 0) {
+    const estimatedPayout = c.totalBuyerPrice * (1 - avgCommissionPercent / 100);
+    const estimatedFees = avgServiceFee * totalOzonUnits;
+    return { value: Math.round(estimatedPayout - estimatedFees), exact: false, noData: false };
+  }
+
+  const fees = c.serviceFeesBreakdown !== null
+    ? c.serviceFeesBreakdown.total
+    : avgServiceFee * totalOzonUnits;
   return {
     value: Math.round(c.totalPayout - fees),
     exact: c.serviceFeesBreakdown !== null,
@@ -19,15 +35,25 @@ function calcNet(c: OzonOrderCandidate, avgServiceFee: number): { value: number;
   };
 }
 
-// Net per Ozon unit for a single item. Returns null when payout not yet available.
+// Net per Ozon unit for a single item.
+// Returns null only for buyout orders with no payout data; otherwise estimates from commission rate.
 function calcItemNet(
   item: OzonOrderCandidate["items"][number],
   c: OzonOrderCandidate,
-  avgServiceFee: number
+  avgServiceFee: number,
+  avgCommissionPercent: number
 ): number | null {
-  if (item.payout === 0) return null;
+  if (item.payout === 0 && c.isBuyout) return null;
+
+  if (item.payout === 0) {
+    const estimatedPayoutPerUnit = item.buyerPrice * (1 - avgCommissionPercent / 100);
+    return Math.round(estimatedPayoutPerUnit - avgServiceFee);
+  }
+
   const totalOzonUnits = c.items.reduce((s, i) => s + i.quantity, 0);
-  const fees = c.serviceFeesBreakdown !== null ? c.serviceFeesBreakdown.total : avgServiceFee;
+  const fees = c.serviceFeesBreakdown !== null
+    ? c.serviceFeesBreakdown.total
+    : avgServiceFee * totalOzonUnits;
   return Math.round(item.payout / item.quantity - fees / totalOzonUnits);
 }
 
@@ -89,9 +115,11 @@ const OZON_STATUS_KEYS = [
 export function ImportOzonOrdersClient({
   partnerId,
   avgServiceFee,
+  avgCommissionPercent,
 }: {
   partnerId: string;
   avgServiceFee: number;
+  avgCommissionPercent: number;
 }) {
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
   const thirtyDaysAgo = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)
@@ -211,7 +239,7 @@ export function ImportOzonOrdersClient({
   const selectedBuyerTotal = selectedReady.reduce((s, c) => s + c.totalBuyerPrice, 0);
   const selectedWithData = selectedReady.filter((c) => c.totalPayout > 0);
   const selectedNetTotal = selectedWithData.reduce(
-    (s, c) => s + calcNet(c, avgServiceFee).value,
+    (s, c) => s + calcNet(c, avgServiceFee, avgCommissionPercent).value,
     0
   );
 
@@ -327,7 +355,7 @@ export function ImportOzonOrdersClient({
               <div className="flex flex-col gap-3">
                 {visibleCandidates.map((c) => {
                   const ready = isOrderReady(c, variantSelections);
-                  const net = calcNet(c, avgServiceFee);
+                  const net = calcNet(c, avgServiceFee, avgCommissionPercent);
                   const isSelected = selectedIds.has(c.postingNumber);
                   const hasUnmapped = c.items.some((i) => !i.product);
                   const showRaw = expandedRaw.has(c.postingNumber);
@@ -398,7 +426,17 @@ export function ImportOzonOrdersClient({
                       <div className="mt-2 pl-7 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
                         <span>Покупатель заплатил: {fmt(Math.round(c.totalBuyerPrice))} ₽</span>
                         {net.noData ? (
-                          <span className="text-amber-600">Комиссия и выплата появятся после доставки</span>
+                          <span className="text-amber-600">Финансовые данные недоступны</span>
+                        ) : c.totalPayout === 0 ? (
+                          <>
+                            <span className="text-slate-400">
+                              Выплата: оценка ≈ {fmt(Math.round(c.totalBuyerPrice * (1 - avgCommissionPercent / 100)))} ₽
+                              <span className="ml-1 text-slate-300">(комиссия {avgCommissionPercent}%)</span>
+                            </span>
+                            <span className="text-slate-400">
+                              Сервисные сборы (оценка): −{fmt(Math.round(avgServiceFee * c.items.reduce((s, i) => s + i.quantity, 0)))} ₽
+                            </span>
+                          </>
                         ) : (
                           <>
                             <span>Выплата (после комиссии): {fmt(Math.round(c.totalPayout))} ₽</span>
@@ -436,7 +474,7 @@ export function ImportOzonOrdersClient({
                       {/* Items */}
                       <div className="mt-3 flex flex-col gap-2 pl-7">
                         {c.items.map((item) => {
-                          const itemNet = calcItemNet(item, c, avgServiceFee);
+                          const itemNet = calcItemNet(item, c, avgServiceFee, avgCommissionPercent);
                           return (
                             <div key={item.offerId} className="flex flex-wrap items-center gap-2 text-sm">
                               <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">
@@ -448,7 +486,9 @@ export function ImportOzonOrdersClient({
                               <span className="text-slate-500">
                                 {itemNet === null
                                   ? `${item.quantity} шт (цена уточнится)`
-                                  : `${item.quantity} × ${fmt(itemNet)} ₽/шт = ${fmt(item.quantity * itemNet)} ₽`}
+                                  : item.payout > 0 && c.serviceFeesBreakdown !== null
+                                    ? `${item.quantity} × ${fmt(itemNet)} ₽/шт = ${fmt(item.quantity * itemNet)} ₽`
+                                    : `${item.quantity} × ≈${fmt(itemNet)} ₽/шт = ≈${fmt(item.quantity * itemNet)} ₽`}
                               </span>
 
                               {!item.product ? (

@@ -11,6 +11,7 @@ import { OzonDefaultCrossedPriceMarkupForm } from "@/components/admin/ozon/OzonD
 import { OzonPartnerForm } from "@/components/admin/ozon/OzonPartnerForm";
 import { OzonPaymentMethodForm } from "@/components/admin/ozon/OzonPaymentMethodForm";
 import { OzonAverageServiceFeeForm } from "@/components/admin/ozon/OzonAverageServiceFeeForm";
+import { OzonAverageCommissionPercentForm } from "@/components/admin/ozon/OzonAverageCommissionPercentForm";
 import { RecalculateOzonCommissionsButton } from "@/components/admin/ozon/RecalculateOzonCommissionsButton";
 import Link from "next/link";
 import { OzonSyncStatusEnum } from "@prisma/client";
@@ -19,7 +20,7 @@ export default async function OzonPage() {
   const [
     lastLog, lastPriceLog,
     bufferSetting, divisorSetting, warehouseSetting, markupSetting, crossedMarkupSetting,
-    partnerIdSetting, paymentMethodIdSetting, avgServiceFeeSetting,
+    partnerIdSetting, paymentMethodIdSetting, avgServiceFeeSetting, avgCommissionPercentSetting,
     partners, paymentMethods,
   ] = await Promise.all([
     db.ozonSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
@@ -32,6 +33,7 @@ export default async function OzonPage() {
     db.settings.findUnique({ where: { field: "ozonPartnerId" } }),
     db.settings.findUnique({ where: { field: "ozonPaymentMethodId" } }),
     db.settings.findUnique({ where: { field: "ozonAverageServiceFeeRub" } }),
+    db.settings.findUnique({ where: { field: "ozonAverageCommissionPercent" } }),
     db.partner.findMany({
       include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
       orderBy: { createdAt: "desc" },
@@ -47,6 +49,7 @@ export default async function OzonPage() {
   const currentPartnerId = partnerIdSetting?.value ?? null;
   const currentPaymentMethodId = paymentMethodIdSetting?.value ?? null;
   const avgServiceFee = avgServiceFeeSetting ? parseFloat(avgServiceFeeSetting.value) : null;
+  const avgCommissionPercent = avgCommissionPercentSetting ? parseFloat(avgCommissionPercentSetting.value) : null;
   const partnerOptions = partners.map((p) => ({ id: p.id, name: p.names[0]?.name ?? p.id }));
 
   return (
@@ -142,6 +145,7 @@ export default async function OzonPage() {
               <OzonDefaultPriceMarkupForm current={globalPriceMarkup} />
               <OzonDefaultCrossedPriceMarkupForm current={crossedPriceMarkup} />
               <OzonAverageServiceFeeForm current={avgServiceFee} />
+              <OzonAverageCommissionPercentForm current={avgCommissionPercent} />
               <OzonPartnerForm partners={partnerOptions} currentPartnerId={currentPartnerId} />
               <OzonPaymentMethodForm paymentMethods={paymentMethods} currentPaymentMethodId={currentPaymentMethodId} />
             </div>

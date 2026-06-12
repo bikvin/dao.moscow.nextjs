@@ -96,7 +96,7 @@ export async function importOzonOrders(
 
       const plannedDeliveryDate = order.shipmentDate ? new Date(order.shipmentDate) : null;
       const totalOzonUnits = order.items.reduce((s, i) => s + i.quantity, 0);
-      const effectiveServiceFees = order.serviceFeesBreakdown?.total ?? avgServiceFee;
+      const effectiveServiceFees = order.serviceFeesBreakdown?.total ?? (avgServiceFee * totalOzonUnits);
       const feesSettledOnImport = order.serviceFeesBreakdown !== null;
 
       const { orderId } = await db.$transaction(async (tx) => {
