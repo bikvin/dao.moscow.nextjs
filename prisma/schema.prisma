@@ -606,8 +606,9 @@ model Order {
   issues   ProductIssue[]
   receipts ProductReceipt[]
   invoices Invoice[]
-  yandexData YandexOrderData?
-  ozonData   OzonOrderData?
+  yandexData       YandexOrderData?
+  ozonData         OzonOrderData?
+  yandexReturnData YandexReturnData?
 
   @@unique([year, sequenceNumber])
   @@index([partnerId])
@@ -630,6 +631,20 @@ model YandexOrderData {
   sortingRub         Float @default(0)
 
   feesSettled Boolean @default(false)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model YandexReturnData {
+  id             String @id @default(uuid())
+  yandexReturnId String @unique
+  yandexOrderId  String  // Yandex order ID this return belongs to
+
+  returnType     String  // "RETURN" or "UNREDEEMED"
+  refundStatus   String? // "REFUNDED", "WAITING", etc.
+  shipmentStatus String? // return shipment status (e.g. "PICKED", "READY_FOR_PICKUP")
+  buyerRefundRub Int    @default(0)  // amount.value from API (what buyer got back)
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)

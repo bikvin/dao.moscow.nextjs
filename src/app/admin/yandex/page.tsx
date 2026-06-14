@@ -163,6 +163,9 @@ export default async function YandexPage() {
             <Link className="link-button link-button-green" href="/admin/yandex/import-orders">
               Импорт заказов
             </Link>
+            <Link className="link-button link-button-green" href="/admin/yandex/import-returns">
+              Импорт возвратов
+            </Link>
             <Link className="link-button link-button-green" href="/admin/yandex/mappings">
               Маппинг товаров
             </Link>

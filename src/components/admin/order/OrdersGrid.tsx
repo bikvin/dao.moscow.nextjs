@@ -330,9 +330,14 @@ export function OrdersGrid({
                   : order.ozonData
                   ? order.ozonData.buyerTotal
                   : null;
+                // Normalise sign: RETURN orders always display as negative regardless of stored sign
+                // (manually created returns store positive totalRub; imports store negative).
+                const displayTotalRub = order.orderType === OrderTypeEnum.RETURN
+                  ? -Math.abs(order.totalRub)
+                  : order.totalRub;
                 const orderTotalNode = retailPrice != null
-                  ? <span className="flex flex-col items-end gap-0"><span>{isEstimate ? "≈" : ""}{fmt0(order.totalRub / 100)} ₽</span><span className="text-xs font-normal text-slate-400">{fmt0(retailPrice)} ₽ розн.</span></span>
-                  : <>{formatRub(order.totalRub)}</>;
+                  ? <span className="flex flex-col items-end gap-0"><span>{isEstimate ? "≈" : ""}{fmt0(displayTotalRub / 100)} ₽</span><span className="text-xs font-normal text-slate-400">{fmt0(retailPrice)} ₽ розн.</span></span>
+                  : <>{formatRub(displayTotalRub)}</>;
 
                 return (
                   <div
@@ -359,14 +364,22 @@ export function OrdersGrid({
                               {formatDate(order.orderDate)}
                             </div>
                             <div className="text-sm py-1.5">{partnerName}</div>
-                            <div className="col-span-5 text-sm text-slate-400 italic py-1.5">
-                              Нет товаров —{" "}
-                              <Link
-                                href={`/admin/orders/${order.id}`}
-                                className="text-blue-500 hover:underline"
-                              >
-                                добавить
-                              </Link>
+                            <div className="col-span-5 text-sm py-1.5">
+                              {order.orderType === OrderTypeEnum.RETURN ? (
+                                <span className="text-red-600 font-medium">
+                                  {formatRub(-Math.abs(order.totalRub))}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic">
+                                  Нет товаров —{" "}
+                                  <Link
+                                    href={`/admin/orders/${order.id}`}
+                                    className="text-blue-500 hover:underline"
+                                  >
+                                    добавить
+                                  </Link>
+                                </span>
+                              )}
                             </div>
                           </>
                         ) : (
@@ -425,12 +438,10 @@ export function OrdersGrid({
                                     : "—"}
                                 </div>
                                 <div className="text-sm text-right py-0.5">
-                                  {approx(formatRub(item.priceRub))}
+                                  {approx(formatRub(order.orderType === "RETURN" ? -Math.abs(item.priceRub) : item.priceRub))}
                                 </div>
                                 <div className="text-sm text-right py-0.5">
-                                  {order.orderType === "RETURN"
-                                    ? `-${approx(formatRub(item.totalRub))}`
-                                    : approx(formatRub(item.totalRub))}
+                                  {approx(formatRub(order.orderType === "RETURN" ? -Math.abs(item.totalRub) : item.totalRub))}
                                 </div>
                               </React.Fragment>
                             ));
@@ -496,7 +507,7 @@ export function OrdersGrid({
                               <E />
                               <E />
                               <div className="text-sm font-semibold text-right py-1 border-t border-slate-200">
-                                {order.orderType === "RETURN" ? <span>-{orderTotalNode}</span> : orderTotalNode}
+                                {orderTotalNode}
                               </div>
                             </>
                           </>
@@ -558,9 +569,7 @@ export function OrdersGrid({
                                   ? `-${item.quantity}`
                                   : item.quantity}{" "}
                                 шт ·{" "}
-                                {order.orderType === "RETURN"
-                                  ? `-${approx(formatRub(item.totalRub))}`
-                                  : approx(formatRub(item.totalRub))}
+                                {approx(formatRub(order.orderType === "RETURN" ? -Math.abs(item.totalRub) : item.totalRub))}
                               </div>
                             </div>
                           );
@@ -591,7 +600,7 @@ export function OrdersGrid({
                             Итого
                           </span>
                           <span>
-                            {order.orderType === "RETURN" ? <span>-{orderTotalNode}</span> : orderTotalNode}
+                            {orderTotalNode}
                           </span>
                         </div>
                       </div>

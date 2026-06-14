@@ -291,6 +291,12 @@ export default async function OrdersPage({
               >
                 Импорт заказов Ozon →
               </Link>
+              <Link
+                href="/admin/yandex/import-returns"
+                className="text-sm text-blue-500 hover:text-blue-700 hover:underline"
+              >
+                Импорт возвратов Яндекс →
+              </Link>
             </div>
           </div>
         </div>
