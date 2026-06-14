@@ -13,6 +13,7 @@ import { OzonPaymentMethodForm } from "@/components/admin/ozon/OzonPaymentMethod
 import { OzonAverageServiceFeeForm } from "@/components/admin/ozon/OzonAverageServiceFeeForm";
 import { OzonAverageCommissionPercentForm } from "@/components/admin/ozon/OzonAverageCommissionPercentForm";
 import { RecalculateOzonCommissionsButton } from "@/components/admin/ozon/RecalculateOzonCommissionsButton";
+import { OzonDebugReturnsButton } from "@/components/admin/ozon/OzonDebugReturnsButton";
 import Link from "next/link";
 import { OzonSyncStatusEnum } from "@prisma/client";
 
@@ -159,6 +160,15 @@ export default async function OzonPage() {
               Данные запрашиваются из API Ozon; если транзакции появились — цены и итоги обновляются.
             </p>
             <RecalculateOzonCommissionsButton />
+          </div>
+
+          {/* Returns debug */}
+          <div className="border rounded-md p-4 mt-8 shadow-main">
+            <h2 className="text-lg font-medium mb-2">Отладка возвратов</h2>
+            <p className="text-sm text-slate-500 mb-3">
+              Загрузить возвраты за последние 6 месяцев из API Ozon и вывести сырые данные в консоль сервера.
+            </p>
+            <OzonDebugReturnsButton />
           </div>
 
           {/* Navigation */}
