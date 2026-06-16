@@ -12,6 +12,7 @@ import { OzonPartnerForm } from "@/components/admin/ozon/OzonPartnerForm";
 import { OzonPaymentMethodForm } from "@/components/admin/ozon/OzonPaymentMethodForm";
 import { OzonAverageServiceFeeForm } from "@/components/admin/ozon/OzonAverageServiceFeeForm";
 import { OzonAverageCommissionPercentForm } from "@/components/admin/ozon/OzonAverageCommissionPercentForm";
+import { OzonAverageReturnLogisticFeeForm } from "@/components/admin/ozon/OzonAverageReturnLogisticFeeForm";
 import { RecalculateOzonCommissionsButton } from "@/components/admin/ozon/RecalculateOzonCommissionsButton";
 import { OzonDebugReturnsButton } from "@/components/admin/ozon/OzonDebugReturnsButton";
 import Link from "next/link";
@@ -22,6 +23,7 @@ export default async function OzonPage() {
     lastLog, lastPriceLog,
     bufferSetting, divisorSetting, warehouseSetting, markupSetting, crossedMarkupSetting,
     partnerIdSetting, paymentMethodIdSetting, avgServiceFeeSetting, avgCommissionPercentSetting,
+    avgReturnLogisticFeeSetting,
     partners, paymentMethods,
   ] = await Promise.all([
     db.ozonSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
@@ -35,6 +37,7 @@ export default async function OzonPage() {
     db.settings.findUnique({ where: { field: "ozonPaymentMethodId" } }),
     db.settings.findUnique({ where: { field: "ozonAverageServiceFeeRub" } }),
     db.settings.findUnique({ where: { field: "ozonAverageCommissionPercent" } }),
+    db.settings.findUnique({ where: { field: "ozonAverageReturnLogisticFeeRub" } }),
     db.partner.findMany({
       include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
       orderBy: { createdAt: "desc" },
@@ -51,6 +54,7 @@ export default async function OzonPage() {
   const currentPaymentMethodId = paymentMethodIdSetting?.value ?? null;
   const avgServiceFee = avgServiceFeeSetting ? parseFloat(avgServiceFeeSetting.value) : null;
   const avgCommissionPercent = avgCommissionPercentSetting ? parseFloat(avgCommissionPercentSetting.value) : null;
+  const avgReturnLogisticFee = avgReturnLogisticFeeSetting ? parseFloat(avgReturnLogisticFeeSetting.value) : null;
   const partnerOptions = partners.map((p) => ({ id: p.id, name: p.names[0]?.name ?? p.id }));
 
   return (
@@ -147,6 +151,7 @@ export default async function OzonPage() {
               <OzonDefaultCrossedPriceMarkupForm current={crossedPriceMarkup} />
               <OzonAverageServiceFeeForm current={avgServiceFee} />
               <OzonAverageCommissionPercentForm current={avgCommissionPercent} />
+              <OzonAverageReturnLogisticFeeForm current={avgReturnLogisticFee} />
               <OzonPartnerForm partners={partnerOptions} currentPartnerId={currentPartnerId} />
               <OzonPaymentMethodForm paymentMethods={paymentMethods} currentPaymentMethodId={currentPaymentMethodId} />
             </div>
@@ -175,6 +180,9 @@ export default async function OzonPage() {
           <div className="flex gap-4 mt-8 flex-wrap">
             <Link className="link-button link-button-green" href="/admin/ozon/import-orders">
               Импорт заказов
+            </Link>
+            <Link className="link-button link-button-green" href="/admin/ozon/import-returns">
+              Возвраты
             </Link>
             <Link className="link-button link-button-green" href="/admin/ozon/mappings">
               Маппинг товаров
