@@ -42,9 +42,9 @@ export type OzonReturnCandidateItem = {
   offerId: string;
   ozonSku: number;
   name: string;
-  quantity: number;                    // total units returned across all return records
-  priceRub: number;                    // buyer price per Ozon unit
-  priceWithoutCommissionRub: number;   // seller net per Ozon unit (= priceRub - commission)
+  quantity: number;                    // total units returned
+  priceRub: number;                    // buyer retail price per unit
+  priceWithoutCommissionRub: number;   // payout per unit (price × (1 − commission%))
   commissionPercent: number;
   product: {
     id: string;
@@ -57,16 +57,20 @@ export type OzonReturnCandidate = {
   postingNumber: string;
   orderNumber: string;
   ozonOrderId: string;
-  returnType: string;           // "Cancellation" | "FullReturn"
+  returnType: string;             // "Cancellation" | "FullReturn" | "ClientReturn"
   returnReasonName: string;
-  returnDate: string | null;    // ISO
-  visualStatus: string;         // sys_name e.g. "ReceivedBySeller"
+  returnDate: string | null;      // ISO
+  visualStatus: string;           // sys_name e.g. "ReceivedBySeller"
   visualStatusDisplay: string;
   isOpened: boolean;
   items: OzonReturnCandidateItem[];
   originalOrder: { id: string; sequenceNumber: number; year: number } | null;
-  sellerImpactRub: number;      // positive absolute value: sum(priceWithoutCommission × qty)
-  rawReturns: unknown[];        // raw API records for this posting (used by raw data toggle)
+  payoutRub: number;                    // sum(price × (1-rate) × qty)
+  returnLogisticFeeRub: number;         // actual reverse logistics cost (settled) or estimate (unsettled)
+  feesSettled: boolean;                 // true if OperationReturnGoodsFBSofRMS found in transactions
+  sellerImpactRub: number;              // payoutRub + returnLogisticFeeRub (positive absolute value)
+  rawReturns: unknown[];
+  rawLogisticsTransactions: unknown[];  // OperationReturnGoodsFBSofRMS records from transactions API
 };
 
 // Fetches all pages of /v1/returns/list using last_id cursor pagination.
@@ -117,10 +121,92 @@ async function fetchAllReturns(
   return all;
 }
 
+// Fetches all OperationReturnGoodsFBSofRMS transactions for the months covered by the
+// given return dates (+ 1 extra month for settlement lag). Returns both:
+// - amountByPosting: postingNumber → total absolute logistics fee
+// - transactionsByPosting: postingNumber → raw transaction records (for display)
+async function fetchReturnLogisticsMap(
+  clientId: string,
+  apiKey: string,
+  returns: OzonReturnRecord[]
+): Promise<{ amountByPosting: Map<string, number>; transactionsByPosting: Map<string, unknown[]> }> {
+  const headers = {
+    "Client-Id": clientId,
+    "Api-Key": apiKey,
+    "Content-Type": "application/json",
+  };
+
+  // Collect unique year-months from return dates + next month for settlement lag
+  const months = new Set<string>();
+  for (const r of returns) {
+    const d = r.logistic.return_date ?? r.logistic.final_moment ?? null;
+    if (!d) continue;
+    months.add(d.slice(0, 7));
+    const next = new Date(d);
+    next.setMonth(next.getMonth() + 1);
+    months.add(next.toISOString().slice(0, 7));
+  }
+
+  const amountByPosting = new Map<string, number>();
+  const transactionsByPosting = new Map<string, unknown[]>();
+
+  for (const ym of [...months].sort()) {
+    const [y, m] = ym.split("-").map(Number);
+    const from = new Date(Date.UTC(y, m - 1, 1));
+    const to = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+
+    let page = 1;
+    while (true) {
+      const res = await fetch(`${OZON_API_BASE}/v3/finance/transaction/list`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          filter: {
+            date: { from: from.toISOString(), to: to.toISOString() },
+            transaction_type: "all",
+          },
+          page,
+          page_size: 1000,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) break;
+
+      const ops: {
+        operation_type: string;
+        amount: number;
+        type: string;
+        posting?: { posting_number?: string };
+        services?: { name: string; price: number }[];
+      }[] = data.result?.operations ?? [];
+
+      for (const op of ops) {
+        if (op.operation_type === "OperationReturnGoodsFBSofRMS" && op.posting?.posting_number) {
+          const pn = op.posting.posting_number;
+          // Exclude DirectFlowLogistic — it's the original forward delivery cost already
+          // subtracted when the order was imported. All other services are return-specific costs.
+          const returnOnlyFee = (op.services ?? [])
+            .filter((s) => s.name !== "MarketplaceServiceItemDirectFlowLogistic")
+            .reduce((sum, s) => sum + Math.abs(s.price), 0);
+          if (returnOnlyFee > 0) {
+            amountByPosting.set(pn, (amountByPosting.get(pn) ?? 0) + returnOnlyFee);
+          }
+          if (!transactionsByPosting.has(pn)) transactionsByPosting.set(pn, []);
+          transactionsByPosting.get(pn)!.push(op);
+        }
+      }
+
+      if (page >= (data.result?.page_count ?? 1) || ops.length === 0) break;
+      page++;
+    }
+  }
+
+  return { amountByPosting, transactionsByPosting };
+}
+
 // Fetches Ozon FBS returns for a date range and groups them by posting_number.
-// Each posting = one candidate. Within a posting, records are grouped by offer_id
-// (Ozon creates one record per physical unit, so quantity is always 1 per record).
-// Enriches each candidate with our product records and original order reference.
+// Each posting becomes one candidate. Enriches with product records, original order
+// reference, and settled/estimated reverse logistics fees from the transactions API.
 export async function fetchOzonReturnCandidates(
   fromDate: string,
   toDate: string
@@ -145,7 +231,7 @@ export async function fetchOzonReturnCandidates(
     const allOfferIds = [...new Set(allReturns.map((r) => r.product.offer_id))];
     const allPostingNumbers = [...byPosting.keys()];
 
-    const [products, dbOriginals] = await Promise.all([
+    const [products, dbOriginals, avgReturnLogisticFeeSetting, avgCommissionSetting, logisticsByPosting] = await Promise.all([
       db.product.findMany({
         where: { sku: { in: allOfferIds } },
         select: {
@@ -164,7 +250,19 @@ export async function fetchOzonReturnCandidates(
           order: { select: { id: true, sequenceNumber: true, year: true } },
         },
       }),
+      db.settings.findUnique({ where: { field: "ozonAverageReturnLogisticFeeRub" } }),
+      db.settings.findUnique({ where: { field: "ozonAverageCommissionPercent" } }),
+      fetchReturnLogisticsMap(clientId, apiKey, allReturns),
     ]);
+
+    const { amountByPosting, transactionsByPosting } = logisticsByPosting;
+
+    const avgReturnLogisticFeeRub = avgReturnLogisticFeeSetting
+      ? parseFloat(avgReturnLogisticFeeSetting.value)
+      : 0;
+    const avgCommissionPercent = avgCommissionSetting
+      ? parseFloat(avgCommissionSetting.value)
+      : 0;
 
     const productBySku = new Map(products.map((p) => [p.sku, p]));
     const dbOrderByPosting = new Map(dbOriginals.map((o) => [o.postingNumber, o.order]));
@@ -182,12 +280,14 @@ export async function fetchOzonReturnCandidates(
       }
 
       const items: OzonReturnCandidateItem[] = [];
-      let sellerImpactRub = 0;
+      let payoutRub = 0;
+      let totalQty = 0;
 
       for (const [offerId, offerRecords] of byOfferId) {
         const sample = offerRecords[0];
         const quantity = offerRecords.reduce((s, r) => s + r.product.quantity, 0);
-        const priceWithoutCommissionRub = sample.product.price_without_commission.price;
+        // Use our commission rate from settings, same as order import
+        const priceWithoutCommissionRub = sample.product.price.price * (1 - avgCommissionPercent / 100);
         const product = productBySku.get(offerId) ?? null;
 
         items.push({
@@ -211,8 +311,16 @@ export async function fetchOzonReturnCandidates(
             : null,
         });
 
-        sellerImpactRub += priceWithoutCommissionRub * quantity;
+        payoutRub += priceWithoutCommissionRub * quantity;
+        totalQty += quantity;
       }
+
+      const actualLogistics = amountByPosting.get(postingNumber) ?? null;
+      const feesSettled = actualLogistics !== null;
+      const returnLogisticFeeRub = feesSettled
+        ? actualLogistics
+        : avgReturnLogisticFeeRub * totalQty;
+      const sellerImpactRub = payoutRub + returnLogisticFeeRub;
 
       const dbOrder = dbOrderByPosting.get(postingNumber) ?? null;
 
@@ -230,8 +338,12 @@ export async function fetchOzonReturnCandidates(
         originalOrder: dbOrder
           ? { id: dbOrder.id, sequenceNumber: dbOrder.sequenceNumber, year: dbOrder.year }
           : null,
+        payoutRub,
+        returnLogisticFeeRub,
+        feesSettled,
         sellerImpactRub,
         rawReturns: records,
+        rawLogisticsTransactions: transactionsByPosting.get(postingNumber) ?? [],
       });
     }
 

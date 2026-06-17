@@ -172,9 +172,22 @@ export function OzonReturnsDebugClient() {
                         ))}
                       </div>
 
-                      {/* Total */}
-                      <div className="mt-2 text-sm font-medium text-red-700">
-                        Итого: −{fmt(c.sellerImpactRub)} ₽
+                      {/* Financial breakdown */}
+                      <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm">
+                        <span className="text-slate-500">
+                          выплата −{fmt(c.payoutRub)} ₽
+                        </span>
+                        <span className="text-slate-400">−</span>
+                        <span className="text-slate-500">
+                          обратная логистика {c.feesSettled ? "" : "≈"}{fmt(c.returnLogisticFeeRub)} ₽
+                        </span>
+                        <span className="text-slate-400">=</span>
+                        <span className={`font-medium ${c.feesSettled ? "text-red-700" : "text-slate-500"}`}>
+                          {c.feesSettled ? "" : "≈"}−{fmt(c.sellerImpactRub)} ₽
+                          <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded font-normal ${c.feesSettled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
+                            {c.feesSettled ? "факт" : "оценка"}
+                          </span>
+                        </span>
                       </div>
 
                       {/* Raw data toggle */}
@@ -187,10 +200,23 @@ export function OzonReturnsDebugClient() {
                           {showRaw ? "Скрыть сырые данные" : "Показать сырые данные Ozon"}
                         </button>
                         {showRaw && (
-                          <div className="mt-2 bg-slate-50 rounded p-3 text-xs font-mono overflow-x-auto">
-                            <pre className="text-slate-600 whitespace-pre-wrap">
-                              {JSON.stringify(c.rawReturns, null, 2)}
-                            </pre>
+                          <div className="mt-2 space-y-2">
+                            <div className="bg-slate-50 rounded p-3 text-xs font-mono overflow-x-auto">
+                              <p className="text-slate-400 mb-1 font-sans">returns API</p>
+                              <pre className="text-slate-600 whitespace-pre-wrap">
+                                {JSON.stringify(c.rawReturns, null, 2)}
+                              </pre>
+                            </div>
+                            {c.rawLogisticsTransactions.length > 0 && (
+                              <div className="bg-slate-50 rounded p-3 text-xs font-mono overflow-x-auto">
+                                <p className="text-slate-400 mb-1 font-sans">
+                                  OperationReturnGoodsFBSofRMS ({c.rawLogisticsTransactions.length})
+                                </p>
+                                <pre className="text-slate-600 whitespace-pre-wrap">
+                                  {JSON.stringify(c.rawLogisticsTransactions, null, 2)}
+                                </pre>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
