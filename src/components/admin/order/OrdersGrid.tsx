@@ -872,6 +872,8 @@ export function OrdersGrid({
                       }
                       initialOrder={{
                         id: order.id,
+                        sequenceNumber: order.sequenceNumber,
+                        year: order.year,
                         orderDate: order.orderDate,
                         partnerId: order.partnerId,
                         orderType: order.orderType,

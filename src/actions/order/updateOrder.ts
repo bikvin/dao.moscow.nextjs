@@ -72,6 +72,12 @@ export async function updateOrder(
 
   const returnLogisticFeeRubRaw = formData.get("returnLogisticFeeRub") as string | null;
 
+  const customSeqNumRaw = formData.get("customSequenceNumber") as string;
+  const customSeqNum = customSeqNumRaw ? parseInt(customSeqNumRaw, 10) : null;
+  if (customSeqNum !== null && (isNaN(customSeqNum) || customSeqNum < 1)) {
+    return { errors: { _form: ["Номер заказа должен быть целым положительным числом"] } };
+  }
+
   const productIds = formData.getAll("productId") as string[];
   const variantIds = formData.getAll("productVariantId") as string[];
   const quantities = formData.getAll("quantity") as string[];
@@ -131,6 +137,22 @@ export async function updateOrder(
         currentOrder?.status === OrderStatusEnum.SHIPPED &&
         status !== OrderStatusEnum.SHIPPED;
 
+      // Validate new sequence number uniqueness within the same year
+      const newSeqNum = customSeqNum ?? currentOrder?.sequenceNumber;
+      if (
+        newSeqNum !== undefined &&
+        currentOrder &&
+        newSeqNum !== currentOrder.sequenceNumber
+      ) {
+        const conflict = await tx.order.findFirst({
+          where: { year: currentOrder.year, sequenceNumber: newSeqNum, id: { not: orderId } },
+          select: { id: true },
+        });
+        if (conflict) {
+          throw new Error(`Номер заказа ${newSeqNum}/${currentOrder.year} уже используется`);
+        }
+      }
+
       // If reverting from SHIPPED: delete linked issues/receipts and collect their variant IDs
       const revertVariantIds = new Set<string>();
       if (wasShipped) {
@@ -168,6 +190,7 @@ export async function updateOrder(
       await tx.order.update({
         where: { id: orderId },
         data: {
+          ...(newSeqNum !== undefined ? { sequenceNumber: newSeqNum } : {}),
           orderDate,
           orderType: result.data.orderType,
           status,

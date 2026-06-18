@@ -20,6 +20,8 @@ type PartnerOption = { id: string; names: string[] };
 
 export type InitialOrder = {
   id: string;
+  sequenceNumber: number;
+  year: number;
   orderDate: Date;
   partnerId: string;
   orderType: OrderTypeEnum;
@@ -401,7 +403,7 @@ export function CreateOrderForm({
   const setIsOpen = onToggle ? () => onToggle() : setIsOpenInternal;
   const [touched, setTouched] = useState(false);
   const [customSeqNum, setCustomSeqNum] = useState(
-    !initialOrder && nextOrderNumber ? nextOrderNumber.toString() : ""
+    initialOrder ? initialOrder.sequenceNumber.toString() : nextOrderNumber ? nextOrderNumber.toString() : ""
   );
   const [partnerId, setPartnerId] = useState(initialOrder?.partnerId ?? "");
   const [orderDate, setOrderDate] = useState(
@@ -519,20 +521,18 @@ export function CreateOrderForm({
 
         {/* Order header fields */}
         <div className="flex flex-wrap items-end gap-2">
-          {!isEditMode && (
-            <div className="flex flex-col gap-0.5">
-              <label className="text-xs text-slate-400">№ заказа:</label>
-              <input
-                name="customSequenceNumber"
-                type="number"
-                value={customSeqNum}
-                onChange={(e) => setCustomSeqNum(e.target.value)}
-                className="admin-form-input text-sm w-24"
-                min="1"
-                step="1"
-              />
-            </div>
-          )}
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">№ заказа:</label>
+            <input
+              name="customSequenceNumber"
+              type="number"
+              value={customSeqNum}
+              onChange={(e) => setCustomSeqNum(e.target.value)}
+              className="admin-form-input text-sm w-24"
+              min="1"
+              step="1"
+            />
+          </div>
           <div className="flex flex-col gap-0.5">
             <label className="text-xs text-slate-400">Дата:</label>
             <input
