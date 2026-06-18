@@ -82,6 +82,10 @@ export default async function OrdersPage({
               NOT: { status: OrderStatusEnum.CANCELLED },
             },
             { status: OrderStatusEnum.CANCELLED, paymentStatus: "PAID" as const },
+            {
+              orderType: OrderTypeEnum.RETURN,
+              status: { not: OrderStatusEnum.CANCELLED },
+            },
           ],
         }
       : statusFilter === "ALL"
@@ -165,6 +169,9 @@ export default async function OrdersPage({
         },
         ozonData: {
           select: { feesSettled: true, buyerTotal: true },
+        },
+        ozonReturnData: {
+          select: { feesSettled: true, returnLogisticFeeRub: true },
         },
       },
       orderBy: [{ year: "asc" }, { sequenceNumber: "asc" }],
@@ -296,6 +303,12 @@ export default async function OrdersPage({
                 className="text-sm text-blue-500 hover:text-blue-700 hover:underline"
               >
                 Импорт возвратов Яндекс →
+              </Link>
+              <Link
+                href="/admin/ozon/import-returns"
+                className="text-sm text-blue-500 hover:text-blue-700 hover:underline"
+              >
+                Импорт возвратов Ozon →
               </Link>
             </div>
           </div>

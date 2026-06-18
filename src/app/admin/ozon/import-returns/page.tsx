@@ -1,10 +1,14 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
-import { OzonReturnsDebugClient } from "@/components/admin/ozon/OzonReturnsDebugClient";
+import { ImportOzonReturnsClient } from "@/components/admin/ozon/ImportOzonReturnsClient";
+import { db } from "@/db";
 import Link from "next/link";
 
-// Page for previewing Ozon FBS return candidates grouped by posting_number.
-// Import functionality is not yet implemented — this page is for verifying the data.
-export default function OzonImportReturnsPage() {
+// Page for importing Ozon FBS returns. Fetches return candidates from the Ozon API,
+// shows financial breakdown per posting, and allows bulk import into the orders table.
+export default async function OzonImportReturnsPage() {
+  const partnerIdSetting = await db.settings.findUnique({ where: { field: "ozonPartnerId" } });
+  const partnerId = partnerIdSetting?.value ?? "";
+
   return (
     <>
       <TopMenu />
@@ -16,7 +20,12 @@ export default function OzonImportReturnsPage() {
               ← Настройки Ozon
             </Link>
           </div>
-          <OzonReturnsDebugClient />
+          {!partnerId && (
+            <p className="mt-4 text-amber-600 text-sm">
+              Партнёр Ozon не задан в настройках — импорт недоступен.
+            </p>
+          )}
+          <ImportOzonReturnsClient partnerId={partnerId} />
         </div>
       </div>
     </>

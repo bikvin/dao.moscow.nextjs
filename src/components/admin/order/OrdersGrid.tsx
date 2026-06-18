@@ -171,9 +171,20 @@ type Order = {
   reserves: OrderReserve[];
   issues: OrderIssue[];
   receipts: OrderReceipt[];
-  invoices: { id: string; sequenceNumber: number; invoiceDate: Date; totalRub: number; invoiceType: InvoiceTypeEnum }[];
-  yandexData: { feesSettled: boolean; buyerTotal: number; subsidyTotal: number } | null;
+  invoices: {
+    id: string;
+    sequenceNumber: number;
+    invoiceDate: Date;
+    totalRub: number;
+    invoiceType: InvoiceTypeEnum;
+  }[];
+  yandexData: {
+    feesSettled: boolean;
+    buyerTotal: number;
+    subsidyTotal: number;
+  } | null;
   ozonData: { feesSettled: boolean; buyerTotal: number } | null;
+  ozonReturnData: { feesSettled: boolean; returnLogisticFeeRub: number } | null;
 };
 
 type Option = { id: string; name: string };
@@ -188,7 +199,9 @@ function OrderNumber({ order, rowSpan }: { order: Order; rowSpan?: number }) {
   return (
     <div
       className="py-0.5 flex flex-col"
-      style={rowSpan && rowSpan > 1 ? { gridRow: `span ${rowSpan}` } : undefined}
+      style={
+        rowSpan && rowSpan > 1 ? { gridRow: `span ${rowSpan}` } : undefined
+      }
     >
       <div className="text-sm font-semibold">{order.sequenceNumber}</div>
       {order.orderType === "RETURN" && (
@@ -236,16 +249,22 @@ export function OrdersGrid({
 }) {
   const marketplacePaymentMethodIdSet = React.useMemo(
     () => new Set(marketplacePaymentMethodIds ?? []),
-    [marketplacePaymentMethodIds]
+    [marketplacePaymentMethodIds],
   );
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const scrollTargetRef = React.useRef<HTMLDivElement>(null);
   const shipmentDateColorMap = buildShipmentDateColorMap(orders);
-  const highlightSet = React.useMemo(() => new Set(scrollToOrderIds ?? []), [scrollToOrderIds]);
+  const highlightSet = React.useMemo(
+    () => new Set(scrollToOrderIds ?? []),
+    [scrollToOrderIds],
+  );
 
   React.useEffect(() => {
     if (scrollTargetRef.current) {
-      scrollTargetRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      scrollTargetRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
     }
   }, [scrollToOrderIds]);
 
@@ -320,36 +339,57 @@ export function OrdersGrid({
                   "—";
                 const isEstimate =
                   (order.yandexData != null && !order.yandexData.feesSettled) ||
-                  (order.ozonData != null && !order.ozonData.feesSettled);
-                const approx = (v: string) => isEstimate ? `≈${v}` : v;
+                  (order.ozonData != null && !order.ozonData.feesSettled) ||
+                  (order.ozonReturnData != null &&
+                    !order.ozonReturnData.feesSettled);
+                const approx = (v: string) => (isEstimate ? `≈${v}` : v);
                 // For estimate orders show net with gross in brackets: ~12 462 (25 432) ₽
                 const fmt0 = (rubles: number) =>
                   Math.round(rubles).toLocaleString("ru-RU");
                 const retailPrice = order.yandexData
                   ? order.yandexData.buyerTotal + order.yandexData.subsidyTotal
                   : order.ozonData
-                  ? order.ozonData.buyerTotal
-                  : null;
+                    ? order.ozonData.buyerTotal
+                    : null;
                 // Normalise sign: RETURN orders always display as negative regardless of stored sign
                 // (manually created returns store positive totalRub; imports store negative).
-                const displayTotalRub = order.orderType === OrderTypeEnum.RETURN
-                  ? -Math.abs(order.totalRub)
-                  : order.totalRub;
-                const orderTotalNode = retailPrice != null
-                  ? <span className="flex flex-col items-end gap-0"><span>{isEstimate ? "≈" : ""}{fmt0(displayTotalRub / 100)} ₽</span><span className="text-xs font-normal text-slate-400">{fmt0(retailPrice)} ₽ розн.</span></span>
-                  : <>{formatRub(displayTotalRub)}</>;
+                const displayTotalRub =
+                  order.orderType === OrderTypeEnum.RETURN
+                    ? -Math.abs(order.totalRub)
+                    : order.totalRub;
+                const orderTotalNode =
+                  retailPrice != null ? (
+                    <span className="flex flex-col items-end gap-0">
+                      <span>
+                        {isEstimate ? "≈" : ""}
+                        {fmt0(displayTotalRub / 100)} ₽
+                      </span>
+                      <span className="text-xs font-normal text-slate-400">
+                        {fmt0(retailPrice)} ₽ розн.
+                      </span>
+                    </span>
+                  ) : (
+                    <>{formatRub(displayTotalRub)}</>
+                  );
 
                 return (
                   <div
                     key={order.id}
-                    ref={highlightSet.size > 0 && order.id === [...highlightSet][0] ? scrollTargetRef : undefined}
+                    ref={
+                      highlightSet.size > 0 && order.id === [...highlightSet][0]
+                        ? scrollTargetRef
+                        : undefined
+                    }
                     className={`border rounded-md shadow-main overflow-hidden mb-3${highlightSet.has(order.id) ? " highlight-flash" : ""}`}
                     style={
                       order.status === "RESERVE" ||
                       order.status === "SHIPMENT_PLANNED" ||
                       order.status === "SELF_PICKUP"
-                        ? { "--card-bg": "#fff7da", backgroundColor: "#fff7da" } as React.CSSProperties
-                        : { "--card-bg": "#ffffff" } as React.CSSProperties
+                        ? ({
+                            "--card-bg": "#fff7da",
+                            backgroundColor: "#fff7da",
+                          } as React.CSSProperties)
+                        : ({ "--card-bg": "#ffffff" } as React.CSSProperties)
                     }
                   >
                     <div className="flex flex-col md:flex-row md:items-start">
@@ -390,81 +430,102 @@ export function OrdersGrid({
                                 (order.discountPercent > 0 ? 1 : 0) +
                                 (order.deliveryPriceRub > 0 ? 1 : 0);
                               return order.items.map((item, idx) => (
-                              <React.Fragment key={item.id}>
-                                {idx === 0 ? (
-                                  <>
-                                    <OrderNumber order={order} rowSpan={rowSpan} />
-                                    <div className="text-sm text-slate-600 py-0.5">
-                                      {formatDate(order.orderDate)}
-                                    </div>
-                                    <div className="text-sm py-0.5">
-                                      {partnerName}
-                                    </div>
-                                  </>
-                                ) : (
+                                <React.Fragment key={item.id}>
+                                  {idx === 0 ? (
+                                    <>
+                                      <OrderNumber
+                                        order={order}
+                                        rowSpan={rowSpan}
+                                      />
+                                      <div className="text-sm text-slate-600 py-0.5">
+                                        {formatDate(order.orderDate)}
+                                      </div>
+                                      <div className="text-sm py-0.5">
+                                        {partnerName}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <E />
+                                      <E />
+                                    </>
+                                  )}
+                                  <div className="text-sm py-0.5">
+                                    {item.product.sku}
+                                    {(() => {
+                                      const p = products.find(
+                                        (p) => p.id === item.productId,
+                                      );
+                                      const activeVariants =
+                                        p?.productVariants ?? [];
+                                      const hideVariant =
+                                        activeVariants.length <= 1;
+                                      return !hideVariant &&
+                                        item.productVariant.variantName ? (
+                                        <span className="text-slate-400 ml-1 text-xs">
+                                          ({item.productVariant.variantName})
+                                        </span>
+                                      ) : null;
+                                    })()}
+                                  </div>
+                                  <div className="text-sm text-right py-0.5">
+                                    {order.orderType === "RETURN"
+                                      ? `-${item.quantity}`
+                                      : item.quantity}
+                                  </div>
+                                  <div className="text-sm text-right py-0.5">
+                                    {item.quantityM2 !== null
+                                      ? order.orderType === "RETURN"
+                                        ? `-${item.quantityM2.toFixed(2)}`
+                                        : item.quantityM2.toFixed(2)
+                                      : "—"}
+                                  </div>
+                                  <div className="text-sm text-right py-0.5">
+                                    {approx(
+                                      formatRub(
+                                        order.orderType === "RETURN"
+                                          ? -Math.abs(item.priceRub)
+                                          : item.priceRub,
+                                      ),
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-right py-0.5">
+                                    {approx(
+                                      formatRub(
+                                        order.orderType === "RETURN"
+                                          ? -Math.abs(item.totalRub)
+                                          : item.totalRub,
+                                      ),
+                                    )}
+                                  </div>
+                                </React.Fragment>
+                              ));
+                            })()}
+                            {order.discountPercent > 0 &&
+                              (() => {
+                                const itemsSubtotal = order.items.reduce(
+                                  (s, i) => s + i.totalRub,
+                                  0,
+                                );
+                                const discountAmount = Math.round(
+                                  (itemsSubtotal * order.discountPercent) / 100,
+                                );
+                                return (
                                   <>
                                     <E />
                                     <E />
+                                    <div className="text-sm text-slate-500 italic py-0.5">
+                                      Скидка {order.discountPercent}%
+                                    </div>
+                                    <E />
+                                    <E />
+                                    <E />
+                                    <div className="text-sm text-right py-0.5 text-slate-500">
+                                      −{formatRub(discountAmount)}
+                                    </div>
                                   </>
-                                )}
-                                <div className="text-sm py-0.5">
-                                  {item.product.sku}
-                                  {(() => {
-                                    const p = products.find(
-                                      (p) => p.id === item.productId,
-                                    );
-                                    const activeVariants =
-                                      p?.productVariants ?? [];
-                                    const hideVariant =
-                                      activeVariants.length <= 1;
-                                    return !hideVariant &&
-                                      item.productVariant.variantName ? (
-                                      <span className="text-slate-400 ml-1 text-xs">
-                                        ({item.productVariant.variantName})
-                                      </span>
-                                    ) : null;
-                                  })()}
-                                </div>
-                                <div className="text-sm text-right py-0.5">
-                                  {order.orderType === "RETURN"
-                                    ? `-${item.quantity}`
-                                    : item.quantity}
-                                </div>
-                                <div className="text-sm text-right py-0.5">
-                                  {item.quantityM2 !== null
-                                    ? order.orderType === "RETURN"
-                                      ? `-${item.quantityM2.toFixed(2)}`
-                                      : item.quantityM2.toFixed(2)
-                                    : "—"}
-                                </div>
-                                <div className="text-sm text-right py-0.5">
-                                  {approx(formatRub(order.orderType === "RETURN" ? -Math.abs(item.priceRub) : item.priceRub))}
-                                </div>
-                                <div className="text-sm text-right py-0.5">
-                                  {approx(formatRub(order.orderType === "RETURN" ? -Math.abs(item.totalRub) : item.totalRub))}
-                                </div>
-                              </React.Fragment>
-                            ));
-                            })()}
-                            {order.discountPercent > 0 && (() => {
-                              const itemsSubtotal = order.items.reduce((s, i) => s + i.totalRub, 0);
-                              const discountAmount = Math.round(itemsSubtotal * order.discountPercent / 100);
-                              return (
-                                <>
-                                  <E />
-                                  <E />
-                                  <div className="text-sm text-slate-500 italic py-0.5">
-                                    Скидка {order.discountPercent}%
-                                  </div>
-                                  <E />
-                                  <E />
-                                  <E />
-                                  <div className="text-sm text-right py-0.5 text-slate-500">
-                                    −{formatRub(discountAmount)}
-                                  </div>
-                                </>
-                              );
-                            })()}
+                                );
+                              })()}
                             {order.deliveryPriceRub > 0 && (
                               <>
                                 <E />
@@ -480,6 +541,28 @@ export function OrdersGrid({
                                 </div>
                               </>
                             )}
+                            {order.ozonReturnData &&
+                              order.ozonReturnData.returnLogisticFeeRub > 0 && (
+                                <>
+                                  <E />
+                                  <E />
+                                  <E />
+                                  <div className="text-sm text-slate-500 italic py-0.5">
+                                    Обратная логистика
+                                    {!order.ozonReturnData.feesSettled && " ≈"}
+                                  </div>
+                                  <E />
+                                  <E />
+                                  <E />
+                                  <div className="text-sm text-right py-0.5 text-slate-600">
+                                    −
+                                    {Math.round(
+                                      order.ozonReturnData.returnLogisticFeeRub,
+                                    ).toLocaleString("ru-RU")}{" "}
+                                    ₽
+                                  </div>
+                                </>
+                              )}
                             <>
                               <div className="flex items-center gap-3 py-1 border-t border-slate-200">
                                 <button
@@ -569,21 +652,37 @@ export function OrdersGrid({
                                   ? `-${item.quantity}`
                                   : item.quantity}{" "}
                                 шт ·{" "}
-                                {approx(formatRub(order.orderType === "RETURN" ? -Math.abs(item.totalRub) : item.totalRub))}
+                                {approx(
+                                  formatRub(
+                                    order.orderType === "RETURN"
+                                      ? -Math.abs(item.totalRub)
+                                      : item.totalRub,
+                                  ),
+                                )}
                               </div>
                             </div>
                           );
                         })}
-                        {order.discountPercent > 0 && (() => {
-                          const itemsSubtotal = order.items.reduce((s, i) => s + i.totalRub, 0);
-                          const discountAmount = Math.round((itemsSubtotal + order.deliveryPriceRub) * order.discountPercent / 100);
-                          return (
-                            <div className="flex justify-between text-sm text-slate-500">
-                              <span className="italic">Скидка {order.discountPercent}%</span>
-                              <span>−{formatRub(discountAmount)}</span>
-                            </div>
-                          );
-                        })()}
+                        {order.discountPercent > 0 &&
+                          (() => {
+                            const itemsSubtotal = order.items.reduce(
+                              (s, i) => s + i.totalRub,
+                              0,
+                            );
+                            const discountAmount = Math.round(
+                              ((itemsSubtotal + order.deliveryPriceRub) *
+                                order.discountPercent) /
+                                100,
+                            );
+                            return (
+                              <div className="flex justify-between text-sm text-slate-500">
+                                <span className="italic">
+                                  Скидка {order.discountPercent}%
+                                </span>
+                                <span>−{formatRub(discountAmount)}</span>
+                              </div>
+                            );
+                          })()}
                         {order.deliveryPriceRub > 0 && (
                           <div className="flex justify-between text-sm text-slate-500">
                             <span className="italic">
@@ -592,16 +691,32 @@ export function OrdersGrid({
                             <span>{formatRub(order.deliveryPriceRub)}</span>
                           </div>
                         )}
+                        {order.ozonReturnData &&
+                          order.ozonReturnData.returnLogisticFeeRub > 0 && (
+                            <div className="flex justify-between text-sm text-slate-500">
+                              <span className="italic">
+                                Обратная логистика
+                                {!order.ozonReturnData.feesSettled && " ≈"}
+                              </span>
+                              <span>
+                                −
+                                {Math.round(
+                                  order.ozonReturnData.returnLogisticFeeRub,
+                                ).toLocaleString("ru-RU")}{" "}
+                                ₽
+                              </span>
+                            </div>
+                          )}
                         <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-1 mt-0.5">
                           <span className="flex items-baseline gap-2">
                             {order.note && (
-                              <span className="text-xs font-normal text-slate-700 italic">{order.note}</span>
+                              <span className="text-xs font-normal text-slate-700 italic">
+                                {order.note}
+                              </span>
                             )}
                             Итого
                           </span>
-                          <span>
-                            {orderTotalNode}
-                          </span>
+                          <span>{orderTotalNode}</span>
                         </div>
                       </div>
 
@@ -625,9 +740,19 @@ export function OrdersGrid({
                                 ? `${ORDER_STATUS_CONFIG[order.status].label} ${formatDate(order.deliveryDate)}`
                                 : order.status === "SHIPMENT_PLANNED"
                                   ? (() => {
-                                      const isPickup = order.deliveryMethodId === selfPickupDeliveryMethodId && selfPickupDeliveryMethodId != null;
-                                      const prefix = isPickup ? "Самовывоз" : ORDER_STATUS_CONFIG[order.status].label;
-                                      const datePart = order.plannedDeliveryDate ? ` ${formatShortDate(order.plannedDeliveryDate)}` : (isPickup ? "" : " ???");
+                                      const isPickup =
+                                        order.deliveryMethodId ===
+                                          selfPickupDeliveryMethodId &&
+                                        selfPickupDeliveryMethodId != null;
+                                      const prefix = isPickup
+                                        ? "Самовывоз"
+                                        : ORDER_STATUS_CONFIG[order.status]
+                                            .label;
+                                      const datePart = order.plannedDeliveryDate
+                                        ? ` ${formatShortDate(order.plannedDeliveryDate)}`
+                                        : isPickup
+                                          ? ""
+                                          : " ???";
                                       return prefix + datePart;
                                     })()
                                   : ORDER_STATUS_CONFIG[order.status].label
@@ -645,8 +770,13 @@ export function OrdersGrid({
                             }
                           />
 
-                          {order.paymentMethodId == null || !marketplacePaymentMethodIdSet.has(order.paymentMethodId) ? (
-                            <Badge {...PAYMENT_STATUS_CONFIG[order.paymentStatus]} />
+                          {order.paymentMethodId == null ||
+                          !marketplacePaymentMethodIdSet.has(
+                            order.paymentMethodId,
+                          ) ? (
+                            <Badge
+                              {...PAYMENT_STATUS_CONFIG[order.paymentStatus]}
+                            />
                           ) : null}
                         </div>
                         {order.reserves.filter((r) => r.status === "ACTIVE")
@@ -696,15 +826,21 @@ export function OrdersGrid({
                             {order.invoices.map((inv) => {
                               const d = new Date(inv.invoiceDate);
                               const date = `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getFullYear()).slice(-2)}`;
-                              const amount = Math.round(inv.totalRub / 100).toLocaleString("ru-RU");
-                              const type = inv.invoiceType === InvoiceTypeEnum.CASH ? "нал" : "безнал";
+                              const amount = Math.round(
+                                inv.totalRub / 100,
+                              ).toLocaleString("ru-RU");
+                              const type =
+                                inv.invoiceType === InvoiceTypeEnum.CASH
+                                  ? "нал"
+                                  : "безнал";
                               return (
                                 <Link
                                   key={inv.id}
                                   href={`/admin/invoices?tab=${inv.invoiceType}&scrollToInvoiceId=${inv.id}`}
                                   className="text-xs text-violet-600 hover:text-violet-800 hover:underline"
                                 >
-                                  Счет №{inv.sequenceNumber} от {date} {amount}р. {type}
+                                  Счет №{inv.sequenceNumber} от {date} {amount}
+                                  р. {type}
                                 </Link>
                               );
                             })}
@@ -722,7 +858,12 @@ export function OrdersGrid({
                       products={products}
                       usdRate={usdRate}
                       rmbRate={rmbRate}
-                      marketplacePaymentMethodId={order.paymentMethodId != null && marketplacePaymentMethodIdSet.has(order.paymentMethodId) ? order.paymentMethodId : null}
+                      marketplacePaymentMethodId={
+                        order.paymentMethodId != null &&
+                        marketplacePaymentMethodIdSet.has(order.paymentMethodId)
+                          ? order.paymentMethodId
+                          : null
+                      }
                       isOpen={openOrderId === order.id}
                       onToggle={() =>
                         setOpenOrderId(

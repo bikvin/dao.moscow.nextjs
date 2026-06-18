@@ -112,6 +112,7 @@ function ItemRow({
   touched,
   usdRate,
   rmbRate,
+  variantError,
 }: {
   item: ItemState;
   products: ProductOption[];
@@ -120,6 +121,7 @@ function ItemRow({
   touched: boolean;
   usdRate: number | null;
   rmbRate: number | null;
+  variantError?: string;
 }) {
   const lastEdited = useRef<"price" | "total">("price");
 
@@ -150,18 +152,23 @@ function ItemRow({
       </Field>
 
       <Field label="Вариант:">
-        <select
-          name="productVariantId"
-          value={item.variantId}
-          onChange={(e) => onChange({ variantId: e.target.value })}
-          className={`admin-form-input text-sm w-36 ${touched && !item.variantId ? "border-red-500" : ""}`}
-          disabled={availableVariants.length === 0}
-        >
-          <option value="">— вариант —</option>
-          {availableVariants.map((v) => (
-            <option key={v.id} value={v.id}>{v.variantName}</option>
-          ))}
-        </select>
+        <div className="flex flex-col gap-0.5">
+          <select
+            name="productVariantId"
+            value={item.variantId}
+            onChange={(e) => onChange({ variantId: e.target.value })}
+            className={`admin-form-input text-sm w-36 ${(touched && !item.variantId) || variantError ? "border-red-500" : ""}`}
+            disabled={availableVariants.length === 0}
+          >
+            <option value="">— вариант —</option>
+            {availableVariants.map((v) => (
+              <option key={v.id} value={v.id}>{v.variantName}</option>
+            ))}
+          </select>
+          {variantError && (
+            <span className="text-red-600 text-xs">{variantError}</span>
+          )}
+        </div>
       </Field>
 
       <Field label="Кол-во:">
@@ -567,6 +574,7 @@ export function CreateOrderForm({
                 touched={touched}
                 usdRate={usdRate}
                 rmbRate={rmbRate}
+                variantError={formState.errors?.variantId?.[0]}
               />
             ))}
           </div>

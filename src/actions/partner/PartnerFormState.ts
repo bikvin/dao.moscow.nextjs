@@ -10,6 +10,6 @@ export interface PartnerFormState {
 }
 
 export interface SubItemFormState {
-  errors?: { _form?: string[] };
+  errors?: { _form?: string[]; variantId?: string[] };
   success?: { message: string };
 }

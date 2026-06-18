@@ -3,11 +3,24 @@
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { SubItemFormState } from "@/actions/partner/PartnerFormState";
-import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum, ProductReserveStatusEnum, ProductIssueEnum, ProductReceiptTypeEnum } from "@prisma/client";
+import {
+  OrderTypeEnum,
+  OrderStatusEnum,
+  PriceUnitEnum,
+  CurrencyEnum,
+  PaymentStatusEnum,
+  ProductReserveStatusEnum,
+  ProductIssueEnum,
+  ProductReceiptTypeEnum,
+} from "@prisma/client";
 import { z } from "zod";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 
-const RESERVE_STATUSES = new Set<OrderStatusEnum>([OrderStatusEnum.RESERVE, OrderStatusEnum.SHIPMENT_PLANNED, OrderStatusEnum.SELF_PICKUP]);
+const RESERVE_STATUSES = new Set<OrderStatusEnum>([
+  OrderStatusEnum.RESERVE,
+  OrderStatusEnum.SHIPMENT_PLANNED,
+  OrderStatusEnum.SELF_PICKUP,
+]);
 
 const schema = z.object({
   partnerId: z.string().min(1, "Выберите партнёра"),
@@ -18,7 +31,7 @@ const schema = z.object({
 export async function updateOrder(
   orderId: string,
   _formState: SubItemFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<SubItemFormState> {
   const result = schema.safeParse({
     partnerId: formData.get("partnerId"),
@@ -37,17 +50,25 @@ export async function updateOrder(
 
   const deliveryMethodId = (formData.get("deliveryMethodId") as string) || null;
   const paymentMethodId = (formData.get("paymentMethodId") as string) || null;
-  const deliveryPriceRub = Math.round((parseFloat(formData.get("deliveryPrice") as string) || 0) * 100);
-  const discountPercent = parseFloat(formData.get("discountPercent") as string) || 0;
+  const deliveryPriceRub = Math.round(
+    (parseFloat(formData.get("deliveryPrice") as string) || 0) * 100,
+  );
+  const discountPercent =
+    parseFloat(formData.get("discountPercent") as string) || 0;
   const note = (formData.get("note") as string) || null;
   const plannedDeliveryDateRaw = formData.get("plannedDeliveryDate") as string;
   const deliveryDateRaw = formData.get("deliveryDate") as string;
   const paymentDateRaw = formData.get("paymentDate") as string;
-  const plannedDeliveryDate = plannedDeliveryDateRaw ? new Date(plannedDeliveryDateRaw) : null;
+  const plannedDeliveryDate = plannedDeliveryDateRaw
+    ? new Date(plannedDeliveryDateRaw)
+    : null;
   const deliveryDate = deliveryDateRaw ? new Date(deliveryDateRaw) : null;
   const paymentDate = paymentDateRaw ? new Date(paymentDateRaw) : null;
-  const paymentStatus = (formData.get("paymentStatus") as PaymentStatusEnum) || PaymentStatusEnum.NOT_PAID;
-  const status = (formData.get("orderStatus") as OrderStatusEnum) || OrderStatusEnum.RESERVE;
+  const paymentStatus =
+    (formData.get("paymentStatus") as PaymentStatusEnum) ||
+    PaymentStatusEnum.NOT_PAID;
+  const status =
+    (formData.get("orderStatus") as OrderStatusEnum) || OrderStatusEnum.RESERVE;
 
   const productIds = formData.getAll("productId") as string[];
   const variantIds = formData.getAll("productVariantId") as string[];
@@ -58,6 +79,41 @@ export async function updateOrder(
   const priceRubs = formData.getAll("priceRub") as string[];
   const quantityM2s = formData.getAll("quantityM2") as string[];
   const itemTotals = formData.getAll("itemTotal") as string[];
+
+  // Validate item variants: every submitted productId must have a non-empty variantId,
+  // and all variantIds must be active.
+  for (let i = 0; i < productIds.length; i++) {
+    if (!productIds[i]) continue;
+    const qty = parseInt(quantities[i]) || 0;
+    if (qty <= 0) continue;
+    if (!variantIds[i]) {
+      return {
+        errors: {
+          variantId: ["Выберите активный вариант."],
+        },
+      };
+    }
+  }
+  const submittedVariantIds = variantIds.filter(
+    (id, i) => !!productIds[i] && !!id,
+  );
+  if (submittedVariantIds.length > 0) {
+    const activeVariants = await db.productVariant.findMany({
+      where: { id: { in: submittedVariantIds }, status: "ACTIVE" },
+      select: { id: true },
+    });
+    const activeIds = new Set(activeVariants.map((v) => v.id));
+    const inactive = submittedVariantIds.filter((id) => !activeIds.has(id));
+    if (inactive.length > 0) {
+      return {
+        errors: {
+          variantId: [
+            "Один или несколько вариантов товара неактивны. Выберите активный вариант.",
+          ],
+        },
+      };
+    }
+  }
 
   try {
     await db.$transaction(async (tx) => {
@@ -77,11 +133,19 @@ export async function updateOrder(
       const revertVariantIds = new Set<string>();
       if (wasShipped) {
         const [existingIssues, existingReceipts] = await Promise.all([
-          tx.productIssue.findMany({ where: { orderId }, select: { productVariantId: true } }),
-          tx.productReceipt.findMany({ where: { orderId }, select: { productVariantId: true } }),
+          tx.productIssue.findMany({
+            where: { orderId },
+            select: { productVariantId: true },
+          }),
+          tx.productReceipt.findMany({
+            where: { orderId },
+            select: { productVariantId: true },
+          }),
         ]);
         existingIssues.forEach((i) => revertVariantIds.add(i.productVariantId));
-        existingReceipts.forEach((r) => revertVariantIds.add(r.productVariantId));
+        existingReceipts.forEach((r) =>
+          revertVariantIds.add(r.productVariantId),
+        );
         await tx.productIssue.deleteMany({ where: { orderId } });
         await tx.productReceipt.deleteMany({ where: { orderId } });
       }
@@ -90,7 +154,9 @@ export async function updateOrder(
       const activeReserves = await tx.productReserve.findMany({
         where: { orderId, status: ProductReserveStatusEnum.ACTIVE },
       });
-      const oldVariantIds = new Set(activeReserves.map((r) => r.productVariantId));
+      const oldVariantIds = new Set(
+        activeReserves.map((r) => r.productVariantId),
+      );
 
       // For non-shipped transitions: wipe all order reserves so they get recreated
       if (!becomingShipped) {
@@ -128,7 +194,9 @@ export async function updateOrder(
 
         const priceUnit = priceUnits[i] as PriceUnitEnum;
         const priceInCents = Math.round((parseFloat(prices[i]) || 0) * 100);
-        const priceRubKopecks = Math.round((parseFloat(priceRubs[i]) || 0) * 100);
+        const priceRubKopecks = Math.round(
+          (parseFloat(priceRubs[i]) || 0) * 100,
+        );
         const quantityM2 = quantityM2s[i] ? parseFloat(quantityM2s[i]) : null;
 
         const itemTotal = itemTotals[i]
@@ -153,11 +221,27 @@ export async function updateOrder(
         });
 
         totalRub += itemTotal;
-        variantQuantities.set(variantIds[i], (variantQuantities.get(variantIds[i]) ?? 0) + qty);
+        variantQuantities.set(
+          variantIds[i],
+          (variantQuantities.get(variantIds[i]) ?? 0) + qty,
+        );
       }
 
-      const grandTotal = Math.round(totalRub * (1 - discountPercent / 100)) + deliveryPriceRub;
-      await tx.order.update({ where: { id: orderId }, data: { totalRub: grandTotal } });
+      const ozonReturnData = await tx.ozonReturnData.findUnique({
+        where: { orderId },
+        select: { returnLogisticFeeRub: true },
+      });
+      const returnLogisticsKopecks = ozonReturnData
+        ? Math.round(ozonReturnData.returnLogisticFeeRub * 100)
+        : 0;
+      const grandTotal =
+        Math.round(totalRub * (1 - discountPercent / 100)) +
+        deliveryPriceRub +
+        returnLogisticsKopecks;
+      await tx.order.update({
+        where: { id: orderId },
+        data: { totalRub: grandTotal },
+      });
 
       const orderLabel = `Заказ №${currentOrder?.sequenceNumber}/${currentOrder?.year}`;
       const eventDate = deliveryDate ?? orderDate;
@@ -219,10 +303,18 @@ export async function updateOrder(
       } else {
         // Non-shipped: recreate reserves if needed
         const newVariantIds = new Set<string>();
-        if (result.data.orderType === OrderTypeEnum.SALE && RESERVE_STATUSES.has(status)) {
+        if (
+          result.data.orderType === OrderTypeEnum.SALE &&
+          RESERVE_STATUSES.has(status)
+        ) {
           const partner = await tx.partner.findUnique({
             where: { id: result.data.partnerId },
-            include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
+            include: {
+              names: {
+                orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+                take: 1,
+              },
+            },
           });
           const clientName = partner?.names[0]?.name ?? "—";
 
@@ -241,14 +333,22 @@ export async function updateOrder(
           }
         }
 
-        const allVariantIds = new Set([...oldVariantIds, ...newVariantIds, ...revertVariantIds]);
+        const allVariantIds = new Set([
+          ...oldVariantIds,
+          ...newVariantIds,
+          ...revertVariantIds,
+        ]);
         for (const variantId of allVariantIds) {
           await recalculateWarehouseQuantity(variantId, tx);
         }
       }
     });
   } catch (err: unknown) {
-    return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };
+    return {
+      errors: {
+        _form: [err instanceof Error ? err.message : "Что-то пошло не так"],
+      },
+    };
   }
 
   revalidatePath("/admin");

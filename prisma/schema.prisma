@@ -609,6 +609,7 @@ model Order {
   yandexData       YandexOrderData?
   ozonData         OzonOrderData?
   yandexReturnData YandexReturnData?
+  ozonReturnData   OzonReturnData?
 
   @@unique([year, sequenceNumber])
   @@index([partnerId])
@@ -645,6 +646,20 @@ model YandexReturnData {
   refundStatus   String? // "REFUNDED", "WAITING", etc.
   shipmentStatus String? // return shipment status (e.g. "PICKED", "READY_FOR_PICKUP")
   buyerRefundRub Int    @default(0)  // amount.value from API (what buyer got back)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OzonReturnData {
+  id            String  @id @default(uuid())
+  postingNumber String  @unique
+  ozonOrderId   String
+  returnType    String  // "Cancellation" | "FullReturn" | "ClientReturn"
+
+  payoutRub            Float   @default(0)  // price × (1-rate) × qty — payout reversal
+  returnLogisticFeeRub Float   @default(0)  // reverse logistics (actual or estimated)
+  feesSettled          Boolean @default(false)
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
