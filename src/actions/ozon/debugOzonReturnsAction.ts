@@ -24,42 +24,6 @@ type OzonReturnRecord = {
   logistic: { return_date: string | null };
 };
 
-// Fetches all transactions for a date range, filtered to the given posting numbers.
-async function fetchTransactionsForPostings(
-  clientId: string,
-  apiKey: string,
-  fromDate: Date,
-  toDate: Date,
-  postingNumbers: string[]
-): Promise<unknown[]> {
-  const postingSet = new Set(postingNumbers);
-  const results: unknown[] = [];
-  let page = 1;
-
-  while (true) {
-    const res = await fetch(`${OZON_API_BASE}/v3/finance/transaction/list`, {
-      method: "POST",
-      headers: { "Client-Id": clientId, "Api-Key": apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filter: {
-          date: { from: fromDate.toISOString(), to: toDate.toISOString() },
-          transaction_type: "all",
-        },
-        page,
-        page_size: 1000,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) break;
-    const ops: { posting?: { posting_number?: string } }[] = data.result?.operations ?? [];
-    results.push(...ops.filter((op) => op.posting?.posting_number && postingSet.has(op.posting.posting_number)));
-    if (page >= (data.result?.page_count ?? 1)) break;
-    page++;
-  }
-
-  return results;
-}
-
 // Debug action: fetches 2 years of FBS returns, isolates ClientReturn type,
 // then fetches transactions from /v3/finance/transaction/list for the first 5
 // unique posting numbers to discover what return-related operation types exist

@@ -115,8 +115,6 @@ export async function importOzonReturns(
         });
 
         // Create OrderItem records — payout per warehouse unit, positive (sign from orderType=RETURN)
-        let itemsTotal = 0;
-
         for (const item of ret.items) {
           const effectiveDivisor = divisorByOfferId.get(item.offerId) ?? globalDivisor;
           const netPerOzonUnit = item.priceWithoutCommissionRub;
@@ -156,8 +154,6 @@ export async function importOzonReturns(
               totalRub: itemTotal,
             },
           });
-
-          itemsTotal += itemTotal;
         }
 
         // totalRub = full impact in kopecks (formatRub divides by 100 for display)
