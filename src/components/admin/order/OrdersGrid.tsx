@@ -896,6 +896,7 @@ export function OrdersGrid({
                           priceRub: item.priceRub,
                           totalRub: item.totalRub,
                         })),
+                        ozonReturnLogisticFeeRub: order.ozonReturnData?.returnLogisticFeeRub ?? null,
                       }}
                     />
                   </div>

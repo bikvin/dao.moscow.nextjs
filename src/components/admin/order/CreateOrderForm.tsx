@@ -43,6 +43,7 @@ export type InitialOrder = {
     priceRub: number;
     totalRub: number;
   }>;
+  ozonReturnLogisticFeeRub?: number | null;
 };
 
 type ItemState = {
@@ -429,6 +430,11 @@ export function CreateOrderForm({
     initialOrder?.discountPercent ? initialOrder.discountPercent.toString() : ""
   );
   const [note, setNote] = useState(initialOrder?.note ?? "");
+  const [returnLogisticFee, setReturnLogisticFee] = useState(
+    initialOrder?.ozonReturnLogisticFeeRub != null
+      ? initialOrder.ozonReturnLogisticFeeRub.toString()
+      : ""
+  );
   const [items, setItems] = useState<ItemState[]>(
     initialOrder?.items.length
       ? initialOrder.items.map((item) => {
@@ -496,7 +502,8 @@ export function CreateOrderForm({
     return sum + itemTotal;
   }, 0);
   const discountNum = parseFloat(discount) || 0;
-  const grandTotal = itemsSubtotal * (1 - discountNum / 100) + (parseFloat(deliveryPrice) || 0);
+  const returnLogisticFeeNum = initialOrder?.ozonReturnLogisticFeeRub != null ? (parseFloat(returnLogisticFee) || 0) : 0;
+  const grandTotal = itemsSubtotal * (1 - discountNum / 100) + (parseFloat(deliveryPrice) || 0) + returnLogisticFeeNum;
 
   const addRow = () => setItems((prev) => [...prev, emptyItem()]);
   const removeRow = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
@@ -742,6 +749,23 @@ export function CreateOrderForm({
             )}
           </div>
         </div>
+
+        {/* Ozon return logistics fee — only visible for Ozon return orders */}
+        {initialOrder?.ozonReturnLogisticFeeRub != null && (
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-400">Обратная логистика (₽):</label>
+            <input
+              name="returnLogisticFeeRub"
+              type="number"
+              placeholder="0"
+              value={returnLogisticFee}
+              onChange={(e) => setReturnLogisticFee(e.target.value)}
+              className="admin-form-input text-sm w-40"
+              min="0"
+              step="0.01"
+            />
+          </div>
+        )}
 
         {/* Note */}
         <div className="flex flex-col gap-0.5">

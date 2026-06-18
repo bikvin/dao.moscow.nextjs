@@ -70,6 +70,8 @@ export async function updateOrder(
   const status =
     (formData.get("orderStatus") as OrderStatusEnum) || OrderStatusEnum.RESERVE;
 
+  const returnLogisticFeeRubRaw = formData.get("returnLogisticFeeRub") as string | null;
+
   const productIds = formData.getAll("productId") as string[];
   const variantIds = formData.getAll("productVariantId") as string[];
   const quantities = formData.getAll("quantity") as string[];
@@ -231,9 +233,15 @@ export async function updateOrder(
         where: { orderId },
         select: { returnLogisticFeeRub: true },
       });
-      const returnLogisticsKopecks = ozonReturnData
-        ? Math.round(ozonReturnData.returnLogisticFeeRub * 100)
-        : 0;
+      let returnLogisticFeeRub = ozonReturnData?.returnLogisticFeeRub ?? 0;
+      if (ozonReturnData && returnLogisticFeeRubRaw !== null && returnLogisticFeeRubRaw !== "") {
+        returnLogisticFeeRub = parseFloat(returnLogisticFeeRubRaw) || 0;
+        await tx.ozonReturnData.update({
+          where: { orderId },
+          data: { returnLogisticFeeRub },
+        });
+      }
+      const returnLogisticsKopecks = Math.round(returnLogisticFeeRub * 100);
       const grandTotal =
         Math.round(totalRub * (1 - discountPercent / 100)) +
         deliveryPriceRub +
