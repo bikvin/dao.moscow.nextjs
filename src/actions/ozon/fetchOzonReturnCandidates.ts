@@ -204,9 +204,10 @@ async function fetchReturnLogisticsMap(
   return { amountByPosting, transactionsByPosting };
 }
 
-// Fetches Ozon FBS returns for a date range and groups them by posting_number.
-// Each posting becomes one candidate. Enriches with product records, original order
-// reference, and settled/estimated reverse logistics fees from the transactions API.
+// Fetches Ozon FBS returns for a date range and groups them by order_number.
+// Multiple return postings from the same original order are merged into one candidate,
+// with items combined and financials summed. Enriches with product records, original
+// order reference, and settled/estimated reverse logistics fees from the transactions API.
 export async function fetchOzonReturnCandidates(
   fromDate: string,
   toDate: string
@@ -221,15 +222,15 @@ export async function fetchOzonReturnCandidates(
     const allReturns = await fetchAllReturns(clientId, apiKey, fromDate, toDate);
     if (allReturns.length === 0) return { candidates: [] };
 
-    // Group raw records by posting_number
-    const byPosting = new Map<string, OzonReturnRecord[]>();
+    // Group raw records by order_number — multiple postings from the same order merge into one candidate
+    const byOrderNumber = new Map<string, OzonReturnRecord[]>();
     for (const r of allReturns) {
-      if (!byPosting.has(r.posting_number)) byPosting.set(r.posting_number, []);
-      byPosting.get(r.posting_number)!.push(r);
+      if (!byOrderNumber.has(r.order_number)) byOrderNumber.set(r.order_number, []);
+      byOrderNumber.get(r.order_number)!.push(r);
     }
 
     const allOfferIds = [...new Set(allReturns.map((r) => r.product.offer_id))];
-    const allPostingNumbers = [...byPosting.keys()];
+    const allPostingNumbers = [...new Set(allReturns.map((r) => r.posting_number))];
 
     const [products, dbOriginals, avgReturnLogisticFeeSetting, avgCommissionSetting, logisticsByPosting] = await Promise.all([
       db.product.findMany({
@@ -269,10 +270,13 @@ export async function fetchOzonReturnCandidates(
 
     const candidates: OzonReturnCandidate[] = [];
 
-    for (const [postingNumber, records] of byPosting) {
+    for (const [orderNumber, records] of byOrderNumber) {
       const first = records[0];
 
-      // Group records within this posting by offer_id and sum quantities
+      // Collect the distinct posting numbers within this order group
+      const postingsInGroup = [...new Set(records.map((r) => r.posting_number))];
+
+      // Merge all records across postings by offer_id, summing quantities
       const byOfferId = new Map<string, OzonReturnRecord[]>();
       for (const r of records) {
         if (!byOfferId.has(r.product.offer_id)) byOfferId.set(r.product.offer_id, []);
@@ -281,7 +285,6 @@ export async function fetchOzonReturnCandidates(
 
       const items: OzonReturnCandidateItem[] = [];
       let payoutRub = 0;
-      let totalQty = 0;
 
       for (const [offerId, offerRecords] of byOfferId) {
         const sample = offerRecords[0];
@@ -312,38 +315,52 @@ export async function fetchOzonReturnCandidates(
         });
 
         payoutRub += priceWithoutCommissionRub * quantity;
-        totalQty += quantity;
       }
 
-      const actualLogistics = amountByPosting.get(postingNumber) ?? null;
-      const feesSettled = actualLogistics !== null;
-      const returnLogisticFeeRub = feesSettled
-        ? actualLogistics
-        : avgReturnLogisticFeeRub * totalQty;
+      // Sum logistics fees across all postings; estimate for any posting without a settled fee
+      let returnLogisticFeeRub = 0;
+      let allSettled = true;
+      for (const pn of postingsInGroup) {
+        const settled = amountByPosting.get(pn) ?? null;
+        if (settled !== null) {
+          returnLogisticFeeRub += settled;
+        } else {
+          allSettled = false;
+          const postingQty = records
+            .filter((r) => r.posting_number === pn)
+            .reduce((s, r) => s + r.product.quantity, 0);
+          returnLogisticFeeRub += avgReturnLogisticFeeRub * postingQty;
+        }
+      }
+
       const sellerImpactRub = payoutRub + returnLogisticFeeRub;
 
-      const dbOrder = dbOrderByPosting.get(postingNumber) ?? null;
+      // Find original sale order — check all posting numbers in this group
+      const dbOrder =
+        postingsInGroup.map((pn) => dbOrderByPosting.get(pn)).find(Boolean) ?? null;
 
       candidates.push({
-        postingNumber,
-        orderNumber: first.order_number,
+        postingNumber: orderNumber,
+        orderNumber,
         ozonOrderId: String(first.order_id),
         returnType: first.type,
         returnReasonName: first.return_reason_name,
         returnDate: first.logistic.return_date ?? first.logistic.final_moment ?? null,
         visualStatus: first.visual.status.sys_name,
         visualStatusDisplay: first.visual.status.display_name,
-        isOpened: first.additional_info.is_opened,
+        isOpened: records.some((r) => r.additional_info.is_opened),
         items,
         originalOrder: dbOrder
           ? { id: dbOrder.id, sequenceNumber: dbOrder.sequenceNumber, year: dbOrder.year }
           : null,
         payoutRub,
         returnLogisticFeeRub,
-        feesSettled,
+        feesSettled: allSettled,
         sellerImpactRub,
         rawReturns: records,
-        rawLogisticsTransactions: transactionsByPosting.get(postingNumber) ?? [],
+        rawLogisticsTransactions: postingsInGroup.flatMap(
+          (pn) => transactionsByPosting.get(pn) ?? [],
+        ),
       });
     }
 
