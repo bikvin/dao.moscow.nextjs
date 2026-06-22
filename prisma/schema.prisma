@@ -213,11 +213,16 @@ model ProductGroup {
 }
 
 model ProductReceipt {
-  id          String                 @id @default(uuid())
-  quantity    Int
-  receiptDate DateTime
-  description String?
-  type        ProductReceiptTypeEnum
+  id           String                 @id @default(uuid())
+  quantity     Int
+  quantityLeft Int                    @default(0)
+  receiptDate  DateTime
+  description  String?
+  type         ProductReceiptTypeEnum
+
+  price         Float?
+  priceCurrency CurrencyEnum?
+  priceUnit     PriceUnitEnum?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

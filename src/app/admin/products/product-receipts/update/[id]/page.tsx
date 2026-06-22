@@ -66,6 +66,9 @@ export default async function UpdateProductReceiptPage({
             receiptDate={productReceipt.receiptDate}
             receiptType={productReceipt.type}
             order={productReceipt.order}
+            price={productReceipt.price}
+            priceCurrency={productReceipt.priceCurrency}
+            priceUnit={productReceipt.priceUnit}
             isEdit={true}
           />
         </div>

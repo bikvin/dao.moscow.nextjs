@@ -13,6 +13,7 @@ export async function updateProductReceipt(
   formData: FormData
 ): Promise<ProductReceiptFormState> {
   try {
+    const priceRaw = formData.get("price")?.toString();
     const result = updateProductReceiptSchema.safeParse({
       id: formData.get("id")?.toString(),
       productVariantId: formData.get("productVariantId")?.toString(),
@@ -20,6 +21,9 @@ export async function updateProductReceipt(
       receiptDate: formData.get("receiptDate")?.toString(),
       type: formData.get("type")?.toString(),
       description: formData.get("description")?.toString(),
+      price: priceRaw || undefined,
+      priceCurrency: formData.get("priceCurrency")?.toString() || undefined,
+      priceUnit: formData.get("priceUnit")?.toString() || undefined,
     });
 
     if (!result.success) {
@@ -28,26 +32,27 @@ export async function updateProductReceipt(
       };
     }
 
+    const { price, priceCurrency, priceUnit, ...rest } = result.data;
+    const hasCost = price !== undefined && price !== "" && priceCurrency && priceUnit;
+
     await db.$transaction(async (tx) => {
-      // Fetch the old receipt to get the previous variantId
       const oldReceipt = await tx.productReceipt.findUnique({
-        where: { id: result.data.id },
+        where: { id: rest.id },
       });
 
-      // Update the receipt
       await tx.productReceipt.update({
-        where: { id: result.data.id },
-        data: result.data,
+        where: { id: rest.id },
+        data: {
+          ...rest,
+          price: hasCost ? (price as number) : null,
+          priceCurrency: hasCost ? priceCurrency : null,
+          priceUnit: hasCost ? priceUnit : null,
+        },
       });
 
-      // Recalculate the new variant
-      await recalculateWarehouseQuantity(result.data.productVariantId, tx);
+      await recalculateWarehouseQuantity(rest.productVariantId, tx);
 
-      // If variant changed, also recalculate the old one
-      if (
-        oldReceipt &&
-        oldReceipt.productVariantId !== result.data.productVariantId
-      ) {
+      if (oldReceipt && oldReceipt.productVariantId !== rest.productVariantId) {
         await recalculateWarehouseQuantity(oldReceipt.productVariantId, tx);
       }
     });

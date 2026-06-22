@@ -6,6 +6,9 @@ export interface ProductReceiptFormState {
     receiptDate?: string[];
     type?: string[];
     description?: string[];
+    price?: string[];
+    priceCurrency?: string[];
+    priceUnit?: string[];
     _form?: string[];
   };
 }

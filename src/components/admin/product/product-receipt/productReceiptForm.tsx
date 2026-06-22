@@ -9,7 +9,7 @@ import { ProductSelect } from "../productSelect";
 import { ProductVariantSelect } from "./ProductVariantSelect";
 
 import CalendarFormInput from "@/components/common/CalendarFormInput";
-import { ProductReceiptTypeEnum } from "@prisma/client";
+import { CurrencyEnum, PriceUnitEnum, ProductReceiptTypeEnum } from "@prisma/client";
 import { TypeRadio } from "./ProductReceiptTypeRadio";
 import { createProductReceipt } from "@/actions/product/product-receipt/create";
 import { updateProductReceipt } from "@/actions/product/product-receipt/update";
@@ -25,6 +25,9 @@ export function ProductReceiptForm({
   receiptDate,
   receiptType,
   order,
+  price,
+  priceCurrency,
+  priceUnit,
   isEdit = false,
 }: {
   id?: string;
@@ -36,6 +39,9 @@ export function ProductReceiptForm({
   receiptDate?: Date;
   receiptType?: ProductReceiptTypeEnum;
   order?: { year: number; sequenceNumber: number } | null;
+  price?: number | null;
+  priceCurrency?: CurrencyEnum | null;
+  priceUnit?: PriceUnitEnum | null;
   isEdit?: boolean;
 }) {
   const usedAction = isEdit ? updateProductReceipt : createProductReceipt;
@@ -62,6 +68,9 @@ export function ProductReceiptForm({
   const [type, setType] = useState<ProductReceiptTypeEnum>(
     receiptType || ProductReceiptTypeEnum.RETURN,
   );
+  const [priceValue, setPriceValue] = useState(price != null ? price.toString() : "");
+  const [currency, setCurrency] = useState<CurrencyEnum>(priceCurrency ?? CurrencyEnum.USD);
+  const [unit, setUnit] = useState<PriceUnitEnum>(priceUnit ?? PriceUnitEnum.M2);
 
   const [formState, action] = useFormState(usedAction, {
     errors: {},
@@ -151,6 +160,43 @@ export function ProductReceiptForm({
 
         <FormFieldError errors={formState.errors?.description} />
       </div>
+
+      <div className="form-item">
+        <label>Цена закупки</label>
+        <div className="flex items-center gap-2">
+          <input
+            className="admin-form-input w-32"
+            name="price"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="не указана"
+            value={priceValue}
+            onChange={(e) => setPriceValue(e.target.value)}
+          />
+          <select
+            name="priceCurrency"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as CurrencyEnum)}
+            className="admin-form-input w-20"
+          >
+            <option value={CurrencyEnum.RUB}>₽</option>
+            <option value={CurrencyEnum.USD}>$</option>
+            <option value={CurrencyEnum.RMB}>¥</option>
+          </select>
+          <select
+            name="priceUnit"
+            value={unit}
+            onChange={(e) => setUnit(e.target.value as PriceUnitEnum)}
+            className="admin-form-input w-20"
+          >
+            <option value={PriceUnitEnum.ITEM}>шт</option>
+            <option value={PriceUnitEnum.M2}>м²</option>
+          </select>
+        </div>
+        <FormFieldError errors={formState.errors?.price} />
+      </div>
+
       <FormButton>
         {!isEdit ? "Создать поставку" : "Редактировать поставку"}
       </FormButton>

@@ -1,4 +1,4 @@
-import { ProductReceiptTypeEnum } from "@prisma/client";
+import { CurrencyEnum, PriceUnitEnum, ProductReceiptTypeEnum } from "@prisma/client";
 import { z } from "zod";
 
 const baseProductReceiptSchema = z.object({
@@ -18,6 +18,9 @@ const baseProductReceiptSchema = z.object({
     errorMap: () => ({ message: "Неверный тип поставки" }),
   }),
   description: z.string().optional(),
+  price: z.coerce.number().positive("Цена должна быть больше 0").optional().or(z.literal("")),
+  priceCurrency: z.nativeEnum(CurrencyEnum).optional(),
+  priceUnit: z.nativeEnum(PriceUnitEnum).optional(),
 });
 
 export const createProductReceiptSchema = baseProductReceiptSchema;
