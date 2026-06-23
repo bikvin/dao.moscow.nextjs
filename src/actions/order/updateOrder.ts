@@ -15,6 +15,7 @@ import {
 } from "@prisma/client";
 import { z } from "zod";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
+import { consumeFifoStock } from "@/lib/product/consumeFifoStock";
 
 const RESERVE_STATUSES = new Set<OrderStatusEnum>([
   OrderStatusEnum.RESERVE,
@@ -286,6 +287,7 @@ export async function updateOrder(
               where: { id: reserve.id },
               data: { status: ProductReserveStatusEnum.FULFILLED },
             });
+            const cost = await consumeFifoStock(tx, reserve.productVariantId, reserve.quantity);
             await tx.productIssue.create({
               data: {
                 productVariantId: reserve.productVariantId,
@@ -294,6 +296,7 @@ export async function updateOrder(
                 issueDate: eventDate,
                 type: ProductIssueEnum.SALE,
                 description: orderLabel,
+                ...cost,
               },
             });
             fulfilledVariants.add(reserve.productVariantId);
@@ -301,6 +304,7 @@ export async function updateOrder(
           // Create issues for items not covered by a reserve (edge case)
           for (const [variantId, qty] of variantQuantities) {
             if (!fulfilledVariants.has(variantId)) {
+              const cost = await consumeFifoStock(tx, variantId, qty);
               await tx.productIssue.create({
                 data: {
                   productVariantId: variantId,
@@ -309,6 +313,7 @@ export async function updateOrder(
                   issueDate: eventDate,
                   type: ProductIssueEnum.SALE,
                   description: orderLabel,
+                  ...cost,
                 },
               });
             }
@@ -320,6 +325,7 @@ export async function updateOrder(
                 productVariantId: variantId,
                 orderId,
                 quantity: qty,
+                quantityLeft: qty,
                 receiptDate: eventDate,
                 type: ProductReceiptTypeEnum.RETURN,
                 description: orderLabel,

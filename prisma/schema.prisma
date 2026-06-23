@@ -244,6 +244,9 @@ model ProductIssue {
   description String?
   type        ProductIssueEnum
 
+  costPrice         Float?
+  costPriceCurrency CurrencyEnum?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

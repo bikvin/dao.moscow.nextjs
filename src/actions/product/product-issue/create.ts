@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { ProductIssueFormState } from "./ProductIssueFormState";
 import { createProductIssueSchema } from "@/zod/product/product-issue";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
+import { consumeFifoStock } from "@/lib/product/consumeFifoStock";
 
 export async function createProductIssue(
   formState: ProductIssueFormState,
@@ -28,8 +29,9 @@ export async function createProductIssue(
     }
 
     await db.$transaction(async (tx) => {
+      const cost = await consumeFifoStock(tx, result.data.productVariantId, result.data.quantity);
       await tx.productIssue.create({
-        data: result.data,
+        data: { ...result.data, ...cost },
       });
 
       await recalculateWarehouseQuantity(result.data.productVariantId, tx);

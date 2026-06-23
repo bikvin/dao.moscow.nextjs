@@ -6,6 +6,7 @@ import { SubItemFormState } from "@/actions/partner/PartnerFormState";
 import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, PaymentStatusEnum, ProductReserveStatusEnum, ProductIssueEnum, ProductReceiptTypeEnum } from "@prisma/client";
 import { z } from "zod";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
+import { consumeFifoStock } from "@/lib/product/consumeFifoStock";
 
 const RESERVE_STATUSES = new Set<OrderStatusEnum>([OrderStatusEnum.RESERVE, OrderStatusEnum.SHIPMENT_PLANNED, OrderStatusEnum.SELF_PICKUP]);
 
@@ -149,6 +150,7 @@ export async function createOrder(
         // Order created directly as shipped — write issues or receipts immediately
         if (result.data.orderType === OrderTypeEnum.SALE) {
           for (const [variantId, qty] of variantQuantities) {
+            const cost = await consumeFifoStock(tx, variantId, qty);
             await tx.productIssue.create({
               data: {
                 productVariantId: variantId,
@@ -157,6 +159,7 @@ export async function createOrder(
                 issueDate: eventDate,
                 type: ProductIssueEnum.SALE,
                 description: orderLabel,
+                ...cost,
               },
             });
             await recalculateWarehouseQuantity(variantId, tx);
@@ -168,6 +171,7 @@ export async function createOrder(
                 productVariantId: variantId,
                 orderId: order.id,
                 quantity: qty,
+                quantityLeft: qty,
                 receiptDate: eventDate,
                 type: ProductReceiptTypeEnum.RETURN,
                 description: orderLabel,

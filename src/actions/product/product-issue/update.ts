@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { ProductIssueFormState } from "./ProductIssueFormState";
 import { updateProductIssueSchema } from "@/zod/product/product-issue";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
+import { consumeFifoStock } from "@/lib/product/consumeFifoStock";
+import { restoreFifoStock } from "@/lib/product/restoreFifoStock";
 
 export async function updateProductIssue(
   _formState: ProductIssueFormState,
@@ -29,25 +31,26 @@ export async function updateProductIssue(
     }
 
     await db.$transaction(async (tx) => {
-      // Fetch the old issue to get the previous variantId
       const oldIssue = await tx.productIssue.findUnique({
         where: { id: result.data.id },
       });
 
-      // Update the issue
+      // Restore stock consumed by the old issue
+      if (oldIssue) {
+        await restoreFifoStock(tx, oldIssue.productVariantId, oldIssue.quantity);
+      }
+
+      // Consume stock for the new issue values and recalculate cost
+      const cost = await consumeFifoStock(tx, result.data.productVariantId, result.data.quantity);
+
       await tx.productIssue.update({
         where: { id: result.data.id },
-        data: result.data,
+        data: { ...result.data, ...cost },
       });
 
-      // Recalculate the new variant
       await recalculateWarehouseQuantity(result.data.productVariantId, tx);
 
-      // If variant changed, also recalculate the old one
-      if (
-        oldIssue &&
-        oldIssue.productVariantId !== result.data.productVariantId
-      ) {
+      if (oldIssue && oldIssue.productVariantId !== result.data.productVariantId) {
         await recalculateWarehouseQuantity(oldIssue.productVariantId, tx);
       }
     });

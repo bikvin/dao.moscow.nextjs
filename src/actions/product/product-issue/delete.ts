@@ -3,6 +3,7 @@
 import { DeleteFormState } from "@/components/common/delete/deleteTypes";
 import { db } from "@/db";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
+import { restoreFifoStock } from "@/lib/product/restoreFifoStock";
 import { revalidatePath } from "next/cache";
 
 export async function deleteProductIssue(
@@ -27,10 +28,10 @@ export async function deleteProductIssue(
     if (!productIssue) throw new Error("Списание не найдено");
 
     await db.$transaction(async (tx) => {
+      await restoreFifoStock(tx, productIssue.productVariantId, productIssue.quantity);
       await tx.productIssue.delete({
         where: { id: id },
       });
-
       await recalculateWarehouseQuantity(productIssue.productVariantId, tx);
     });
   } catch (err: unknown) {
