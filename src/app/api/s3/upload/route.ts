@@ -4,27 +4,23 @@ import { NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 
-const region = process.env.NEXT_AWS_S3_REGION;
-const accessKeyId = process.env.NEXT_AWS_S3_ACCESS_KEY_ID;
-const secretAccessKey = process.env.NEXT_AWS_S3_SECRET_ACCESS_KEY;
-
-if (!region || !accessKeyId || !secretAccessKey) {
-  throw new Error("Credential not found");
-}
-
-const s3Client = new S3Client({
-  region: region,
-  credentials: {
-    accessKeyId: accessKeyId,
-    secretAccessKey: secretAccessKey,
-  },
-});
-
 async function uploadFileToS3(
   file: Buffer,
   fileName: string,
   directory: string
 ) {
+  const region = process.env.NEXT_AWS_S3_REGION;
+  const accessKeyId = process.env.NEXT_AWS_S3_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.NEXT_AWS_S3_SECRET_ACCESS_KEY;
+
+  if (!region || !accessKeyId || !secretAccessKey) {
+    throw new Error("Credential not found");
+  }
+
+  const s3Client = new S3Client({
+    region,
+    credentials: { accessKeyId, secretAccessKey },
+  });
   const fileBuffer = file;
 
   const dotLastIndex = fileName.lastIndexOf(".");
