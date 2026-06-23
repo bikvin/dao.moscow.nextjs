@@ -4,7 +4,18 @@ import { RiEdit2Line } from "react-icons/ri";
 import Link from "next/link";
 import { ProductReceiptWithProductVariant } from "@/types/product/productReceipt/productReceiptWithProductVariant";
 import { deleteProductReceipt } from "@/actions/product/product-receipt/delete";
-import { ProductReceiptTypeEnum } from "@prisma/client";
+import { CurrencyEnum, PriceUnitEnum, ProductReceiptTypeEnum } from "@prisma/client";
+
+const currencySymbol: Record<CurrencyEnum, string> = {
+  [CurrencyEnum.RUB]: "₽",
+  [CurrencyEnum.USD]: "$",
+  [CurrencyEnum.RMB]: "¥",
+};
+
+const unitLabel: Record<PriceUnitEnum, string> = {
+  [PriceUnitEnum.M2]: "м²",
+  [PriceUnitEnum.ITEM]: "шт",
+};
 
 const typeLabel: Record<ProductReceiptTypeEnum, string> = {
   [ProductReceiptTypeEnum.SHIPMENT]: "поставка",
@@ -60,6 +71,14 @@ export function ProductReceiptListItem({
           </span>
         )}
         <span className={typeColor[item.type]}>{typeLabel[item.type]}</span>
+        {isAdmin && item.price != null && item.priceCurrency && item.priceUnit && (
+          <span className="text-slate-500">
+            себестоимость: {item.price} {currencySymbol[item.priceCurrency]}/{unitLabel[item.priceUnit]}
+          </span>
+        )}
+        {isAdmin && item.price == null && (
+          <span className="text-slate-300">себестоимость не указана</span>
+        )}
       </div>
     </div>
   );
