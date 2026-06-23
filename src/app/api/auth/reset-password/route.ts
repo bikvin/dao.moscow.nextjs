@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/auth/reset-password/route.ts
 import { db } from "@/db";
 import { resetPasswordSchemaServer } from "@/zod/reset-password";

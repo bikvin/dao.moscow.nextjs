@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { syncYandexStock } from "@/lib/yandex/syncYandexStock";
 import { syncOzonStock } from "@/lib/ozon/syncOzonStock";
 import { syncYandexPrices } from "@/lib/yandex/syncYandexPrices";

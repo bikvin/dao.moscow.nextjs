@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer, Font, type DocumentProps } from "@react-pdf/renderer";
 import path from "path";
