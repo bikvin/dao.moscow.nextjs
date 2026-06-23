@@ -1,10 +1,10 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
-RUN npm ci || (npm cache clean --force && npm ci)
+RUN npm ci
 
 COPY . .
 RUN npm run build
