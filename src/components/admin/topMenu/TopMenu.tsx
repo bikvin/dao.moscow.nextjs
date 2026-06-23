@@ -48,6 +48,7 @@ const topMenuList: TopMenuItem[] = [
           { type: "link", name: "Товары",          link: "/admin/products" },
           { type: "link", name: "Группы товаров",  link: "/admin/products/product-groups" },
           { type: "link", name: "Приходы",         link: "/admin/products/product-receipts" },
+          { type: "link", name: "Цены закупки",    link: "/admin/products/receipt-prices" },
           { type: "link", name: "Списания",        link: "/admin/products/product-issues" },
           { type: "link", name: "Резервы",         link: "/admin/products/product-reserves" },
           { type: "link", name: "Размеры чипа",    link: "/admin/products/chip-sizes" },
