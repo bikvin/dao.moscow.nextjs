@@ -1,6 +1,8 @@
 import { UserProvider } from "@/components/providers/UserProvider";
 import "../globals.css";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
 }: Readonly<{
