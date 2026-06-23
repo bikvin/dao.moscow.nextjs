@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { db } from "@/db";
 import UserForm from "@/components/admin/user/userForm";
 import Link from "next/link";
