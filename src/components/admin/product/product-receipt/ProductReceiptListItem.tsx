@@ -22,8 +22,10 @@ const typeColor: Record<ProductReceiptTypeEnum, string> = {
 
 export function ProductReceiptListItem({
   item,
+  isAdmin,
 }: {
   item: ProductReceiptWithProductVariant;
+  isAdmin?: boolean;
 }) {
   const date = new Date(item.receiptDate).toLocaleDateString("ru-RU");
 
@@ -33,6 +35,11 @@ export function ProductReceiptListItem({
         <div className="flex items-center gap-4 font-medium text-lg">
           <span>{item.productVariant.product?.sku}</span>
           <span className="text-slate-700">+{item.quantity} шт.</span>
+          {isAdmin && (
+            <span className="text-xs font-normal text-slate-400">
+              остаток: <span className={item.quantityLeft === 0 ? "text-red-400" : "text-emerald-600"}>{item.quantityLeft}</span>
+            </span>
+          )}
         </div>
         <div className="flex gap-2">
           <Link href={`/admin/products/product-receipts/update/${item.id}`}>

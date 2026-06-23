@@ -1,6 +1,7 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import Link from "next/link";
 import { db } from "@/db";
+import { auth } from "@/auth";
 import { ProductReceiptWithProductVariant } from "@/types/product/productReceipt/productReceiptWithProductVariant";
 import ProductReceiptsList from "@/components/admin/product/product-receipt/ProductReceipsList";
 import { Pagination } from "@/components/admin/Pagination";
@@ -8,7 +9,7 @@ import {
   FilterState,
   ProductListFilters,
 } from "@/components/admin/product/ProductListFilters";
-import { ProductReceiptTypeEnum } from "@prisma/client";
+import { ProductReceiptTypeEnum, UserRoleEnum } from "@prisma/client";
 
 const PAGE_SIZE = 50;
 
@@ -23,6 +24,8 @@ export default async function AllProductReciptsPage({
     type?: string;
   };
 }) {
+  const session = await auth();
+  const isAdmin = session?.user.role === UserRoleEnum.ADMIN;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const sku = searchParams.sku ?? "";
   const dateFrom = searchParams.dateFrom ?? "";
@@ -107,7 +110,7 @@ export default async function AllProductReciptsPage({
             />
           </div>
 
-          <ProductReceiptsList itemsData={productReceipts} />
+          <ProductReceiptsList itemsData={productReceipts} isAdmin={isAdmin} />
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

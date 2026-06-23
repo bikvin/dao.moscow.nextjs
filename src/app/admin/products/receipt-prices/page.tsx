@@ -1,5 +1,6 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { UploadReceiptPricesForm } from "@/components/admin/product/receipt-prices/UploadReceiptPricesForm";
+import { BackfillQuantityLeftButton } from "@/components/admin/product/receipt-prices/BackfillQuantityLeftButton";
 import Link from "next/link";
 
 // Admin page for bulk-setting purchase prices on ProductReceipt records via Excel upload.
@@ -35,6 +36,17 @@ export default function ReceiptPricesPage() {
                 некорректной ценой будут пропущены.
               </p>
               <UploadReceiptPricesForm />
+            </div>
+
+            <hr className="border-slate-200" />
+
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-slate-600 font-medium">Служебное — разовая операция</p>
+              <p className="text-sm text-slate-500">
+                Заполняет поле «остаток» для всех приходов, у которых оно равно 0. Запускать один раз
+                после первоначального заполнения цен.
+              </p>
+              <BackfillQuantityLeftButton />
             </div>
           </div>
         </div>
