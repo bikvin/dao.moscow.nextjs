@@ -5,23 +5,27 @@ type TransactionClient = Omit<
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
 
-// Adds `quantity` units back to the most recently received receipt for a variant.
-// Used when an issue is edited or deleted to reverse the FIFO consumption.
+// Restores `quantity` units to the correct receipt when an issue is deleted or edited.
+// Receipts are evaluated newest-to-oldest. The target is the newest receipt that has
+// been consumed (quantityLeft < quantity) — i.e. the first non-full receipt from the top.
+// Falls back to the newest receipt if all receipts are currently at full stock.
 export async function restoreFifoStock(
   tx: TransactionClient,
   productVariantId: string,
   quantity: number
 ): Promise<void> {
-  const lastReceipt = await tx.productReceipt.findFirst({
+  const receipts = await tx.productReceipt.findMany({
     where: { productVariantId },
-    orderBy: { receiptDate: "desc" },
-    select: { id: true, quantityLeft: true },
+    orderBy: [{ receiptDate: "desc" }, { createdAt: "desc" }],
+    select: { id: true, quantity: true, quantityLeft: true },
   });
 
-  if (!lastReceipt) return;
+  if (receipts.length === 0) return;
+
+  const target = receipts.find((r) => r.quantityLeft < r.quantity) ?? receipts[0];
 
   await tx.productReceipt.update({
-    where: { id: lastReceipt.id },
-    data: { quantityLeft: lastReceipt.quantityLeft + quantity },
+    where: { id: target.id },
+    data: { quantityLeft: target.quantityLeft + quantity },
   });
 }

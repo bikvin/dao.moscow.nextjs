@@ -21,7 +21,7 @@ export async function consumeFifoStock(
 ): Promise<FifoCost> {
   const receipts = await tx.productReceipt.findMany({
     where: { productVariantId, quantityLeft: { gt: 0 } },
-    orderBy: { receiptDate: "asc" },
+    orderBy: [{ receiptDate: "asc" }, { createdAt: "asc" }],
     select: { id: true, quantityLeft: true, price: true, priceCurrency: true },
   });
 
