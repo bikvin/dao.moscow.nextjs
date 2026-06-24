@@ -4,7 +4,13 @@ import { RiEdit2Line } from "react-icons/ri";
 import Link from "next/link";
 import { ProductIssueWithProductVariant } from "@/types/product/productIssue/productIssueWithProductVariant";
 import { deleteProductIssue } from "@/actions/product/product-issue/delete";
-import { ProductIssueEnum } from "@prisma/client";
+import { CurrencyEnum, ProductIssueEnum } from "@prisma/client";
+
+const currencySymbol: Record<CurrencyEnum, string> = {
+  [CurrencyEnum.RUB]: "₽",
+  [CurrencyEnum.USD]: "$",
+  [CurrencyEnum.RMB]: "¥",
+};
 
 const typeLabel: Record<ProductIssueEnum, string> = {
   [ProductIssueEnum.SALE]: "продажа",
@@ -20,8 +26,10 @@ const typeColor: Record<ProductIssueEnum, string> = {
 
 export function ProductIssueListItem({
   item,
+  isAdmin,
 }: {
   item: ProductIssueWithProductVariant;
+  isAdmin?: boolean;
 }) {
   const date = new Date(item.issueDate).toLocaleDateString("ru-RU");
 
@@ -51,6 +59,14 @@ export function ProductIssueListItem({
           </span>
         )}
         <span className={typeColor[item.type]}>{typeLabel[item.type]}</span>
+        {isAdmin && item.costPrice != null && item.costPriceCurrency && (
+          <span className="text-slate-500">
+            себестоимость: {item.costPrice.toFixed(2)} {currencySymbol[item.costPriceCurrency]}
+          </span>
+        )}
+        {isAdmin && item.costPrice == null && (
+          <span className="text-slate-300">себестоимость не указана</span>
+        )}
       </div>
     </div>
   );

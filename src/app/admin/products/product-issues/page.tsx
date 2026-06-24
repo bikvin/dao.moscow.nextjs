@@ -8,7 +8,8 @@ import {
   FilterState,
   ProductListFilters,
 } from "@/components/admin/product/ProductListFilters";
-import { ProductIssueEnum } from "@prisma/client";
+import { ProductIssueEnum, UserRoleEnum } from "@prisma/client";
+import { auth } from "@/auth";
 
 const PAGE_SIZE = 50;
 
@@ -23,6 +24,9 @@ export default async function AllProductIssuesPage({
     type?: string;
   };
 }) {
+  const session = await auth();
+  const isAdmin = session?.user.role === UserRoleEnum.ADMIN;
+
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const sku = searchParams.sku ?? "";
   const dateFrom = searchParams.dateFrom ?? "";
@@ -106,7 +110,7 @@ export default async function AllProductIssuesPage({
             />
           </div>
 
-          <ProductIssuesList itemsData={productIssues} />
+          <ProductIssuesList itemsData={productIssues} isAdmin={isAdmin} />
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
