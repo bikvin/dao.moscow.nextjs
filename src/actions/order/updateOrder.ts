@@ -16,6 +16,7 @@ import {
 import { z } from "zod";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 import { consumeFifoStock } from "@/lib/product/consumeFifoStock";
+import { restoreFifoStock } from "@/lib/product/restoreFifoStock";
 
 const RESERVE_STATUSES = new Set<OrderStatusEnum>([
   OrderStatusEnum.RESERVE,
@@ -160,7 +161,7 @@ export async function updateOrder(
         const [existingIssues, existingReceipts] = await Promise.all([
           tx.productIssue.findMany({
             where: { orderId },
-            select: { productVariantId: true },
+            select: { productVariantId: true, quantity: true },
           }),
           tx.productReceipt.findMany({
             where: { orderId },
@@ -171,6 +172,9 @@ export async function updateOrder(
         existingReceipts.forEach((r) =>
           revertVariantIds.add(r.productVariantId),
         );
+        for (const issue of existingIssues) {
+          await restoreFifoStock(tx, issue.productVariantId, issue.quantity);
+        }
         await tx.productIssue.deleteMany({ where: { orderId } });
         await tx.productReceipt.deleteMany({ where: { orderId } });
       }
