@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { revalidatePath } from "next/cache";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
+import { restoreFifoStock } from "@/lib/product/restoreFifoStock";
 
 // Deletes an order and cleans up all linked stock movements.
 // ProductReserve and ProductIssue use onDelete: SetNull so they are NOT auto-deleted —
@@ -21,7 +22,7 @@ export async function deleteOrder(formData: FormData): Promise<void> {
       }),
       tx.productIssue.findMany({
         where: { orderId: id },
-        select: { id: true, productVariantId: true },
+        select: { id: true, productVariantId: true, quantity: true },
       }),
     ]);
 
@@ -29,6 +30,11 @@ export async function deleteOrder(formData: FormData): Promise<void> {
       ...reserves.map((r) => r.productVariantId),
       ...issues.map((i) => i.productVariantId),
     ]);
+
+    // Restore FIFO stock for each issue before deleting
+    for (const issue of issues) {
+      await restoreFifoStock(tx, issue.productVariantId, issue.quantity);
+    }
 
     // Delete reserves and issues linked to this order
     await tx.productReserve.deleteMany({ where: { orderId: id } });
