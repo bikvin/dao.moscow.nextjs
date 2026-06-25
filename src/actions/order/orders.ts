@@ -7,6 +7,7 @@ import { OrderTypeEnum, OrderStatusEnum, PriceUnitEnum, CurrencyEnum, PaymentSta
 import { z } from "zod";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 import { consumeFifoStock } from "@/lib/product/consumeFifoStock";
+import { inferReturnReceiptPrice } from "@/lib/product/inferReturnReceiptPrice";
 
 const RESERVE_STATUSES = new Set<OrderStatusEnum>([OrderStatusEnum.RESERVE, OrderStatusEnum.SHIPMENT_PLANNED, OrderStatusEnum.SELF_PICKUP]);
 
@@ -166,6 +167,7 @@ export async function createOrder(
           }
         } else if (result.data.orderType === OrderTypeEnum.RETURN) {
           for (const [variantId, qty] of variantQuantities) {
+            const receiptPrice = await inferReturnReceiptPrice(tx, variantId);
             await tx.productReceipt.create({
               data: {
                 productVariantId: variantId,
@@ -175,6 +177,7 @@ export async function createOrder(
                 receiptDate: eventDate,
                 type: ProductReceiptTypeEnum.RETURN,
                 description: orderLabel,
+                ...(receiptPrice ?? {}),
               },
             });
             await recalculateWarehouseQuantity(variantId, tx);

@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { ProductReceiptFormState } from "./ProductReceiptFormState";
 import { updateProductReceiptSchema } from "@/zod/product/product-receipt";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
+import { inferReturnReceiptPrice } from "@/lib/product/inferReturnReceiptPrice";
+import { ProductReceiptTypeEnum } from "@prisma/client";
 
 export async function updateProductReceipt(
   _formState: ProductReceiptFormState,
@@ -40,13 +42,30 @@ export async function updateProductReceipt(
         where: { id: rest.id },
       });
 
+      // For return receipts with no price entered, infer cost from existing purchase receipts.
+      let resolvedPrice: number | null = null;
+      let resolvedCurrency: typeof priceCurrency | null = null;
+      let resolvedUnit: typeof priceUnit | null = null;
+      if (hasCost) {
+        resolvedPrice = price as number;
+        resolvedCurrency = priceCurrency!;
+        resolvedUnit = priceUnit!;
+      } else if (rest.type === ProductReceiptTypeEnum.RETURN) {
+        const inferred = await inferReturnReceiptPrice(tx, rest.productVariantId, rest.id);
+        if (inferred) {
+          resolvedPrice = inferred.price;
+          resolvedCurrency = inferred.priceCurrency;
+          resolvedUnit = inferred.priceUnit;
+        }
+      }
+
       await tx.productReceipt.update({
         where: { id: rest.id },
         data: {
           ...rest,
-          price: hasCost ? (price as number) : null,
-          priceCurrency: hasCost ? priceCurrency : null,
-          priceUnit: hasCost ? priceUnit : null,
+          price: resolvedPrice,
+          priceCurrency: resolvedCurrency,
+          priceUnit: resolvedUnit,
         },
       });
 

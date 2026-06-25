@@ -17,6 +17,7 @@ import { z } from "zod";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
 import { consumeFifoStock } from "@/lib/product/consumeFifoStock";
 import { restoreFifoStock } from "@/lib/product/restoreFifoStock";
+import { inferReturnReceiptPrice } from "@/lib/product/inferReturnReceiptPrice";
 
 const RESERVE_STATUSES = new Set<OrderStatusEnum>([
   OrderStatusEnum.RESERVE,
@@ -127,10 +128,10 @@ export async function updateOrder(
 
   try {
     await db.$transaction(async (tx) => {
-      // Read current order to detect status transition
+      // Read current order to detect status and type transitions
       const currentOrder = await tx.order.findUnique({
         where: { id: orderId },
-        select: { status: true, year: true, sequenceNumber: true },
+        select: { status: true, orderType: true, year: true, sequenceNumber: true },
       });
       const becomingShipped =
         status === OrderStatusEnum.SHIPPED &&
@@ -138,6 +139,11 @@ export async function updateOrder(
       const wasShipped =
         currentOrder?.status === OrderStatusEnum.SHIPPED &&
         status !== OrderStatusEnum.SHIPPED;
+      // Order stays SHIPPED but type changes (e.g. SALE → RETURN or vice versa)
+      const typeChangedWhileShipped =
+        status === OrderStatusEnum.SHIPPED &&
+        currentOrder?.status === OrderStatusEnum.SHIPPED &&
+        result.data.orderType !== currentOrder?.orderType;
 
       // Validate new sequence number uniqueness within the same year
       const newSeqNum = customSeqNum ?? currentOrder?.sequenceNumber;
@@ -155,9 +161,9 @@ export async function updateOrder(
         }
       }
 
-      // If reverting from SHIPPED: delete linked issues/receipts and collect their variant IDs
+      // If reverting from SHIPPED or changing type while SHIPPED: delete linked issues/receipts
       const revertVariantIds = new Set<string>();
-      if (wasShipped) {
+      if (wasShipped || typeChangedWhileShipped) {
         const [existingIssues, existingReceipts] = await Promise.all([
           tx.productIssue.findMany({
             where: { orderId },
@@ -282,7 +288,7 @@ export async function updateOrder(
       const orderLabel = `Заказ №${currentOrder?.sequenceNumber}/${currentOrder?.year}`;
       const eventDate = deliveryDate ?? orderDate;
 
-      if (becomingShipped) {
+      if (becomingShipped || typeChangedWhileShipped) {
         if (result.data.orderType === OrderTypeEnum.SALE) {
           // Fulfill existing active reserves and create issues for them
           const fulfilledVariants = new Set<string>();
@@ -324,6 +330,7 @@ export async function updateOrder(
           }
         } else if (result.data.orderType === OrderTypeEnum.RETURN) {
           for (const [variantId, qty] of variantQuantities) {
+            const receiptPrice = await inferReturnReceiptPrice(tx, variantId);
             await tx.productReceipt.create({
               data: {
                 productVariantId: variantId,
@@ -333,6 +340,7 @@ export async function updateOrder(
                 receiptDate: eventDate,
                 type: ProductReceiptTypeEnum.RETURN,
                 description: orderLabel,
+                ...(receiptPrice ?? {}),
               },
             });
           }

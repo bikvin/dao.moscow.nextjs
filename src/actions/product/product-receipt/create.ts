@@ -7,9 +7,11 @@ import { redirect } from "next/navigation";
 import { ProductReceiptFormState } from "./ProductReceiptFormState";
 import { createProductReceiptSchema } from "@/zod/product/product-receipt";
 import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouseQuantity";
+import { inferReturnReceiptPrice } from "@/lib/product/inferReturnReceiptPrice";
+import { ProductReceiptTypeEnum } from "@prisma/client";
 
 export async function createProductReceipt(
-  formState: ProductReceiptFormState,
+  _formState: ProductReceiptFormState,
   formData: FormData,
 ): Promise<ProductReceiptFormState> {
   try {
@@ -35,10 +37,19 @@ export async function createProductReceipt(
     const hasCost = price !== undefined && price !== "" && priceCurrency && priceUnit;
 
     await db.$transaction(async (tx) => {
+      // For return receipts with no price entered, infer cost from existing purchase receipts.
+      let costData: { price: number; priceCurrency: NonNullable<typeof priceCurrency>; priceUnit: NonNullable<typeof priceUnit> } | undefined;
+      if (hasCost) {
+        costData = { price: price as number, priceCurrency: priceCurrency!, priceUnit: priceUnit! };
+      } else if (rest.type === ProductReceiptTypeEnum.RETURN) {
+        const inferred = await inferReturnReceiptPrice(tx, rest.productVariantId);
+        if (inferred) costData = inferred;
+      }
+
       const receipt = await tx.productReceipt.create({
         data: {
           ...rest,
-          ...(hasCost ? { price: price as number, priceCurrency, priceUnit } : {}),
+          ...(costData ?? {}),
           quantityLeft: rest.quantity,
         },
       });

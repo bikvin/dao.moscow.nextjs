@@ -6,7 +6,7 @@ import { recalculateWarehouseQuantity } from "@/lib/product/recalculateWarehouse
 import { restoreFifoStock } from "@/lib/product/restoreFifoStock";
 
 // Deletes an order and cleans up all linked stock movements.
-// ProductReserve and ProductIssue use onDelete: SetNull so they are NOT auto-deleted —
+// ProductReserve, ProductIssue, and ProductReceipt use onDelete: SetNull so they are NOT auto-deleted —
 // we must delete them manually and recalculate warehouse quantities for each affected variant.
 // OrderItem and YandexOrderData cascade automatically.
 export async function deleteOrder(formData: FormData): Promise<void> {
@@ -15,7 +15,7 @@ export async function deleteOrder(formData: FormData): Promise<void> {
 
   await db.$transaction(async (tx) => {
     // Collect all variant IDs that need quantity recalculation
-    const [reserves, issues] = await Promise.all([
+    const [reserves, issues, receipts] = await Promise.all([
       tx.productReserve.findMany({
         where: { orderId: id },
         select: { id: true, productVariantId: true },
@@ -24,11 +24,16 @@ export async function deleteOrder(formData: FormData): Promise<void> {
         where: { orderId: id },
         select: { id: true, productVariantId: true, quantity: true },
       }),
+      tx.productReceipt.findMany({
+        where: { orderId: id },
+        select: { id: true, productVariantId: true },
+      }),
     ]);
 
     const affectedVariantIds = new Set([
       ...reserves.map((r) => r.productVariantId),
       ...issues.map((i) => i.productVariantId),
+      ...receipts.map((r) => r.productVariantId),
     ]);
 
     // Restore FIFO stock for each issue before deleting
@@ -36,9 +41,10 @@ export async function deleteOrder(formData: FormData): Promise<void> {
       await restoreFifoStock(tx, issue.productVariantId, issue.quantity);
     }
 
-    // Delete reserves and issues linked to this order
+    // Delete reserves, issues, and receipts linked to this order
     await tx.productReserve.deleteMany({ where: { orderId: id } });
     await tx.productIssue.deleteMany({ where: { orderId: id } });
+    await tx.productReceipt.deleteMany({ where: { orderId: id } });
 
     // Delete the order (cascades to OrderItem and YandexOrderData)
     await tx.order.delete({ where: { id } });
