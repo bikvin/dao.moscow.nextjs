@@ -119,6 +119,12 @@ const topMenuList: TopMenuItem[] = [
         name: "Реквизиты продавца",
         link: "/admin/invoices/settings",
       },
+      {
+        type: "link",
+        name: "Налог",
+        adminOnly: true,
+        link: "/admin/tax/settings",
+      },
     ],
   },
 
