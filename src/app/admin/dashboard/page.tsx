@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
 import { requireAdmin } from "@/lib/requireAdmin";
