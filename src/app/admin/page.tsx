@@ -119,6 +119,8 @@ export default async function OrdersPage({
     selfPickupDeliveryMethodIdSetting,
     taxRateSetting,
     taxablePaymentMethodIdsSetting,
+    commissionRateSetting,
+    commissionPaymentMethodIdsSetting,
     maxSeqOrder,
   ] = await Promise.all([
     db.order.findMany({
@@ -233,6 +235,8 @@ export default async function OrdersPage({
     db.settings.findUnique({ where: { field: "selfPickupDeliveryMethodId" } }),
     db.settings.findUnique({ where: { field: "taxRate" } }),
     db.settings.findUnique({ where: { field: "taxablePaymentMethodIds" } }),
+    db.settings.findUnique({ where: { field: "commissionRate" } }),
+    db.settings.findUnique({ where: { field: "commissionPaymentMethodIds" } }),
     db.order.aggregate({
       where: { year: currentYear },
       _max: { sequenceNumber: true },
@@ -281,6 +285,8 @@ export default async function OrdersPage({
             isAdmin={isAdmin}
             taxRate={taxRateSetting ? parseFloat(taxRateSetting.value) : null}
             taxablePaymentMethodIds={taxablePaymentMethodIdsSetting ? JSON.parse(taxablePaymentMethodIdsSetting.value) : []}
+            commissionRate={commissionRateSetting ? parseFloat(commissionRateSetting.value) : null}
+            commissionPaymentMethodIds={commissionPaymentMethodIdsSetting ? JSON.parse(commissionPaymentMethodIdsSetting.value) : []}
           />
 
           <Pagination

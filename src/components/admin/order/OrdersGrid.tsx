@@ -247,6 +247,8 @@ export function OrdersGrid({
   isAdmin,
   taxRate,
   taxablePaymentMethodIds,
+  commissionRate,
+  commissionPaymentMethodIds,
 }: {
   orders: Order[];
   products: ProductOption[];
@@ -261,6 +263,8 @@ export function OrdersGrid({
   isAdmin?: boolean;
   taxRate?: number | null;
   taxablePaymentMethodIds?: string[];
+  commissionRate?: number | null;
+  commissionPaymentMethodIds?: string[];
 }) {
   const marketplacePaymentMethodIdSet = React.useMemo(
     () => new Set(marketplacePaymentMethodIds ?? []),
@@ -344,7 +348,7 @@ export function OrdersGrid({
           const shipped = monthTotals(groupOrders, true);
           const monthProfitRub = isAdmin
             ? groupOrders.reduce<number | null>((acc, o) => {
-                const p = computeOrderProfit(o, usdRate, rmbRate, taxRate, taxablePaymentMethodIds);
+                const p = computeOrderProfit(o, usdRate, rmbRate, taxRate, taxablePaymentMethodIds, commissionRate, commissionPaymentMethodIds);
                 if (p == null) return acc;
                 return (acc ?? 0) + p.profitRub;
               }, null)
@@ -395,10 +399,10 @@ export function OrdersGrid({
                   );
 
                 // COGS + profit/loss, shown only to admins for SALE and RETURN orders
-                const profit = isAdmin ? computeOrderProfit(order, usdRate, rmbRate, taxRate, taxablePaymentMethodIds) : null;
+                const profit = isAdmin ? computeOrderProfit(order, usdRate, rmbRate, taxRate, taxablePaymentMethodIds, commissionRate, commissionPaymentMethodIds) : null;
                 const profitNode = (() => {
                   if (!profit) return null;
-                  const { costRub, taxRub, profitRub, partial } = profit;
+                  const { costRub, taxRub, commissionRub, profitRub, partial } = profit;
                   const base = Math.abs(displayTotalRub / 100);
                   const profitPct = base !== 0 ? (profitRub / base) * 100 : 0;
                   const profitColor = profitRub >= 0 ? "text-emerald-600" : "text-red-500";
@@ -411,6 +415,11 @@ export function OrdersGrid({
                       {taxRub !== 0 && (
                         <span className="text-slate-500">
                           Налог: {fmt0(Math.abs(taxRub))} ₽
+                        </span>
+                      )}
+                      {commissionRub !== 0 && (
+                        <span className="text-slate-500">
+                          Комиссия: {fmt0(Math.abs(commissionRub))} ₽
                         </span>
                       )}
                       <span className={`font-medium ${profitColor}`}>

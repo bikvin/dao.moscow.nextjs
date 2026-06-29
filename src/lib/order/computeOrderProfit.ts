@@ -24,6 +24,7 @@ export type ProfitOrder = {
 export type OrderProfitResult = {
   costRub: number;
   taxRub: number;
+  commissionRub: number;
   profitRub: number;
   partial: boolean;
 } | null;
@@ -40,6 +41,8 @@ export function computeOrderProfit(
   rmbRate: number | null,
   taxRate?: number | null,
   taxablePaymentMethodIds?: string[],
+  commissionRate?: number | null,
+  commissionPaymentMethodIds?: string[],
 ): OrderProfitResult {
   const isSale = order.orderType === OrderTypeEnum.SALE;
   const isReturn = order.orderType === OrderTypeEnum.RETURN;
@@ -104,10 +107,17 @@ export function computeOrderProfit(
     order.paymentMethodId != null &&
     taxablePaymentMethodIds?.includes(order.paymentMethodId);
 
+  const isCommissionable =
+    commissionRate != null &&
+    commissionRate > 0 &&
+    order.paymentMethodId != null &&
+    commissionPaymentMethodIds?.includes(order.paymentMethodId);
+
   const taxRub = isTaxable ? grossRevenueRub * (taxRate! / 100) : 0;
-  const revenueRub = grossRevenueRub - taxRub;
+  const commissionRub = isCommissionable ? grossRevenueRub * (commissionRate! / 100) : 0;
+  const revenueRub = grossRevenueRub - taxRub - commissionRub;
 
   const profitRub = isSale ? revenueRub - costRub : revenueRub + costRub;
 
-  return { costRub, taxRub, profitRub, partial };
+  return { costRub, taxRub, commissionRub, profitRub, partial };
 }
