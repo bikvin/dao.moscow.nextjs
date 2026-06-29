@@ -3,12 +3,20 @@ import { db } from "@/db";
 import { TaxSettingsForm } from "@/components/admin/settings/TaxSettingsForm";
 import { requireAdmin } from "@/lib/requireAdmin";
 
-// Admin-only settings page for the tax rate used in margin calculations.
+// Admin-only settings page for tax rate and taxable payment methods used in margin calculations.
 export default async function TaxSettingsPage() {
   await requireAdmin();
 
-  const taxRateSetting = await db.settings.findUnique({ where: { field: "taxRate" } });
+  const [taxRateSetting, taxableIdsSetting, paymentMethods] = await Promise.all([
+    db.settings.findUnique({ where: { field: "taxRate" } }),
+    db.settings.findUnique({ where: { field: "taxablePaymentMethodIds" } }),
+    db.paymentMethod.findMany({ orderBy: { name: "asc" } }),
+  ]);
+
   const currentRate = taxRateSetting ? parseFloat(taxRateSetting.value) : null;
+  const taxablePaymentMethodIds: string[] = taxableIdsSetting
+    ? JSON.parse(taxableIdsSetting.value)
+    : [];
 
   return (
     <>
@@ -19,9 +27,13 @@ export default async function TaxSettingsPage() {
 
           <div className="border rounded-md p-6 shadow-main bg-white flex flex-col gap-4 mt-6">
             <p className="text-sm text-slate-500">
-              Ставка налога, которая вычитается из выручки при расчёте маржи для облагаемых способов оплаты.
+              Ставка налога вычитается из выручки при расчёте маржи для выбранных способов оплаты.
             </p>
-            <TaxSettingsForm currentRate={currentRate} />
+            <TaxSettingsForm
+              currentRate={currentRate}
+              paymentMethods={paymentMethods}
+              taxablePaymentMethodIds={taxablePaymentMethodIds}
+            />
           </div>
         </div>
       </div>

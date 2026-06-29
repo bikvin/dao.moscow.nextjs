@@ -8,7 +8,7 @@ export interface TaxSettingsFormState {
   success?: { message: string };
 }
 
-// Saves the tax rate (%) applied to taxable-payment-method orders when computing margin.
+// Saves the tax rate (%) and the list of taxable payment method IDs.
 export async function saveTaxSettings(
   _formState: TaxSettingsFormState,
   formData: FormData,
@@ -20,16 +20,25 @@ export async function saveTaxSettings(
     return { errors: { taxRate: ["Укажите ставку от 0 до 100"] } };
   }
 
+  const taxableIds = formData.getAll("taxablePaymentMethodIds").map(String);
+
   try {
-    await db.settings.upsert({
-      where: { field: "taxRate" },
-      update: { value: taxRate.toString() },
-      create: { field: "taxRate", value: taxRate.toString() },
-    });
+    await Promise.all([
+      db.settings.upsert({
+        where: { field: "taxRate" },
+        update: { value: taxRate.toString() },
+        create: { field: "taxRate", value: taxRate.toString() },
+      }),
+      db.settings.upsert({
+        where: { field: "taxablePaymentMethodIds" },
+        update: { value: JSON.stringify(taxableIds) },
+        create: { field: "taxablePaymentMethodIds", value: JSON.stringify(taxableIds) },
+      }),
+    ]);
   } catch (err) {
     return { errors: { _form: [err instanceof Error ? err.message : "Что-то пошло не так"] } };
   }
 
-  revalidatePath("/admin/settings");
+  revalidatePath("/admin/tax/settings");
   return { success: { message: "Сохранено" } };
 }
