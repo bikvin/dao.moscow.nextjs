@@ -135,8 +135,11 @@ type OrderReserve = {
 
 type OrderIssue = {
   id: string;
+  productVariantId: string;
   quantity: number;
   issueDate: Date;
+  costPrice: number | null;
+  costPriceCurrency: CurrencyEnum | null;
   productVariant: { variantName: string };
 };
 
@@ -235,6 +238,7 @@ export function OrdersGrid({
   scrollToOrderIds,
   marketplacePaymentMethodIds,
   selfPickupDeliveryMethodId,
+  isAdmin,
 }: {
   orders: Order[];
   products: ProductOption[];
@@ -246,6 +250,7 @@ export function OrdersGrid({
   scrollToOrderIds?: string[];
   marketplacePaymentMethodIds?: string[];
   selfPickupDeliveryMethodId?: string | null;
+  isAdmin?: boolean;
 }) {
   const marketplacePaymentMethodIdSet = React.useMemo(
     () => new Set(marketplacePaymentMethodIds ?? []),
@@ -371,6 +376,48 @@ export function OrdersGrid({
                   ) : (
                     <>{formatRub(displayTotalRub)}</>
                   );
+
+                // COGS + profit, shown only to admins for SALE orders with issued stock
+                const profitNode = (() => {
+                  if (!isAdmin || order.orderType !== OrderTypeEnum.SALE || order.issues.length === 0) return null;
+                  const rateFor = (c: CurrencyEnum | null) => {
+                    if (c === CurrencyEnum.RUB) return 1;
+                    if (c === CurrencyEnum.USD) return usdRate;
+                    if (c === CurrencyEnum.RMB) return rmbRate;
+                    return null;
+                  };
+                  // Build a map of variantId → total quantityM2 from order items
+                  const m2ByVariant = new Map<string, number>();
+                  for (const item of order.items) {
+                    if (item.quantityM2 != null) {
+                      m2ByVariant.set(item.productVariantId, (m2ByVariant.get(item.productVariantId) ?? 0) + item.quantityM2);
+                    }
+                  }
+                  let costRub = 0;
+                  let partial = false;
+                  for (const issue of order.issues) {
+                    if (issue.costPrice == null) { partial = true; continue; }
+                    const rate = rateFor(issue.costPriceCurrency);
+                    if (rate == null) { partial = true; continue; }
+                    // Use m2 quantity when available (costPrice is per m²); fall back to pieces for ITEM-priced receipts
+                    const qty = m2ByVariant.get(issue.productVariantId) ?? issue.quantity;
+                    costRub += qty * issue.costPrice * rate;
+                  }
+                  if (costRub === 0) return null;
+                  const profitRub = order.totalRub / 100 - costRub;
+                  const profitColor = profitRub >= 0 ? "text-emerald-600" : "text-red-500";
+                  const suffix = partial ? "*" : "";
+                  return (
+                    <div className="flex flex-col gap-0 text-xs">
+                      <span className="text-slate-500">
+                        Себест: {fmt0(costRub)} ₽{suffix}
+                      </span>
+                      <span className={`font-medium ${profitColor}`}>
+                        Прибыль: {profitRub >= 0 ? "+" : ""}{fmt0(profitRub)} ₽{suffix}
+                      </span>
+                    </div>
+                  );
+                })();
 
                 return (
                   <div
@@ -820,6 +867,9 @@ export function OrdersGrid({
                               </Link>
                             ))}
                           </div>
+                        )}
+                        {profitNode && (
+                          <div className="mt-0.5">{profitNode}</div>
                         )}
                         {order.invoices.length > 0 && (
                           <div className="flex flex-col gap-0.5 mt-0.5">

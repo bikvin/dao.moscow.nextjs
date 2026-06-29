@@ -4,6 +4,7 @@ import {
   OrderStatusEnum,
   OrderTypeEnum,
   ProductStatusEnum,
+  UserRoleEnum,
 } from "@prisma/client";
 
 import { Pagination } from "@/components/admin/Pagination";
@@ -11,6 +12,7 @@ import { OrdersGrid } from "@/components/admin/order/OrdersGrid";
 import { CreateOrderForm } from "@/components/admin/order/CreateOrderForm";
 import { OrdersFilterForm } from "@/components/admin/order/OrdersFilterForm";
 import Link from "next/link";
+import { auth } from "@/auth";
 
 const PAGE_SIZE = 100;
 
@@ -98,6 +100,9 @@ export default async function OrdersPage({
             status: statusFilter as OrderStatusEnum,
           };
 
+  const session = await auth();
+  const isAdmin = session?.user.role === UserRoleEnum.ADMIN;
+
   const currentYear = now.getFullYear();
 
   const [
@@ -142,8 +147,11 @@ export default async function OrdersPage({
         issues: {
           select: {
             id: true,
+            productVariantId: true,
             quantity: true,
             issueDate: true,
+            costPrice: true,
+            costPriceCurrency: true,
             productVariant: { select: { variantName: true } },
           },
         },
@@ -261,6 +269,7 @@ export default async function OrdersPage({
               ozonPaymentMethodIdSetting?.value,
             ].filter((v): v is string => Boolean(v))}
             selfPickupDeliveryMethodId={selfPickupDeliveryMethodIdSetting?.value ?? null}
+            isAdmin={isAdmin}
           />
 
           <Pagination
