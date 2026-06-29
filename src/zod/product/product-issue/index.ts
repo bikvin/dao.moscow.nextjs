@@ -1,4 +1,4 @@
-import { ProductIssueEnum } from "@prisma/client";
+import { ProductIssueEnum, CurrencyEnum, PriceUnitEnum } from "@prisma/client";
 import { z } from "zod";
 
 const baseProductIssueSchema = z.object({
@@ -18,6 +18,12 @@ const baseProductIssueSchema = z.object({
     errorMap: () => ({ message: "Неверный тип списания" }),
   }),
   description: z.string().optional(),
+  costPrice: z.coerce
+    .number({ invalid_type_error: "Неверная цена" })
+    .min(0, "Цена не может быть отрицательной")
+    .optional(),
+  costPriceCurrency: z.nativeEnum(CurrencyEnum).optional(),
+  costPriceUnit: z.nativeEnum(PriceUnitEnum).optional(),
 });
 
 export const createProductIssueSchema = baseProductIssueSchema;

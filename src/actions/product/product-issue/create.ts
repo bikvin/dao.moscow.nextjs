@@ -14,12 +14,16 @@ export async function createProductIssue(
   formData: FormData
 ): Promise<ProductIssueFormState> {
   try {
+    const costPriceRaw = formData.get("costPrice")?.toString();
     const result = createProductIssueSchema.safeParse({
       productVariantId: formData.get("productVariantId")?.toString(),
       quantity: formData.get("quantity")?.toString(),
       issueDate: formData.get("issueDate")?.toString(),
       type: formData.get("type")?.toString(),
       description: formData.get("description")?.toString(),
+      costPrice: costPriceRaw || undefined,
+      costPriceCurrency: formData.get("costPriceCurrency")?.toString() || undefined,
+      costPriceUnit: formData.get("costPriceUnit")?.toString() || undefined,
     });
 
     if (!result.success) {
@@ -28,10 +32,16 @@ export async function createProductIssue(
       };
     }
 
+    const { costPrice, costPriceCurrency, costPriceUnit, ...issueData } = result.data;
+    const hasManualCost = costPrice !== undefined && costPriceCurrency && costPriceUnit;
+
     await db.$transaction(async (tx) => {
-      const cost = await consumeFifoStock(tx, result.data.productVariantId, result.data.quantity);
+      const fifoCost = hasManualCost ? null : await consumeFifoStock(tx, issueData.productVariantId, issueData.quantity);
+      const cost = hasManualCost
+        ? { costPrice, costPriceCurrency, costPriceUnit }
+        : fifoCost;
       await tx.productIssue.create({
-        data: { ...result.data, ...cost },
+        data: { ...issueData, ...cost },
       });
 
       await recalculateWarehouseQuantity(result.data.productVariantId, tx);

@@ -152,6 +152,7 @@ export default async function OrdersPage({
             issueDate: true,
             costPrice: true,
             costPriceCurrency: true,
+            costPriceUnit: true,
             productVariant: { select: { variantName: true } },
           },
         },

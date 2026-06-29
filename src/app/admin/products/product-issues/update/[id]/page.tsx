@@ -64,6 +64,9 @@ export default async function UpdateProductIssuePage({
             issueDate={productIssue.issueDate}
             issueType={productIssue.type}
             order={productIssue.order}
+            costPrice={productIssue.costPrice}
+            costPriceCurrency={productIssue.costPriceCurrency}
+            costPriceUnit={productIssue.costPriceUnit}
             isEdit={true}
           />
         </div>

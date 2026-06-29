@@ -246,6 +246,7 @@ model ProductIssue {
 
   costPrice         Float?
   costPriceCurrency CurrencyEnum?
+  costPriceUnit     PriceUnitEnum?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

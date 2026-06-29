@@ -15,6 +15,7 @@ export async function updateProductIssue(
   formData: FormData
 ): Promise<ProductIssueFormState> {
   try {
+    const costPriceRaw = formData.get("costPrice")?.toString();
     const result = updateProductIssueSchema.safeParse({
       id: formData.get("id")?.toString(),
       productVariantId: formData.get("productVariantId")?.toString(),
@@ -22,6 +23,9 @@ export async function updateProductIssue(
       issueDate: formData.get("issueDate")?.toString(),
       type: formData.get("type")?.toString(),
       description: formData.get("description")?.toString(),
+      costPrice: costPriceRaw || undefined,
+      costPriceCurrency: formData.get("costPriceCurrency")?.toString() || undefined,
+      costPriceUnit: formData.get("costPriceUnit")?.toString() || undefined,
     });
 
     if (!result.success) {
@@ -30,9 +34,12 @@ export async function updateProductIssue(
       };
     }
 
+    const { costPrice, costPriceCurrency, costPriceUnit, ...issueData } = result.data;
+    const hasManualCost = costPrice !== undefined && costPriceCurrency && costPriceUnit;
+
     await db.$transaction(async (tx) => {
       const oldIssue = await tx.productIssue.findUnique({
-        where: { id: result.data.id },
+        where: { id: issueData.id },
       });
 
       // Restore stock consumed by the old issue
@@ -40,12 +47,15 @@ export async function updateProductIssue(
         await restoreFifoStock(tx, oldIssue.productVariantId, oldIssue.quantity);
       }
 
-      // Consume stock for the new issue values and recalculate cost
-      const cost = await consumeFifoStock(tx, result.data.productVariantId, result.data.quantity);
+      // Use manual cost if provided, otherwise recalculate via FIFO
+      const fifoCost = hasManualCost ? null : await consumeFifoStock(tx, issueData.productVariantId, issueData.quantity);
+      const cost = hasManualCost
+        ? { costPrice, costPriceCurrency, costPriceUnit }
+        : fifoCost;
 
       await tx.productIssue.update({
-        where: { id: result.data.id },
-        data: { ...result.data, ...cost },
+        where: { id: issueData.id },
+        data: { ...issueData, ...cost },
       });
 
       await recalculateWarehouseQuantity(result.data.productVariantId, tx);

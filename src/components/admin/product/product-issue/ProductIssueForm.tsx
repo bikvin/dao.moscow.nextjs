@@ -9,7 +9,7 @@ import { ProductSelect } from "../productSelect";
 import { ProductVariantSelect } from "../product-receipt/ProductVariantSelect";
 
 import CalendarFormInput from "@/components/common/CalendarFormInput";
-import { ProductIssueEnum } from "@prisma/client";
+import { CurrencyEnum, PriceUnitEnum, ProductIssueEnum } from "@prisma/client";
 import { TypeRadio } from "../product-receipt/ProductReceiptTypeRadio";
 import { createProductIssue } from "@/actions/product/product-issue/create";
 import { updateProductIssue } from "@/actions/product/product-issue/update";
@@ -25,6 +25,9 @@ export function ProductIssueForm({
   issueDate,
   issueType,
   order,
+  costPrice,
+  costPriceCurrency,
+  costPriceUnit,
   isEdit = false,
 }: {
   id?: string;
@@ -36,6 +39,9 @@ export function ProductIssueForm({
   issueDate?: Date;
   issueType?: ProductIssueEnum;
   order?: { year: number; sequenceNumber: number } | null;
+  costPrice?: number | null;
+  costPriceCurrency?: CurrencyEnum | null;
+  costPriceUnit?: PriceUnitEnum | null;
   isEdit?: boolean;
 }) {
   const usedAction = isEdit ? updateProductIssue : createProductIssue;
@@ -62,6 +68,16 @@ export function ProductIssueForm({
   );
   const [type, setType] = useState<ProductIssueEnum>(
     issueType || ProductIssueEnum.SALE,
+  );
+
+  const [costPriceValue, setCostPriceValue] = useState(
+    costPrice != null ? costPrice.toString() : "",
+  );
+  const [currency, setCurrency] = useState<CurrencyEnum | "">(
+    costPriceCurrency ?? "",
+  );
+  const [priceUnit, setPriceUnit] = useState<PriceUnitEnum | "">(
+    costPriceUnit ?? "",
   );
 
   const [formState, action] = useFormState(usedAction, {
@@ -147,6 +163,43 @@ export function ProductIssueForm({
         ></input>
 
         <FormFieldError errors={formState.errors?.description} />
+      </div>
+      <div className="form-item">
+        <label>Себестоимость</label>
+        <div className="flex items-center gap-2">
+          <input
+            className="admin-form-input w-32"
+            name="costPrice"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="авто (ФИФО)"
+            value={costPriceValue}
+            onChange={(e) => setCostPriceValue(e.target.value)}
+          />
+          <select
+            name="costPriceCurrency"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as CurrencyEnum | "")}
+            className="admin-form-input w-20"
+          >
+            <option value="">—</option>
+            <option value={CurrencyEnum.RUB}>₽</option>
+            <option value={CurrencyEnum.USD}>$</option>
+            <option value={CurrencyEnum.RMB}>¥</option>
+          </select>
+          <select
+            name="costPriceUnit"
+            value={priceUnit}
+            onChange={(e) => setPriceUnit(e.target.value as PriceUnitEnum | "")}
+            className="admin-form-input w-20"
+          >
+            <option value="">—</option>
+            <option value={PriceUnitEnum.ITEM}>шт</option>
+            <option value={PriceUnitEnum.M2}>м²</option>
+          </select>
+        </div>
+        <FormFieldError errors={formState.errors?.costPrice} />
       </div>
       <FormButton>
         {!isEdit ? "Создать списание" : "Редактировать списание"}

@@ -6,6 +6,7 @@ export interface ProductIssueFormState {
     issueDate?: string[];
     type?: string[];
     description?: string[];
+    costPrice?: string[];
     _form?: string[];
   };
 }

@@ -140,6 +140,7 @@ type OrderIssue = {
   issueDate: Date;
   costPrice: number | null;
   costPriceCurrency: CurrencyEnum | null;
+  costPriceUnit: PriceUnitEnum | null;
   productVariant: { variantName: string };
 };
 
@@ -399,12 +400,15 @@ export function OrdersGrid({
                     if (issue.costPrice == null) { partial = true; continue; }
                     const rate = rateFor(issue.costPriceCurrency);
                     if (rate == null) { partial = true; continue; }
-                    // Use m2 quantity when available (costPrice is per m²); fall back to pieces for ITEM-priced receipts
-                    const qty = m2ByVariant.get(issue.productVariantId) ?? issue.quantity;
+                    // Use unit from the issue to pick the right quantity dimension
+                    const isM2 = issue.costPriceUnit === PriceUnitEnum.M2 || (issue.costPriceUnit == null && m2ByVariant.has(issue.productVariantId));
+                    const qty = isM2 ? (m2ByVariant.get(issue.productVariantId) ?? issue.quantity) : issue.quantity;
                     costRub += qty * issue.costPrice * rate;
                   }
                   if (costRub === 0) return null;
-                  const profitRub = order.totalRub / 100 - costRub;
+                  const revenueRub = order.totalRub / 100;
+                  const profitRub = revenueRub - costRub;
+                  const profitPct = revenueRub !== 0 ? (profitRub / revenueRub) * 100 : 0;
                   const profitColor = profitRub >= 0 ? "text-emerald-600" : "text-red-500";
                   const suffix = partial ? "*" : "";
                   return (
@@ -413,7 +417,7 @@ export function OrdersGrid({
                         Себест: {fmt0(costRub)} ₽{suffix}
                       </span>
                       <span className={`font-medium ${profitColor}`}>
-                        Прибыль: {profitRub >= 0 ? "+" : ""}{fmt0(profitRub)} ₽{suffix}
+                        Прибыль: {profitRub >= 0 ? "+" : ""}{fmt0(profitRub)} ₽ ({profitPct.toFixed(1)}%){suffix}
                       </span>
                     </div>
                   );

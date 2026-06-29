@@ -2,6 +2,7 @@ import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { UploadReceiptPricesForm } from "@/components/admin/product/receipt-prices/UploadReceiptPricesForm";
 import { BackfillQuantityLeftButton } from "@/components/admin/product/receipt-prices/BackfillQuantityLeftButton";
 import { BackfillIssueCostPricesButton } from "@/components/admin/product/receipt-prices/BackfillIssueCostPricesButton";
+import { BackfillIssueCostPriceUnitButton } from "@/components/admin/product/receipt-prices/BackfillIssueCostPriceUnitButton";
 import Link from "next/link";
 
 // Admin page for bulk-setting purchase prices on ProductReceipt records via Excel upload.
@@ -53,6 +54,10 @@ export default function ReceiptPricesPage() {
                 Запускать после заполнения цен и остатков.
               </p>
               <BackfillIssueCostPricesButton />
+              <p className="text-sm text-slate-500 mt-2">
+                Проставляет единицу м² для всех списаний, у которых себестоимость уже указана, но единица отсутствует.
+              </p>
+              <BackfillIssueCostPriceUnitButton />
             </div>
           </div>
         </div>
