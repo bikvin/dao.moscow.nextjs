@@ -15,6 +15,7 @@ import {
   CurrencyEnum,
   InvoiceTypeEnum,
 } from "@prisma/client";
+import { computeOrderProfit } from "@/lib/order/computeOrderProfit";
 
 const COLS = "grid-cols-[72px_84px_156px_1fr_52px_72px_88px_96px]";
 
@@ -337,6 +338,13 @@ export function OrdersGrid({
         {monthGroups.map(({ key, label, orders: groupOrders }) => {
           const all = monthTotals(groupOrders, false);
           const shipped = monthTotals(groupOrders, true);
+          const monthProfitRub = isAdmin
+            ? groupOrders.reduce<number | null>((acc, o) => {
+                const p = computeOrderProfit(o, usdRate, rmbRate);
+                if (p == null) return acc;
+                return (acc ?? 0) + p.profitRub;
+              }, null)
+            : null;
           return (
             <div key={key}>
               <div className="text-sm font-semibold text-slate-500 capitalize mb-2 mt-2 px-1">
@@ -383,57 +391,12 @@ export function OrdersGrid({
                   );
 
                 // COGS + profit/loss, shown only to admins for SALE and RETURN orders
+                const profit = isAdmin ? computeOrderProfit(order, usdRate, rmbRate) : null;
                 const profitNode = (() => {
-                  if (!isAdmin) return null;
+                  if (!profit) return null;
+                  const { costRub, profitRub, partial } = profit;
                   const isSale = order.orderType === OrderTypeEnum.SALE;
-                  const isReturn = order.orderType === OrderTypeEnum.RETURN;
-                  if (!isSale && !isReturn) return null;
-
-                  const rateFor = (c: CurrencyEnum | null) => {
-                    if (c === CurrencyEnum.RUB) return 1;
-                    if (c === CurrencyEnum.USD) return usdRate;
-                    if (c === CurrencyEnum.RMB) return rmbRate;
-                    return null;
-                  };
-                  // Build a map of variantId → total quantityM2 from order items
-                  const m2ByVariant = new Map<string, number>();
-                  for (const item of order.items) {
-                    if (item.quantityM2 != null) {
-                      m2ByVariant.set(item.productVariantId, (m2ByVariant.get(item.productVariantId) ?? 0) + item.quantityM2);
-                    }
-                  }
-
-                  let costRub = 0;
-                  let partial = false;
-
-                  if (isSale) {
-                    if (order.issues.length === 0) return null;
-                    for (const issue of order.issues) {
-                      if (issue.costPrice == null) { partial = true; continue; }
-                      const rate = rateFor(issue.costPriceCurrency);
-                      if (rate == null) { partial = true; continue; }
-                      const isM2 = issue.costPriceUnit === PriceUnitEnum.M2 || (issue.costPriceUnit == null && m2ByVariant.has(issue.productVariantId));
-                      const qty = isM2 ? (m2ByVariant.get(issue.productVariantId) ?? issue.quantity) : issue.quantity;
-                      costRub += qty * issue.costPrice * rate;
-                    }
-                  } else {
-                    if (order.receipts.length === 0) return null;
-                    for (const receipt of order.receipts) {
-                      if (receipt.price == null) { partial = true; continue; }
-                      const rate = rateFor(receipt.priceCurrency);
-                      if (rate == null) { partial = true; continue; }
-                      const isM2 = receipt.priceUnit === PriceUnitEnum.M2 || (receipt.priceUnit == null && m2ByVariant.has(receipt.productVariantId));
-                      const qty = isM2 ? (m2ByVariant.get(receipt.productVariantId) ?? receipt.quantity) : receipt.quantity;
-                      costRub += qty * receipt.price * rate;
-                    }
-                  }
-
-                  if (costRub === 0) return null;
-                  // Use displayTotalRub so manually-created returns (stored positive) are treated as negative
-                  const revenueRub = displayTotalRub / 100;
-                  // SALE: profit = revenue - cogs; RETURN: revenue is negative, cogs is recovered — net = revenue + cogs
-                  const profitRub = isSale ? revenueRub - costRub : revenueRub + costRub;
-                  const base = Math.abs(revenueRub);
+                  const base = Math.abs(displayTotalRub / 100);
                   const profitPct = base !== 0 ? (profitRub / base) * 100 : 0;
                   const profitColor = profitRub >= 0 ? "text-emerald-600" : "text-red-500";
                   const suffix = partial ? "*" : "";
@@ -443,7 +406,7 @@ export function OrdersGrid({
                         Себест: {fmt0(costRub)} ₽{suffix}
                       </span>
                       <span className={`font-medium ${profitColor}`}>
-                        {isSale ? "Прибыль" : "Убыток"}: {profitRub >= 0 ? "+" : ""}{fmt0(profitRub)} ₽ ({profitPct.toFixed(1)}%){suffix}
+                        Маржа: {profitRub >= 0 ? "+" : ""}{fmt0(profitRub)} ₽ ({profitPct.toFixed(1)}%){suffix}
                       </span>
                     </div>
                   );
@@ -1008,6 +971,12 @@ export function OrdersGrid({
                       <span className="text-slate-400 md:inline">Сумма: </span>
                       {formatRub(data.totalRub)}
                     </span>
+                    {monthProfitRub != null && label === "Итого:" && (
+                      <span className={monthProfitRub >= 0 ? "text-emerald-600 font-medium" : "text-red-500 font-medium"}>
+                        <span className="text-slate-400 font-normal">Маржа: </span>
+                        {monthProfitRub >= 0 ? "+" : ""}{Math.round(monthProfitRub).toLocaleString("ru-RU")} ₽
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
