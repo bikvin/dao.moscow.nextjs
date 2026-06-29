@@ -117,6 +117,8 @@ export default async function OrdersPage({
     yandexPaymentMethodIdSetting,
     ozonPaymentMethodIdSetting,
     selfPickupDeliveryMethodIdSetting,
+    taxRateSetting,
+    taxablePaymentMethodIdsSetting,
     maxSeqOrder,
   ] = await Promise.all([
     db.order.findMany({
@@ -229,6 +231,8 @@ export default async function OrdersPage({
     db.settings.findUnique({ where: { field: "yandexPaymentMethodId" } }),
     db.settings.findUnique({ where: { field: "ozonPaymentMethodId" } }),
     db.settings.findUnique({ where: { field: "selfPickupDeliveryMethodId" } }),
+    db.settings.findUnique({ where: { field: "taxRate" } }),
+    db.settings.findUnique({ where: { field: "taxablePaymentMethodIds" } }),
     db.order.aggregate({
       where: { year: currentYear },
       _max: { sequenceNumber: true },
@@ -275,6 +279,8 @@ export default async function OrdersPage({
             ].filter((v): v is string => Boolean(v))}
             selfPickupDeliveryMethodId={selfPickupDeliveryMethodIdSetting?.value ?? null}
             isAdmin={isAdmin}
+            taxRate={taxRateSetting ? parseFloat(taxRateSetting.value) : null}
+            taxablePaymentMethodIds={taxablePaymentMethodIdsSetting ? JSON.parse(taxablePaymentMethodIdsSetting.value) : []}
           />
 
           <Pagination

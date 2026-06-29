@@ -3,6 +3,7 @@ import { CurrencyEnum, OrderTypeEnum, PriceUnitEnum } from "@prisma/client";
 export type ProfitOrder = {
   orderType: OrderTypeEnum;
   totalRub: number;
+  paymentMethodId: string | null;
   items: { productVariantId: string; quantityM2: number | null }[];
   issues: {
     productVariantId: string;
@@ -22,12 +23,14 @@ export type ProfitOrder = {
 
 export type OrderProfitResult = {
   costRub: number;
+  taxRub: number;
   profitRub: number;
   partial: boolean;
 } | null;
 
 // Computes COGS and profit/loss in RUB for a single SALE or RETURN order.
-// SALE:   profit = revenue - cogs (both positive; result is the margin)
+// SALE:   profit = revenueAfterTax - cogs
+//         revenueAfterTax = revenue * (1 - taxRate/100) when paymentMethod is taxable
 // RETURN: profit = revenue + cogs (revenue is negative; cogs is cost recovered from returned stock)
 // Returns null when cost data is missing entirely or the order type is neither SALE nor RETURN.
 // `partial` is true when some line items lack cost data — the result is a lower bound.
@@ -35,6 +38,8 @@ export function computeOrderProfit(
   order: ProfitOrder,
   usdRate: number | null,
   rmbRate: number | null,
+  taxRate?: number | null,
+  taxablePaymentMethodIds?: string[],
 ): OrderProfitResult {
   const isSale = order.orderType === OrderTypeEnum.SALE;
   const isReturn = order.orderType === OrderTypeEnum.RETURN;
@@ -90,8 +95,19 @@ export function computeOrderProfit(
   if (costRub === 0) return null;
 
   // Normalise sign: manually created returns store totalRub as positive
-  const revenueRub = (isReturn ? -Math.abs(order.totalRub) : order.totalRub) / 100;
+  const grossRevenueRub = (isReturn ? -Math.abs(order.totalRub) : order.totalRub) / 100;
+
+  // For SALE orders with a taxable payment method, deduct tax from revenue before computing margin
+  const isTaxable =
+    taxRate != null &&
+    taxRate > 0 &&
+    order.paymentMethodId != null &&
+    taxablePaymentMethodIds?.includes(order.paymentMethodId);
+
+  const taxRub = isTaxable ? grossRevenueRub * (taxRate! / 100) : 0;
+  const revenueRub = grossRevenueRub - taxRub;
+
   const profitRub = isSale ? revenueRub - costRub : revenueRub + costRub;
 
-  return { costRub, profitRub, partial };
+  return { costRub, taxRub, profitRub, partial };
 }

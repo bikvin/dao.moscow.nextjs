@@ -245,6 +245,8 @@ export function OrdersGrid({
   marketplacePaymentMethodIds,
   selfPickupDeliveryMethodId,
   isAdmin,
+  taxRate,
+  taxablePaymentMethodIds,
 }: {
   orders: Order[];
   products: ProductOption[];
@@ -257,6 +259,8 @@ export function OrdersGrid({
   marketplacePaymentMethodIds?: string[];
   selfPickupDeliveryMethodId?: string | null;
   isAdmin?: boolean;
+  taxRate?: number | null;
+  taxablePaymentMethodIds?: string[];
 }) {
   const marketplacePaymentMethodIdSet = React.useMemo(
     () => new Set(marketplacePaymentMethodIds ?? []),
@@ -340,7 +344,7 @@ export function OrdersGrid({
           const shipped = monthTotals(groupOrders, true);
           const monthProfitRub = isAdmin
             ? groupOrders.reduce<number | null>((acc, o) => {
-                const p = computeOrderProfit(o, usdRate, rmbRate);
+                const p = computeOrderProfit(o, usdRate, rmbRate, taxRate, taxablePaymentMethodIds);
                 if (p == null) return acc;
                 return (acc ?? 0) + p.profitRub;
               }, null)
@@ -391,11 +395,10 @@ export function OrdersGrid({
                   );
 
                 // COGS + profit/loss, shown only to admins for SALE and RETURN orders
-                const profit = isAdmin ? computeOrderProfit(order, usdRate, rmbRate) : null;
+                const profit = isAdmin ? computeOrderProfit(order, usdRate, rmbRate, taxRate, taxablePaymentMethodIds) : null;
                 const profitNode = (() => {
                   if (!profit) return null;
-                  const { costRub, profitRub, partial } = profit;
-                  const isSale = order.orderType === OrderTypeEnum.SALE;
+                  const { costRub, taxRub, profitRub, partial } = profit;
                   const base = Math.abs(displayTotalRub / 100);
                   const profitPct = base !== 0 ? (profitRub / base) * 100 : 0;
                   const profitColor = profitRub >= 0 ? "text-emerald-600" : "text-red-500";
@@ -405,6 +408,11 @@ export function OrdersGrid({
                       <span className="text-slate-500">
                         Себест: {fmt0(costRub)} ₽{suffix}
                       </span>
+                      {taxRub !== 0 && (
+                        <span className="text-slate-500">
+                          Налог: {fmt0(Math.abs(taxRub))} ₽
+                        </span>
+                      )}
                       <span className={`font-medium ${profitColor}`}>
                         Маржа: {profitRub >= 0 ? "+" : ""}{fmt0(profitRub)} ₽ ({profitPct.toFixed(1)}%){suffix}
                       </span>
