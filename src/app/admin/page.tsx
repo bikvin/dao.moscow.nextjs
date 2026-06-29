@@ -159,7 +159,11 @@ export default async function OrdersPage({
         receipts: {
           select: {
             id: true,
+            productVariantId: true,
             quantity: true,
+            price: true,
+            priceCurrency: true,
+            priceUnit: true,
             productVariant: { select: { variantName: true } },
           },
         },

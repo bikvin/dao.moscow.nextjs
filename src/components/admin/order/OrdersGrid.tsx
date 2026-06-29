@@ -146,7 +146,11 @@ type OrderIssue = {
 
 type OrderReceipt = {
   id: string;
+  productVariantId: string;
   quantity: number;
+  price: number | null;
+  priceCurrency: CurrencyEnum | null;
+  priceUnit: PriceUnitEnum | null;
   productVariant: { variantName: string };
 };
 
@@ -378,9 +382,13 @@ export function OrdersGrid({
                     <>{formatRub(displayTotalRub)}</>
                   );
 
-                // COGS + profit, shown only to admins for SALE orders with issued stock
+                // COGS + profit/loss, shown only to admins for SALE and RETURN orders
                 const profitNode = (() => {
-                  if (!isAdmin || order.orderType !== OrderTypeEnum.SALE || order.issues.length === 0) return null;
+                  if (!isAdmin) return null;
+                  const isSale = order.orderType === OrderTypeEnum.SALE;
+                  const isReturn = order.orderType === OrderTypeEnum.RETURN;
+                  if (!isSale && !isReturn) return null;
+
                   const rateFor = (c: CurrencyEnum | null) => {
                     if (c === CurrencyEnum.RUB) return 1;
                     if (c === CurrencyEnum.USD) return usdRate;
@@ -394,21 +402,39 @@ export function OrdersGrid({
                       m2ByVariant.set(item.productVariantId, (m2ByVariant.get(item.productVariantId) ?? 0) + item.quantityM2);
                     }
                   }
+
                   let costRub = 0;
                   let partial = false;
-                  for (const issue of order.issues) {
-                    if (issue.costPrice == null) { partial = true; continue; }
-                    const rate = rateFor(issue.costPriceCurrency);
-                    if (rate == null) { partial = true; continue; }
-                    // Use unit from the issue to pick the right quantity dimension
-                    const isM2 = issue.costPriceUnit === PriceUnitEnum.M2 || (issue.costPriceUnit == null && m2ByVariant.has(issue.productVariantId));
-                    const qty = isM2 ? (m2ByVariant.get(issue.productVariantId) ?? issue.quantity) : issue.quantity;
-                    costRub += qty * issue.costPrice * rate;
+
+                  if (isSale) {
+                    if (order.issues.length === 0) return null;
+                    for (const issue of order.issues) {
+                      if (issue.costPrice == null) { partial = true; continue; }
+                      const rate = rateFor(issue.costPriceCurrency);
+                      if (rate == null) { partial = true; continue; }
+                      const isM2 = issue.costPriceUnit === PriceUnitEnum.M2 || (issue.costPriceUnit == null && m2ByVariant.has(issue.productVariantId));
+                      const qty = isM2 ? (m2ByVariant.get(issue.productVariantId) ?? issue.quantity) : issue.quantity;
+                      costRub += qty * issue.costPrice * rate;
+                    }
+                  } else {
+                    if (order.receipts.length === 0) return null;
+                    for (const receipt of order.receipts) {
+                      if (receipt.price == null) { partial = true; continue; }
+                      const rate = rateFor(receipt.priceCurrency);
+                      if (rate == null) { partial = true; continue; }
+                      const isM2 = receipt.priceUnit === PriceUnitEnum.M2 || (receipt.priceUnit == null && m2ByVariant.has(receipt.productVariantId));
+                      const qty = isM2 ? (m2ByVariant.get(receipt.productVariantId) ?? receipt.quantity) : receipt.quantity;
+                      costRub += qty * receipt.price * rate;
+                    }
                   }
+
                   if (costRub === 0) return null;
-                  const revenueRub = order.totalRub / 100;
-                  const profitRub = revenueRub - costRub;
-                  const profitPct = revenueRub !== 0 ? (profitRub / revenueRub) * 100 : 0;
+                  // Use displayTotalRub so manually-created returns (stored positive) are treated as negative
+                  const revenueRub = displayTotalRub / 100;
+                  // SALE: profit = revenue - cogs; RETURN: revenue is negative, cogs is recovered — net = revenue + cogs
+                  const profitRub = isSale ? revenueRub - costRub : revenueRub + costRub;
+                  const base = Math.abs(revenueRub);
+                  const profitPct = base !== 0 ? (profitRub / base) * 100 : 0;
                   const profitColor = profitRub >= 0 ? "text-emerald-600" : "text-red-500";
                   const suffix = partial ? "*" : "";
                   return (
@@ -417,7 +443,7 @@ export function OrdersGrid({
                         Себест: {fmt0(costRub)} ₽{suffix}
                       </span>
                       <span className={`font-medium ${profitColor}`}>
-                        Прибыль: {profitRub >= 0 ? "+" : ""}{fmt0(profitRub)} ₽ ({profitPct.toFixed(1)}%){suffix}
+                        {isSale ? "Прибыль" : "Убыток"}: {profitRub >= 0 ? "+" : ""}{fmt0(profitRub)} ₽ ({profitPct.toFixed(1)}%){suffix}
                       </span>
                     </div>
                   );
