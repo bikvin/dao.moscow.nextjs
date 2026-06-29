@@ -7,54 +7,102 @@ import { FormFieldError } from "@/components/common/formFieldError/FormFieldErro
 
 type PaymentMethod = { id: string; name: string };
 
-// Form for setting the tax rate and which payment methods are subject to tax.
+// Form for setting the tax rate, merchant commission rate, and which payment methods each applies to.
 export function TaxSettingsForm({
   currentRate,
+  currentCommissionRate,
   paymentMethods,
   taxablePaymentMethodIds,
+  commissionPaymentMethodIds,
 }: {
   currentRate: number | null;
+  currentCommissionRate: number | null;
   paymentMethods: PaymentMethod[];
   taxablePaymentMethodIds: string[];
+  commissionPaymentMethodIds: string[];
 }) {
   const [formState, action] = useFormState(saveTaxSettings, { errors: {} });
 
   return (
-    <form action={action} className="flex flex-col gap-6">
-      <div className="form-item">
-        <label htmlFor="taxRate">Ставка налога, %</label>
-        <div className="flex items-center gap-2">
-          <input
-            id="taxRate"
-            name="taxRate"
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            defaultValue={currentRate ?? ""}
-            placeholder="например, 6"
-            className="admin-form-input w-28"
-          />
-          <span className="text-sm text-slate-500">%</span>
+    <form action={action} className="flex flex-col gap-8">
+
+      <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-slate-700">Налог</h3>
+        <div className="form-item">
+          <label htmlFor="taxRate">Ставка, %</label>
+          <div className="flex items-center gap-2">
+            <input
+              id="taxRate"
+              name="taxRate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              defaultValue={currentRate ?? ""}
+              placeholder="например, 6"
+              className="admin-form-input w-28"
+            />
+            <span className="text-sm text-slate-500">%</span>
+          </div>
+          <FormFieldError errors={formState.errors?.taxRate} />
         </div>
-        <FormFieldError errors={formState.errors?.taxRate} />
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-slate-700">Способы оплаты</label>
+          <div className="flex flex-col gap-2">
+            {paymentMethods.map((pm) => (
+              <label key={pm.id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="taxablePaymentMethodIds"
+                  value={pm.id}
+                  defaultChecked={taxablePaymentMethodIds.includes(pm.id)}
+                  className="w-4 h-4"
+                />
+                {pm.name}
+              </label>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-slate-700">Облагаемые способы оплаты</label>
+      <hr className="border-slate-200" />
+
+      <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-slate-700">Комиссия эквайринга</h3>
+        <div className="form-item">
+          <label htmlFor="commissionRate">Ставка, %</label>
+          <div className="flex items-center gap-2">
+            <input
+              id="commissionRate"
+              name="commissionRate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              defaultValue={currentCommissionRate ?? ""}
+              placeholder="например, 2"
+              className="admin-form-input w-28"
+            />
+            <span className="text-sm text-slate-500">%</span>
+          </div>
+          <FormFieldError errors={formState.errors?.commissionRate} />
+        </div>
         <div className="flex flex-col gap-2">
-          {paymentMethods.map((pm) => (
-            <label key={pm.id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input
-                type="checkbox"
-                name="taxablePaymentMethodIds"
-                value={pm.id}
-                defaultChecked={taxablePaymentMethodIds.includes(pm.id)}
-                className="w-4 h-4"
-              />
-              {pm.name}
-            </label>
-          ))}
+          <label className="text-sm font-medium text-slate-700">Способы оплаты</label>
+          <div className="flex flex-col gap-2">
+            {paymentMethods.map((pm) => (
+              <label key={pm.id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="commissionPaymentMethodIds"
+                  value={pm.id}
+                  defaultChecked={commissionPaymentMethodIds.includes(pm.id)}
+                  className="w-4 h-4"
+                />
+                {pm.name}
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 
