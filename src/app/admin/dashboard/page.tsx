@@ -49,7 +49,7 @@ export default async function DashboardPage({
           lt: new Date(`${selectedYear + 1}-01-01`),
         },
         orderType: { in: [OrderTypeEnum.SALE, OrderTypeEnum.RETURN] },
-        status: { not: OrderStatusEnum.CANCELLED },
+        status: OrderStatusEnum.SHIPPED,
       },
       select: {
         orderType: true,
@@ -103,7 +103,9 @@ export default async function DashboardPage({
   // Aggregate per month
   type MonthRow = {
     saleCount: number;
+    saleM2: number;
     returnCount: number;
+    returnM2: number;
     revenueRub: number;
     costRub: number;
     taxRub: number;
@@ -112,15 +114,21 @@ export default async function DashboardPage({
   };
 
   const months: MonthRow[] = Array.from({ length: 12 }, () => ({
-    saleCount: 0, returnCount: 0,
+    saleCount: 0, saleM2: 0, returnCount: 0, returnM2: 0,
     revenueRub: 0, costRub: 0, taxRub: 0, commissionRub: 0, marginRub: 0,
   }));
 
   for (const order of orders) {
     const month = new Date(order.orderDate).getMonth(); // 0-based
     const row = months[month];
-    if (order.orderType === OrderTypeEnum.SALE) row.saleCount++;
-    else row.returnCount++;
+    const orderM2 = order.items.reduce((s, i) => s + (i.quantityM2 ?? 0), 0);
+    if (order.orderType === OrderTypeEnum.SALE) {
+      row.saleCount++;
+      row.saleM2 += orderM2;
+    } else {
+      row.returnCount++;
+      row.returnM2 += orderM2;
+    }
 
     const sign = order.orderType === OrderTypeEnum.RETURN ? -1 : 1;
     row.revenueRub += sign * Math.abs(order.totalRub) / 100;
@@ -136,13 +144,15 @@ export default async function DashboardPage({
 
   const total: MonthRow = months.reduce((acc, m) => ({
     saleCount: acc.saleCount + m.saleCount,
+    saleM2: acc.saleM2 + m.saleM2,
     returnCount: acc.returnCount + m.returnCount,
+    returnM2: acc.returnM2 + m.returnM2,
     revenueRub: acc.revenueRub + m.revenueRub,
     costRub: acc.costRub + m.costRub,
     taxRub: acc.taxRub + m.taxRub,
     commissionRub: acc.commissionRub + m.commissionRub,
     marginRub: acc.marginRub + m.marginRub,
-  }), { saleCount: 0, returnCount: 0, revenueRub: 0, costRub: 0, taxRub: 0, commissionRub: 0, marginRub: 0 });
+  }), { saleCount: 0, saleM2: 0, returnCount: 0, returnM2: 0, revenueRub: 0, costRub: 0, taxRub: 0, commissionRub: 0, marginRub: 0 });
 
   const yearRange = availableYears.length > 0 ? availableYears : [currentYear];
 
@@ -170,7 +180,83 @@ export default async function DashboardPage({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile cards */}
+          <div className="md:hidden flex flex-col gap-3">
+            {months.map((row, i) => {
+              if (row.saleCount === 0 && row.returnCount === 0) return null;
+              const marginColor = row.marginRub >= 0 ? "text-emerald-600" : "text-red-500";
+              return (
+                <div key={i} className="border border-slate-200 rounded-lg p-4 text-sm">
+                  <div className="font-semibold text-slate-700 mb-3">{MONTH_NAMES[i]}</div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-slate-600">
+                    <span className="text-slate-400">Продажи</span>
+                    <span>{row.saleCount} зак. · {row.saleM2.toFixed(2)} м²</span>
+                    {row.returnCount > 0 && <>
+                      <span className="text-slate-400">Возвраты</span>
+                      <span>{row.returnCount} зак. · {row.returnM2.toFixed(2)} м²</span>
+                    </>}
+                    <span className="text-slate-400">Выручка</span>
+                    <span>{fmt(row.revenueRub)} ₽</span>
+                    {row.costRub > 0 && <>
+                      <span className="text-slate-400">Себест.</span>
+                      <span>{fmt(row.costRub)} ₽</span>
+                    </>}
+                    {taxRate && row.taxRub > 0 && <>
+                      <span className="text-slate-400">Налог</span>
+                      <span>{fmt(row.taxRub)} ₽</span>
+                    </>}
+                    {commissionRate && row.commissionRub > 0 && <>
+                      <span className="text-slate-400">Комиссия</span>
+                      <span>{fmt(row.commissionRub)} ₽</span>
+                    </>}
+                    {row.costRub > 0 && <>
+                      <span className="text-slate-400">Маржа</span>
+                      <span className={`font-medium ${marginColor}`}>
+                        {(row.marginRub >= 0 ? "+" : "") + fmt(row.marginRub)} ₽
+                        <span className="font-normal ml-1">({pct(row.marginRub, row.revenueRub)})</span>
+                      </span>
+                    </>}
+                  </div>
+                </div>
+              );
+            })}
+            {/* Mobile total */}
+            <div className="border-t-2 border-slate-300 pt-3 text-sm font-semibold">
+              <div className="text-slate-700 mb-2">Итого</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-normal text-slate-600">
+                <span className="text-slate-400">Продажи</span>
+                <span>{total.saleCount} зак. · {total.saleM2.toFixed(2)} м²</span>
+                {total.returnCount > 0 && <>
+                  <span className="text-slate-400">Возвраты</span>
+                  <span>{total.returnCount} зак. · {total.returnM2.toFixed(2)} м²</span>
+                </>}
+                <span className="text-slate-400">Выручка</span>
+                <span className="font-semibold">{fmt(total.revenueRub)} ₽</span>
+                {total.costRub > 0 && <>
+                  <span className="text-slate-400">Себест.</span>
+                  <span>{fmt(total.costRub)} ₽</span>
+                </>}
+                {taxRate && total.taxRub > 0 && <>
+                  <span className="text-slate-400">Налог</span>
+                  <span>{fmt(total.taxRub)} ₽</span>
+                </>}
+                {commissionRate && total.commissionRub > 0 && <>
+                  <span className="text-slate-400">Комиссия</span>
+                  <span>{fmt(total.commissionRub)} ₽</span>
+                </>}
+                {total.costRub > 0 && <>
+                  <span className="text-slate-400">Маржа</span>
+                  <span className={`font-semibold ${total.marginRub >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    {(total.marginRub >= 0 ? "+" : "") + fmt(total.marginRub)} ₽
+                    <span className="font-normal ml-1">({pct(total.marginRub, total.revenueRub)})</span>
+                  </span>
+                </>}
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-slate-300 text-slate-500 text-xs">
@@ -192,8 +278,12 @@ export default async function DashboardPage({
                   return (
                     <tr key={i} className={`border-b border-slate-100 ${hasData ? "" : "text-slate-300"}`}>
                       <td className="py-2 pr-4 font-medium">{MONTH_NAMES[i]}</td>
-                      <td className="text-right px-3">{hasData ? row.saleCount : "—"}</td>
-                      <td className="text-right px-3">{hasData ? row.returnCount : "—"}</td>
+                      <td className="text-right px-3">
+                        {hasData ? <>{row.saleCount}<div className="text-xs text-slate-400">{row.saleM2.toFixed(2)} м²</div></> : "—"}
+                      </td>
+                      <td className="text-right px-3">
+                        {hasData ? <>{row.returnCount}{row.returnCount > 0 && <div className="text-xs text-slate-400">{row.returnM2.toFixed(2)} м²</div>}</> : "—"}
+                      </td>
                       <td className="text-right px-3">{hasData ? fmt(row.revenueRub) + " ₽" : "—"}</td>
                       <td className="text-right px-3">{hasData && row.costRub > 0 ? fmt(row.costRub) + " ₽" : "—"}</td>
                       {taxRate ? <td className="text-right px-3">{hasData && row.taxRub > 0 ? fmt(row.taxRub) + " ₽" : "—"}</td> : null}
@@ -211,8 +301,12 @@ export default async function DashboardPage({
               <tfoot>
                 <tr className="border-t-2 border-slate-300 font-semibold">
                   <td className="py-2 pr-4">Итого</td>
-                  <td className="text-right px-3">{total.saleCount}</td>
-                  <td className="text-right px-3">{total.returnCount}</td>
+                  <td className="text-right px-3">
+                    {total.saleCount}<div className="text-xs text-slate-400 font-normal">{total.saleM2.toFixed(2)} м²</div>
+                  </td>
+                  <td className="text-right px-3">
+                    {total.returnCount}{total.returnCount > 0 && <div className="text-xs text-slate-400 font-normal">{total.returnM2.toFixed(2)} м²</div>}
+                  </td>
                   <td className="text-right px-3">{fmt(total.revenueRub)} ₽</td>
                   <td className="text-right px-3">{total.costRub > 0 ? fmt(total.costRub) + " ₽" : "—"}</td>
                   {taxRate ? <td className="text-right px-3">{total.taxRub > 0 ? fmt(total.taxRub) + " ₽" : "—"}</td> : null}
@@ -226,7 +320,7 @@ export default async function DashboardPage({
                 </tr>
               </tfoot>
             </table>
-          </div>
+          </div> {/* end desktop table */}
         </div>
       </div>
     </>

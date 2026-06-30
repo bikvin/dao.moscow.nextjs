@@ -309,9 +309,9 @@ export function OrdersGrid({
   function monthTotals(groupOrders: typeof orders, shippedOnly: boolean) {
     const filtered = shippedOnly
       ? groupOrders.filter((o) => o.status === "SHIPPED")
-      : groupOrders;
+      : groupOrders.filter((o) => o.status !== "CANCELLED");
     const sign = (o: (typeof orders)[0]) => (o.orderType === "RETURN" ? -1 : 1);
-    const totalRub = filtered.reduce((sum, o) => sum + sign(o) * o.totalRub, 0);
+    const totalRub = filtered.reduce((sum, o) => sum + sign(o) * Math.abs(o.totalRub), 0);
     const totalM2 = filtered.reduce(
       (sum, o) =>
         sum + sign(o) * o.items.reduce((s, i) => s + (i.quantityM2 ?? 0), 0),
@@ -383,9 +383,10 @@ export function OrdersGrid({
                   order.orderType === OrderTypeEnum.RETURN
                     ? -Math.abs(order.totalRub)
                     : order.totalRub;
+                const isCancelled = order.status === "CANCELLED";
                 const orderTotalNode =
                   retailPrice != null ? (
-                    <span className="flex flex-col items-end gap-0">
+                    <span className={`flex flex-col items-end gap-0 ${isCancelled ? "line-through text-slate-400" : ""}`}>
                       <span>
                         {isEstimate ? "≈" : ""}
                         {fmt0(displayTotalRub / 100)} ₽
@@ -395,7 +396,9 @@ export function OrdersGrid({
                       </span>
                     </span>
                   ) : (
-                    <>{formatRub(displayTotalRub)}</>
+                    <span className={isCancelled ? "line-through text-slate-400" : ""}>
+                      {formatRub(displayTotalRub)}
+                    </span>
                   );
 
                 // COGS + profit/loss, shown only to admins for SALE and RETURN orders
