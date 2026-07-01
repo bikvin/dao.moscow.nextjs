@@ -771,6 +771,30 @@ model Invoice {
   @@index([orderId])
 }
 
+model RecurringExpense {
+  id       String       @id @default(cuid())
+  name     String
+  amount   Int
+  currency CurrencyEnum
+  isActive Boolean      @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Expense {
+  id       String       @id @default(cuid())
+  name     String
+  amount   Int
+  currency CurrencyEnum
+  date     DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}
+
 model InvoiceItem {
   id         String        @id @default(uuid())
   quantity   Int
