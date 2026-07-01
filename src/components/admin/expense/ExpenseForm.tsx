@@ -4,13 +4,14 @@ import { useFormState } from "react-dom";
 import { createExpense } from "@/actions/expense/createExpense";
 import { updateExpense } from "@/actions/expense/updateExpense";
 import { deleteExpenseAction } from "@/actions/expense/deleteExpenseAction";
+import { createMultipleExpenses } from "@/actions/expense/createMultipleExpenses";
 import FormButton from "@/components/common/formButton/formButton";
 import { FormFieldError } from "@/components/common/formFieldError/FormFieldError";
 import DeleteDialog from "@/components/common/delete/DeleteDialog";
 import { CurrencyEnum } from "@prisma/client";
 import type { Expense, RecurringExpense } from "@prisma/client";
 import { ExpenseFormState } from "@/zod/expense";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 
 // Form for adding a new single expense entry. Resets fields after successful submission.
 export function CreateExpenseForm({ defaultDate }: { defaultDate: string }) {
@@ -62,7 +63,9 @@ export function CreateExpenseForm({ defaultDate }: { defaultDate: string }) {
 }
 
 
-// Panel showing active recurring templates as quick-add buttons for a given month.
+type RowState = { amount: string; currency: CurrencyEnum; date: string };
+
+// Card showing all active recurring templates with checkboxes and a single submit button.
 export function GenerateFromRecurring({
   recurring,
   defaultDate,
@@ -71,60 +74,127 @@ export function GenerateFromRecurring({
   defaultDate: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const active = recurring.filter((r) => r.isActive);
+
+  const [checked, setChecked] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(active.map((r) => [r.id, true]))
+  );
+  const [rows, setRows] = useState<Record<string, RowState>>(() =>
+    Object.fromEntries(active.map((r) => [r.id, {
+      amount: (r.amount / 100).toFixed(2),
+      currency: r.currency,
+      date: defaultDate,
+    }]))
+  );
+
   if (active.length === 0) return null;
 
+  const selectedCount = active.filter((r) => checked[r.id]).length;
+
+  function handleBulkDate(date: string) {
+    setRows((prev) => Object.fromEntries(
+      Object.entries(prev).map(([id, row]) => [id, { ...row, date }])
+    ));
+  }
+
+  function handleSubmit() {
+    const expenses = active
+      .filter((r) => checked[r.id])
+      .map((r) => ({
+        name: r.name,
+        amount: parseFloat(rows[r.id].amount),
+        currency: rows[r.id].currency,
+        date: rows[r.id].date,
+      }))
+      .filter((e) => !isNaN(e.amount) && e.amount > 0);
+
+    if (expenses.length === 0) return;
+    startTransition(async () => {
+      await createMultipleExpenses(expenses);
+      setOpen(false);
+    });
+  }
+
   return (
-    <div className="mb-6">
+    <div className="mt-4 border rounded-md shadow-main overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="text-sm text-blue-500 hover:underline"
+        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-100 text-sm font-semibold text-slate-700 hover:bg-slate-100"
       >
-        {open ? "Скрыть шаблоны" : "Добавить из шаблонов →"}
+        <span>Добавить из шаблонов</span>
+        <span className="text-slate-400 font-normal">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
-        <div className="mt-3 flex flex-col gap-2 max-w-sm">
-          {active.map((r) => (
-            <GenerateRow key={r.id} expense={r} defaultDate={defaultDate} />
-          ))}
-        </div>
+        <>
+          <div className="flex items-center justify-end gap-3 px-4 py-2 border-b border-slate-100 bg-slate-50/50">
+            <span className="text-xs text-slate-500 flex-shrink-0">Дата для всех:</span>
+            <input
+              type="date"
+              defaultValue={defaultDate}
+              onChange={(e) => handleBulkDate(e.target.value)}
+              className="admin-form-input w-32 text-sm"
+            />
+          </div>
+          <div className="divide-y divide-slate-100">
+            {active.map((r) => (
+              <div key={r.id} className={`flex flex-wrap items-center gap-3 px-4 py-3 ${!checked[r.id] ? "opacity-40" : ""}`}>
+                <input
+                  type="checkbox"
+                  checked={checked[r.id] ?? true}
+                  onChange={(e) => setChecked((prev) => ({ ...prev, [r.id]: e.target.checked }))}
+                  className="w-4 h-4 flex-shrink-0"
+                />
+                <span className="flex-1 min-w-32 text-sm font-medium text-slate-700">{r.name}</span>
+                <div className="w-28">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={rows[r.id]?.amount ?? ""}
+                    onChange={(e) => setRows((prev) => ({ ...prev, [r.id]: { ...prev[r.id], amount: e.target.value } }))}
+                    className="admin-form-input w-full"
+                    disabled={!checked[r.id]}
+                  />
+                </div>
+                <div className="w-20">
+                  <select
+                    value={rows[r.id]?.currency}
+                    onChange={(e) => setRows((prev) => ({ ...prev, [r.id]: { ...prev[r.id], currency: e.target.value as CurrencyEnum } }))}
+                    className="admin-form-input w-full"
+                    disabled={!checked[r.id]}
+                  >
+                    {Object.values(CurrencyEnum).map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-32">
+                  <input
+                    type="date"
+                    value={rows[r.id]?.date ?? defaultDate}
+                    onChange={(e) => setRows((prev) => ({ ...prev, [r.id]: { ...prev[r.id], date: e.target.value } }))}
+                    className="admin-form-input w-full"
+                    disabled={!checked[r.id]}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between px-4 py-2 border-t border-slate-100 bg-slate-50">
+            <span className="text-xs text-slate-400">Выбрано: {selectedCount}</span>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isPending || selectedCount === 0}
+              className="border-0 rounded-md text-white cursor-pointer text-center bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 p-[5px] w-[150px] text-base"
+            >
+              {isPending ? "Загружаем..." : "Добавить"}
+            </button>
+          </div>
+        </>
       )}
     </div>
-  );
-}
-
-// Single row in the generate-from-recurring panel. Pre-fills form from template but allows editing.
-function GenerateRow({ expense, defaultDate }: { expense: RecurringExpense; defaultDate: string }) {
-  const [state, action] = useFormState(createExpense, {});
-
-  return (
-    <form action={action} className="flex flex-wrap items-start gap-2 p-3 bg-slate-50 rounded-lg">
-      <input type="hidden" name="name" value={expense.name} />
-      <span className="flex-1 text-sm font-medium text-slate-700 pt-1.5">{expense.name}</span>
-      <div className="w-28">
-        <input
-          name="amount"
-          type="number"
-          step="0.01"
-          defaultValue={(expense.amount / 100).toFixed(2)}
-          className="admin-form-input w-full"
-        />
-        <FormFieldError errors={state.fieldErrors?.amount} />
-      </div>
-      <div className="w-20">
-        <select name="currency" defaultValue={expense.currency} className="admin-form-input w-full">
-          {Object.values(CurrencyEnum).map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-      </div>
-      <div className="w-32">
-        <input name="date" type="date" defaultValue={defaultDate} className="admin-form-input w-full" />
-        <FormFieldError errors={state.fieldErrors?.date} />
-      </div>
-      <FormButton small>Добавить</FormButton>
-    </form>
   );
 }
 
