@@ -509,79 +509,170 @@ export function OrdersGrid({
                           </>
                         );
                       };
+                      const mobileItemRow = (item: OrderItem, key?: string) => {
+                        const { hideVariant, qtyPcs, qtyM2, priceRub, lineTotal } = itemCols(item);
+                        const variant = !hideVariant && item.productVariant.variantName
+                          ? ` (${item.productVariant.variantName})` : "";
+                        const qty = qtyM2 != null
+                          ? `${qtyPcs} / ${qtyM2.toFixed(2)}м²`
+                          : `${qtyPcs} шт`;
+                        return (
+                          <div key={key} className="flex items-baseline gap-2 px-3 py-0.5 text-xs">
+                            <span className="flex-1 min-w-0 truncate text-slate-700">
+                              {item.product.sku}{variant}
+                            </span>
+                            <span className="flex-shrink-0 text-slate-500">{qty}</span>
+                            <span className={`flex-shrink-0 font-medium w-20 text-right ${isCancelled ? "line-through text-slate-400" : "text-slate-700"}`}>
+                              {approx(formatRub(lineTotal))}
+                            </span>
+                          </div>
+                        );
+                      };
                       return (
                         <div
                           className="cursor-pointer select-none pb-1"
                           onClick={() => toggleExpand(order.id)}
                         >
-                          {/* Row 1: order meta + first item, badge and chevron in sidebar */}
-                          <div className="flex items-start">
-                            <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
-                              <div className="text-sm font-semibold leading-tight">
+                          {/* === Mobile layout === */}
+                          <div className="sm:hidden">
+                            {/* Line 1: # + partner + badge + chevron */}
+                            <div className="flex items-center gap-2 px-3 py-1">
+                              <span className="text-sm font-semibold flex-shrink-0 leading-tight">
                                 {order.sequenceNumber}
                                 {order.orderType === "RETURN" && (
-                                  <div className="text-xs text-slate-400 font-normal leading-none">возврат</div>
+                                  <span className="block text-xs text-slate-400 font-normal leading-none">возврат</span>
                                 )}
-                              </div>
-                              <div className="text-xs text-slate-500">{formatDate(order.orderDate)}</div>
-                              <div className="text-sm truncate">{partnerName}</div>
-                              {firstItem ? renderItemCells(firstItem) : (
-                                <div className="col-span-5 text-slate-400 italic text-sm py-0.5">
-                                  {order.orderType === OrderTypeEnum.RETURN ? "Возврат без товаров" : "Нет товаров"}
-                                </div>
-                              )}
-                            </div>
-                            <div className="md:w-44 flex-shrink-0 flex items-center gap-2 px-3 py-0.5">
+                              </span>
+                              <span className="flex-1 min-w-0 truncate text-sm">{partnerName}</span>
                               <Badge
                                 label={ORDER_STATUS_CONFIG[order.status].label}
                                 cls={ORDER_STATUS_CONFIG[order.status].cls}
                               />
                               <ChevronDown
-                                className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ml-auto ${isExpanded ? "rotate-180" : ""}`}
+                                className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                               />
                             </div>
+                            {/* Line 2: date in muted + first item */}
+                            {firstItem ? (
+                              <div className="flex items-baseline gap-2 px-3 py-0.5 text-xs">
+                                <span className="flex-shrink-0 text-slate-400 w-16">{formatDate(order.orderDate)}</span>
+                                {(() => {
+                                  const { hideVariant, qtyPcs, qtyM2, lineTotal } = itemCols(firstItem);
+                                  const variant = !hideVariant && firstItem.productVariant.variantName
+                                    ? ` (${firstItem.productVariant.variantName})` : "";
+                                  const qty = qtyM2 != null
+                                    ? `${qtyPcs}шт./${qtyM2.toFixed(2)}м²`
+                                    : `${qtyPcs} шт.`;
+                                  return (
+                                    <>
+                                      <span className="flex-1 min-w-0 truncate text-slate-700">
+                                        {firstItem.product.sku}{variant}
+                                      </span>
+                                      <span className="flex-shrink-0 text-slate-500">{qty}</span>
+                                      <span className={`flex-shrink-0 font-medium w-20 text-right ${isCancelled ? "line-through text-slate-400" : "text-slate-700"}`}>
+                                        {approx(formatRub(lineTotal))}
+                                      </span>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            ) : (
+                              <div className="px-3 pb-1 text-xs text-slate-400 italic">
+                                {order.orderType === OrderTypeEnum.RETURN ? "Возврат без товаров" : "Нет товаров"}
+                              </div>
+                            )}
+                            {order.items.slice(1).map((item) => mobileItemRow(item, item.id))}
+                            {order.deliveryPriceRub > 0 && (
+                              <div className="flex items-baseline gap-2 px-3 py-0.5 text-xs">
+                                <span className="flex-shrink-0 w-16" />
+                                <span className="flex-1 text-slate-500 italic">{order.deliveryMethod?.name ?? "Доставка"}</span>
+                                <span className="flex-shrink-0 w-20 text-right text-slate-600">{formatRub(order.deliveryPriceRub)}</span>
+                              </div>
+                            )}
+                            {order.ozonReturnData && order.ozonReturnData.returnLogisticFeeRub > 0 && (
+                              <div className="flex items-baseline gap-2 px-3 py-0.5 text-xs">
+                                <span className="flex-shrink-0 w-16" />
+                                <span className="flex-1 text-slate-500 italic">
+                                  Обратная логистика{!order.ozonReturnData.feesSettled && " ≈"}
+                                </span>
+                                <span className="flex-shrink-0 w-20 text-right text-slate-600">
+                                  −{Math.round(order.ozonReturnData.returnLogisticFeeRub).toLocaleString("ru-RU")} ₽
+                                </span>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Extra rows — items 2+, delivery. Each row mirrors row 1: flex + grid(flex-1) + w-44 spacer */}
-                          {extraLines > 0 && (
-                            <>
-                              {order.items.slice(1).map((item) => (
-                                <div key={item.id} className="flex items-center">
-                                  <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
-                                    <div /><div /><div />
-                                    {renderItemCells(item)}
-                                  </div>
-                                  <div className="md:w-44 flex-shrink-0" />
+                          {/* === Desktop layout (sm+) === */}
+                          <div className="hidden sm:block">
+                            {/* Row 1: order meta + first item, badge and chevron in sidebar */}
+                            <div className="flex items-start">
+                              <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
+                                <div className="text-sm font-semibold leading-tight">
+                                  {order.sequenceNumber}
+                                  {order.orderType === "RETURN" && (
+                                    <div className="text-xs text-slate-400 font-normal leading-none">возврат</div>
+                                  )}
                                 </div>
-                              ))}
-                              {order.deliveryPriceRub > 0 && (
-                                <div className="flex items-center">
-                                  <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
-                                    <div /><div /><div />
-                                    <div className="text-sm text-slate-500 italic py-0.5">{order.deliveryMethod?.name ?? "Доставка"}</div>
-                                    <div /><div /><div />
-                                    <div className="text-sm text-right py-0.5 text-slate-600">{formatRub(order.deliveryPriceRub)}</div>
+                                <div className="text-xs text-slate-500">{formatDate(order.orderDate)}</div>
+                                <div className="text-sm truncate">{partnerName}</div>
+                                {firstItem ? renderItemCells(firstItem) : (
+                                  <div className="col-span-5 text-slate-400 italic text-sm py-0.5">
+                                    {order.orderType === OrderTypeEnum.RETURN ? "Возврат без товаров" : "Нет товаров"}
                                   </div>
-                                  <div className="md:w-44 flex-shrink-0" />
-                                </div>
-                              )}
-                              {order.ozonReturnData && order.ozonReturnData.returnLogisticFeeRub > 0 && (
-                                <div className="flex items-center">
-                                  <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
-                                    <div /><div /><div />
-                                    <div className="text-sm text-slate-500 italic py-0.5">
-                                      Обратная логистика{!order.ozonReturnData.feesSettled && " ≈"}
+                                )}
+                              </div>
+                              <div className="md:w-44 flex-shrink-0 flex items-center gap-2 px-3 py-0.5">
+                                <Badge
+                                  label={ORDER_STATUS_CONFIG[order.status].label}
+                                  cls={ORDER_STATUS_CONFIG[order.status].cls}
+                                />
+                                <ChevronDown
+                                  className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ml-auto ${isExpanded ? "rotate-180" : ""}`}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Extra rows — items 2+, delivery. Each row mirrors row 1: flex + grid(flex-1) + w-44 spacer */}
+                            {extraLines > 0 && (
+                              <>
+                                {order.items.slice(1).map((item) => (
+                                  <div key={item.id} className="flex items-center">
+                                    <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
+                                      <div /><div /><div />
+                                      {renderItemCells(item)}
                                     </div>
-                                    <div /><div /><div />
-                                    <div className="text-sm text-right py-0.5 text-slate-600">
-                                      −{Math.round(order.ozonReturnData.returnLogisticFeeRub).toLocaleString("ru-RU")} ₽
-                                    </div>
+                                    <div className="md:w-44 flex-shrink-0" />
                                   </div>
-                                  <div className="md:w-44 flex-shrink-0" />
-                                </div>
-                              )}
-                            </>
-                          )}
+                                ))}
+                                {order.deliveryPriceRub > 0 && (
+                                  <div className="flex items-center">
+                                    <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
+                                      <div /><div /><div />
+                                      <div className="text-sm text-slate-500 italic py-0.5">{order.deliveryMethod?.name ?? "Доставка"}</div>
+                                      <div /><div /><div />
+                                      <div className="text-sm text-right py-0.5 text-slate-600">{formatRub(order.deliveryPriceRub)}</div>
+                                    </div>
+                                    <div className="md:w-44 flex-shrink-0" />
+                                  </div>
+                                )}
+                                {order.ozonReturnData && order.ozonReturnData.returnLogisticFeeRub > 0 && (
+                                  <div className="flex items-center">
+                                    <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
+                                      <div /><div /><div />
+                                      <div className="text-sm text-slate-500 italic py-0.5">
+                                        Обратная логистика{!order.ozonReturnData.feesSettled && " ≈"}
+                                      </div>
+                                      <div /><div /><div />
+                                      <div className="text-sm text-right py-0.5 text-slate-600">
+                                        −{Math.round(order.ozonReturnData.returnLogisticFeeRub).toLocaleString("ru-RU")} ₽
+                                      </div>
+                                    </div>
+                                    <div className="md:w-44 flex-shrink-0" />
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       );
                     })()}
