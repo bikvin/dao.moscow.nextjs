@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Pencil, FileText, ChevronDown } from "lucide-react";
+import { Pencil, FileText, ChevronDown, CircleDollarSign } from "lucide-react";
 import { CreateOrderForm } from "./CreateOrderForm";
 import { type ProductOption } from "./AddOrderItemForm";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
@@ -103,6 +103,43 @@ function buildShipmentDateColorMap(
 function Badge({ label, cls }: { label: string; cls: string }) {
   return (
     <span className={`text-xs px-1.5 py-0.5 rounded ${cls}`}>{label}</span>
+  );
+}
+
+function statusBadgeProps(
+  order: { status: OrderStatusEnum; plannedDeliveryDate: Date | null; deliveryDate?: Date | null; deliveryMethodId?: string | null },
+  shipmentDateColorMap: Map<string, string>,
+  selfPickupDeliveryMethodId: string | null | undefined,
+): { label: string; cls: string } {
+  if (order.status === "SHIPMENT_PLANNED") {
+    const isPickup = order.deliveryMethodId === selfPickupDeliveryMethodId && selfPickupDeliveryMethodId != null;
+    const prefix = isPickup ? "Самовывоз" : ORDER_STATUS_CONFIG[order.status].label;
+    const datePart = order.plannedDeliveryDate
+      ? ` ${formatShortDate(order.plannedDeliveryDate)}`
+      : isPickup ? "" : " ???";
+    const cls = order.plannedDeliveryDate
+      ? (shipmentDateColorMap.get(new Date(order.plannedDeliveryDate).toISOString().split("T")[0]) ?? ORDER_STATUS_CONFIG[order.status].cls)
+      : ORDER_STATUS_CONFIG[order.status].cls;
+    return { label: prefix + datePart, cls };
+  }
+  return ORDER_STATUS_CONFIG[order.status];
+}
+
+function PaymentIcon({ paid }: { paid: boolean }) {
+  if (paid) {
+    return (
+      <span className="inline-flex flex-shrink-0" title="Оплачен">
+        <CircleDollarSign className="w-4 h-4 text-green-500" />
+      </span>
+    );
+  }
+  return (
+    <span className="relative inline-flex flex-shrink-0" title="Не оплачен">
+      <CircleDollarSign className="w-4 h-4 text-red-400" />
+      <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <span className="block w-3.5 h-px bg-red-500 rotate-45 rounded-full" />
+      </span>
+    </span>
   );
 }
 
@@ -281,6 +318,16 @@ export function OrdersGrid({
     [scrollToOrderIds],
   );
 
+  const allExpanded = orders.length > 0 && orders.every((o) => expandedOrders.has(o.id));
+
+  function toggleAll() {
+    if (allExpanded) {
+      setExpandedOrders(new Set());
+    } else {
+      setExpandedOrders(new Set(orders.map((o) => o.id)));
+    }
+  }
+
   function toggleExpand(id: string) {
     setExpandedOrders((prev) => {
       const next = new Set(prev);
@@ -338,6 +385,15 @@ export function OrdersGrid({
 
   return (
     <div className="mt-4">
+      <div className="flex justify-end mb-2">
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="text-sm text-slate-500 hover:text-slate-800 font-medium"
+        >
+          {allExpanded ? "Свернуть все" : "Развернуть все"}
+        </button>
+      </div>
       {/* Sticky column headers - only shown when any order is expanded */}
       <div className="hidden md:flex sticky top-0 bg-white z-10 border-b-2 border-slate-300 text-xs text-slate-400 mb-2 mx-px">
         <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 py-1.5`}>
@@ -547,9 +603,11 @@ export function OrdersGrid({
                               </span>
                               <span className="flex-1 min-w-0 truncate text-sm">{partnerName}</span>
                               <Badge
-                                label={ORDER_STATUS_CONFIG[order.status].label}
-                                cls={ORDER_STATUS_CONFIG[order.status].cls}
+                                {...statusBadgeProps(order, shipmentDateColorMap, selfPickupDeliveryMethodId)}
                               />
+                              {!marketplacePaymentMethodIdSet.has(order.paymentMethodId ?? "") && (
+                                <PaymentIcon paid={order.paymentStatus === PaymentStatusEnum.PAID} />
+                              )}
                               <ChevronDown
                                 className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                               />
@@ -625,9 +683,11 @@ export function OrdersGrid({
                               </div>
                               <div className="md:w-44 flex-shrink-0 flex items-center gap-2 px-3 py-0.5">
                                 <Badge
-                                  label={ORDER_STATUS_CONFIG[order.status].label}
-                                  cls={ORDER_STATUS_CONFIG[order.status].cls}
+                                  {...statusBadgeProps(order, shipmentDateColorMap, selfPickupDeliveryMethodId)}
                                 />
+                                {!marketplacePaymentMethodIdSet.has(order.paymentMethodId ?? "") && (
+                                  <PaymentIcon paid={order.paymentStatus === PaymentStatusEnum.PAID} />
+                                )}
                                 <ChevronDown
                                   className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ml-auto ${isExpanded ? "rotate-180" : ""}`}
                                 />
@@ -1076,9 +1136,12 @@ export function OrdersGrid({
                               !marketplacePaymentMethodIdSet.has(
                                 order.paymentMethodId,
                               ) ? (
-                                <Badge
-                                  {...PAYMENT_STATUS_CONFIG[order.paymentStatus]}
-                                />
+                                <div className="flex items-center gap-1.5">
+                                  <PaymentIcon paid={order.paymentStatus === PaymentStatusEnum.PAID} />
+                                  <Badge
+                                    {...PAYMENT_STATUS_CONFIG[order.paymentStatus]}
+                                  />
+                                </div>
                               ) : null}
                             </div>
                             {order.reserves.filter((r) => r.status === "ACTIVE")
