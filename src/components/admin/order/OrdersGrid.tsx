@@ -496,9 +496,11 @@ export function OrdersGrid({
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm text-right py-0.5 text-slate-600">{qtyPcs}</div>
                             <div className="text-sm text-right py-0.5 text-slate-600">
-                              {qtyM2 != null ? qtyM2.toFixed(2) : "—"}
+                              {qtyPcs}<span className="text-xs text-slate-400 ml-0.5">шт.</span>
+                            </div>
+                            <div className="text-sm text-right py-0.5 text-slate-600">
+                              {qtyM2 != null ? <>{qtyM2.toFixed(2)}<span className="text-xs text-slate-400 ml-0.5">м²</span></> : "—"}
                             </div>
                             <div className="text-sm text-right py-0.5 text-slate-500">
                               {approx(formatRub(priceRub))}
@@ -510,7 +512,7 @@ export function OrdersGrid({
                         );
                       };
                       const mobileItemRow = (item: OrderItem, key?: string) => {
-                        const { hideVariant, qtyPcs, qtyM2, priceRub, lineTotal } = itemCols(item);
+                        const { hideVariant, qtyPcs, qtyM2, lineTotal } = itemCols(item);
                         const variant = !hideVariant && item.productVariant.variantName
                           ? ` (${item.productVariant.variantName})` : "";
                         const qty = qtyM2 != null
@@ -771,12 +773,13 @@ export function OrdersGrid({
                                         {order.orderType === "RETURN"
                                           ? `-${item.quantity}`
                                           : item.quantity}
+                                        <span className="text-xs text-slate-400 ml-0.5">шт.</span>
                                       </div>
                                       <div className="text-sm text-right py-0.5">
                                         {item.quantityM2 !== null
-                                          ? order.orderType === "RETURN"
+                                          ? <>{order.orderType === "RETURN"
                                             ? `-${item.quantityM2.toFixed(2)}`
-                                            : item.quantityM2.toFixed(2)
+                                            : item.quantityM2.toFixed(2)}<span className="text-xs text-slate-400 ml-0.5">м²</span></>
                                           : "—"}
                                       </div>
                                       <div className="text-sm text-right py-0.5">
