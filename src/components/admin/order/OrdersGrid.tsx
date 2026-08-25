@@ -477,100 +477,107 @@ export function OrdersGrid({
                       const itemCols = (item: OrderItem) => {
                         const p = products.find((p) => p.id === item.productId);
                         const hideVariant = (p?.productVariants ?? []).length <= 1;
-                        const qty =
-                          item.quantityM2 != null
-                            ? `${order.orderType === "RETURN" ? "-" : ""}${item.quantityM2.toFixed(2)} м²`
-                            : `${order.orderType === "RETURN" ? "-" : ""}${item.quantity} шт`;
-                        const lineTotal =
-                          order.orderType === "RETURN"
-                            ? -Math.abs(item.totalRub)
-                            : item.totalRub;
-                        return { hideVariant, qty, lineTotal };
+                        const sign = order.orderType === "RETURN" ? -1 : 1;
+                        const qtyPcs = sign * item.quantity;
+                        const qtyM2 = item.quantityM2 != null ? sign * item.quantityM2 : null;
+                        const priceRub = sign * Math.abs(item.priceRub);
+                        const lineTotal = sign * Math.abs(item.totalRub);
+                        return { hideVariant, qtyPcs, qtyM2, priceRub, lineTotal };
+                      };
+                      const renderItemCells = (item: OrderItem) => {
+                        const { hideVariant, qtyPcs, qtyM2, priceRub, lineTotal } = itemCols(item);
+                        return (
+                          <>
+                            <div className="min-w-0 truncate text-sm py-0.5">
+                              {item.product.sku}
+                              {!hideVariant && item.productVariant.variantName && (
+                                <span className="text-slate-400 text-xs ml-1">
+                                  ({item.productVariant.variantName})
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-right py-0.5 text-slate-600">{qtyPcs}</div>
+                            <div className="text-sm text-right py-0.5 text-slate-600">
+                              {qtyM2 != null ? qtyM2.toFixed(2) : "—"}
+                            </div>
+                            <div className="text-sm text-right py-0.5 text-slate-500">
+                              {approx(formatRub(priceRub))}
+                            </div>
+                            <div className={`text-sm text-right py-0.5 font-medium ${isCancelled ? "line-through text-slate-400" : ""}`}>
+                              {approx(formatRub(lineTotal))}
+                            </div>
+                          </>
+                        );
                       };
                       return (
                         <div
                           className="cursor-pointer select-none pb-1"
                           onClick={() => toggleExpand(order.id)}
                         >
-                          {/* Row 1: order meta + first item (or empty state) */}
-                          <div className="flex items-center gap-2 px-3 py-1 text-sm">
-                            <div className="w-8 flex-shrink-0 font-semibold leading-tight text-sm">
-                              {order.sequenceNumber}
-                              {order.orderType === "RETURN" && (
-                                <div className="text-xs text-slate-400 font-normal leading-none">возврат</div>
+                          {/* Row 1: order meta + first item, badge and chevron in sidebar */}
+                          <div className="flex items-start">
+                            <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
+                              <div className="text-sm font-semibold leading-tight">
+                                {order.sequenceNumber}
+                                {order.orderType === "RETURN" && (
+                                  <div className="text-xs text-slate-400 font-normal leading-none">возврат</div>
+                                )}
+                              </div>
+                              <div className="text-xs text-slate-500">{formatDate(order.orderDate)}</div>
+                              <div className="text-sm truncate">{partnerName}</div>
+                              {firstItem ? renderItemCells(firstItem) : (
+                                <div className="col-span-5 text-slate-400 italic text-sm py-0.5">
+                                  {order.orderType === OrderTypeEnum.RETURN ? "Возврат без товаров" : "Нет товаров"}
+                                </div>
                               )}
                             </div>
-                            <span className="w-14 flex-shrink-0 text-xs text-slate-500 hidden sm:block">
-                              {formatDate(order.orderDate)}
-                            </span>
-                            <span className="w-28 md:w-40 flex-shrink-0 truncate">{partnerName}</span>
-                            {firstItem ? (() => {
-                              const { hideVariant, qty } = itemCols(firstItem);
-                              return (
-                                <>
-                                  <span className="flex-1 min-w-0 truncate">
-                                    {firstItem.product.sku}
-                                    {!hideVariant && firstItem.productVariant.variantName && (
-                                      <span className="text-slate-400 text-xs ml-1">
-                                        ({firstItem.productVariant.variantName})
-                                      </span>
-                                    )}
-                                  </span>
-                                  <span className="text-right flex-shrink-0 text-slate-500 text-xs">{qty}</span>
-                                </>
-                              );
-                            })() : (
-                              <span className="flex-1 text-slate-400 italic text-sm">
-                                {order.orderType === OrderTypeEnum.RETURN ? "Возврат без товаров" : "Нет товаров"}
-                              </span>
-                            )}
-                            <span className="hidden sm:block flex-shrink-0">
+                            <div className="md:w-44 flex-shrink-0 flex items-center gap-2 px-3 py-0.5">
                               <Badge
                                 label={ORDER_STATUS_CONFIG[order.status].label}
                                 cls={ORDER_STATUS_CONFIG[order.status].cls}
                               />
-                            </span>
-                            <ChevronDown
-                              className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                            />
+                              <ChevronDown
+                                className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ml-auto ${isExpanded ? "rotate-180" : ""}`}
+                              />
+                            </div>
                           </div>
 
-                          {/* Extra rows — items 2+, delivery */}
+                          {/* Extra rows — items 2+, delivery. Each row mirrors row 1: flex + grid(flex-1) + w-44 spacer */}
                           {extraLines > 0 && (
                             <>
-                              {order.items.slice(1).map((item) => {
-                                const { hideVariant, qty } = itemCols(item);
-                                return (
-                                  <div key={item.id} className="flex items-center gap-2 px-3 py-0.5 text-sm">
-                                    <span className="w-8 flex-shrink-0" />
-                                    <span className="w-14 flex-shrink-0 hidden sm:block" />
-                                    <span className="w-28 md:w-40 flex-shrink-0" />
-                                    <span className="flex-1 min-w-0 truncate">
-                                      {item.product.sku}
-                                      {!hideVariant && item.productVariant.variantName && (
-                                        <span className="text-slate-400 text-xs ml-1">
-                                          ({item.productVariant.variantName})
-                                        </span>
-                                      )}
-                                    </span>
-                                    <span className="text-right flex-shrink-0 text-slate-500 text-xs">{qty}</span>
+                              {order.items.slice(1).map((item) => (
+                                <div key={item.id} className="flex items-center">
+                                  <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
+                                    <div /><div /><div />
+                                    {renderItemCells(item)}
                                   </div>
-                                );
-                              })}
+                                  <div className="md:w-44 flex-shrink-0" />
+                                </div>
+                              ))}
                               {order.deliveryPriceRub > 0 && (
-                                <div className="flex items-center gap-2 px-3 py-0.5 text-sm">
-                                  <span className="w-8 flex-shrink-0" />
-                                  <span className="w-14 flex-shrink-0 hidden sm:block" />
-                                  <span className="w-28 md:w-40 flex-shrink-0" />
-                                  <span className="text-slate-500 italic">{order.deliveryMethod?.name ?? "Доставка"}</span>
+                                <div className="flex items-center">
+                                  <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
+                                    <div /><div /><div />
+                                    <div className="text-sm text-slate-500 italic py-0.5">{order.deliveryMethod?.name ?? "Доставка"}</div>
+                                    <div /><div /><div />
+                                    <div className="text-sm text-right py-0.5 text-slate-600">{formatRub(order.deliveryPriceRub)}</div>
+                                  </div>
+                                  <div className="md:w-44 flex-shrink-0" />
                                 </div>
                               )}
                               {order.ozonReturnData && order.ozonReturnData.returnLogisticFeeRub > 0 && (
-                                <div className="flex items-center gap-2 px-3 py-0.5 text-sm">
-                                  <span className="w-8 flex-shrink-0" />
-                                  <span className="w-14 flex-shrink-0 hidden sm:block" />
-                                  <span className="w-28 md:w-40 flex-shrink-0" />
-                                  <span className="text-slate-500 italic">Обратная логистика</span>
+                                <div className="flex items-center">
+                                  <div className={`flex-1 min-w-0 grid ${COLS} gap-x-3 px-3 items-center`}>
+                                    <div /><div /><div />
+                                    <div className="text-sm text-slate-500 italic py-0.5">
+                                      Обратная логистика{!order.ozonReturnData.feesSettled && " ≈"}
+                                    </div>
+                                    <div /><div /><div />
+                                    <div className="text-sm text-right py-0.5 text-slate-600">
+                                      −{Math.round(order.ozonReturnData.returnLogisticFeeRub).toLocaleString("ru-RU")} ₽
+                                    </div>
+                                  </div>
+                                  <div className="md:w-44 flex-shrink-0" />
                                 </div>
                               )}
                             </>
