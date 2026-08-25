@@ -154,9 +154,9 @@ export function OrdersFilterForm({
             setDateTo("");
             router.push("/admin");
           }}
-          className="text-sm text-slate-400 hover:text-slate-600"
+          className="text-sm text-slate-600 hover:text-slate-900 font-medium"
         >
-          Сбросить
+          Сбросить фильтры
         </button>
       )}
     </form>
