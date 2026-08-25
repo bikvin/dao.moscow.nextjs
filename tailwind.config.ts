@@ -57,6 +57,7 @@ const config: Config = {
       },
       boxShadow: {
         main: "0 3px 8px rgba(0, 0, 0, 0.24)",
+        soft: "0 2px 5px rgba(0, 0, 0, 0.18)",
       },
       fontFamily: {
         tinos: ["var(--font-tinos)", "serif"],
