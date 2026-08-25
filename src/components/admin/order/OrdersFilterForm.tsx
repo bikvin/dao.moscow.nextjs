@@ -123,10 +123,18 @@ export function OrdersFilterForm({
       <button type="submit" className="link-button link-button-gray text-sm">
         Найти
       </button>
-      {(partnerId || productId) && (
+      {(partnerId || productId || status !== "DEFAULT" || orderType || dateFrom || dateTo) && (
         <button
           type="button"
-          onClick={() => { setPartnerId(""); setProductId(""); submit(); }}
+          onClick={() => {
+            setPartnerId("");
+            setProductId("");
+            setStatus("DEFAULT");
+            setOrderType("");
+            setDateFrom("");
+            setDateTo("");
+            router.push("/admin");
+          }}
           className="text-sm text-slate-400 hover:text-slate-600"
         >
           Сбросить
