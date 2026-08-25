@@ -192,8 +192,10 @@ export default async function OrdersPage({
         },
       },
       orderBy: [{ year: "asc" }, { sequenceNumber: "asc" }],
-      skip: (currentPage - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
+      ...(statusFilter !== "DEFAULT" && {
+        skip: (currentPage - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+      }),
     }),
     db.order.count({ where }),
     db.partner.findMany({
@@ -289,12 +291,14 @@ export default async function OrdersPage({
             commissionPaymentMethodIds={commissionPaymentMethodIdsSetting ? JSON.parse(commissionPaymentMethodIdsSetting.value) : []}
           />
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            basePath="/admin"
-            searchParams={searchParams}
-          />
+          {statusFilter !== "DEFAULT" && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              basePath="/admin"
+              searchParams={searchParams}
+            />
+          )}
 
           {/* Create order form + import shortcut */}
           <div className="mt-20 mb-20">

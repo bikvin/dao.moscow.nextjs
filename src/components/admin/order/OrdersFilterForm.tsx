@@ -88,7 +88,7 @@ export function OrdersFilterForm({
         onChange={(e) => setStatus(e.target.value)}
         className="admin-form-input text-sm w-44"
       >
-        <option value="DEFAULT">Актуальные</option>
+        <option value="DEFAULT">2 мес. + незавершённые</option>
         <option value="ALL">Все заказы</option>
         {Object.values(OrderStatusEnum).filter((s) => s !== OrderStatusEnum.SELF_PICKUP).map((s) => (
           <option key={s} value={s}>{STATUS_LABELS[s]}</option>
