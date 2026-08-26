@@ -81,6 +81,7 @@ const PRICE_UNIT_LABELS: Record<PriceUnitEnum, string> = {
 const CURRENCY_LABELS: Record<CurrencyEnum, string> = {
   RUB: "₽",
   USD: "$",
+  EUR: "€",
   RMB: "¥",
 };
 

@@ -9,6 +9,7 @@ import { CurrencyEnum, PriceUnitEnum, ProductReceiptTypeEnum } from "@prisma/cli
 const currencySymbol: Record<CurrencyEnum, string> = {
   [CurrencyEnum.RUB]: "₽",
   [CurrencyEnum.USD]: "$",
+  [CurrencyEnum.EUR]: "€",
   [CurrencyEnum.RMB]: "¥",
 };
 

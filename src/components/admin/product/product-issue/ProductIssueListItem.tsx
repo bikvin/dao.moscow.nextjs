@@ -9,6 +9,7 @@ import { CurrencyEnum, ProductIssueEnum } from "@prisma/client";
 const currencySymbol: Record<CurrencyEnum, string> = {
   [CurrencyEnum.RUB]: "₽",
   [CurrencyEnum.USD]: "$",
+  [CurrencyEnum.EUR]: "€",
   [CurrencyEnum.RMB]: "¥",
 };
 
