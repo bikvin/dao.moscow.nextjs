@@ -42,6 +42,7 @@ const topMenuList: TopMenuItem[] = [
       { type: "link", name: "Заказы", link: "/admin" },
       { type: "link", name: "Дашборд", link: "/admin/dashboard", adminOnly: true },
       { type: "link", name: "Расходы", link: "/admin/expenses", adminOnly: true },
+      { type: "link", name: "Деньги на складе", link: "/admin/cash", adminOnly: true },
       { type: "link", name: "Счета и накладные", link: "/admin/invoices" },
       {
         type: "dropdown",

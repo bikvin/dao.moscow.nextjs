@@ -65,7 +65,13 @@ enum AddressTypeEnum {
 enum CurrencyEnum {
   RUB
   USD
+  EUR
   RMB
+}
+
+enum CashFlowType {
+  IN
+  OUT
 }
 
 enum PriceTypeEnum {
@@ -815,4 +821,19 @@ model InvoiceItem {
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
 
   @@index([invoiceId])
+}
+
+model CashTransaction {
+  id          String       @id @default(uuid())
+  date        DateTime
+  type        CashFlowType
+  currency    CurrencyEnum
+  amount      Int          // minor units: kopecks for RUB, cents for USD/EUR, fen for RMB
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([currency])
 }
