@@ -64,13 +64,13 @@ export function CreateCashTransactionForm({ defaultCurrency = CurrencyEnum.RUB }
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <form ref={formRef} action={action} className="flex flex-wrap gap-2 items-start">
+    <form ref={formRef} action={action} className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-start">
       <div className="flex flex-col gap-1">
         <input
           name="date"
           type="date"
           defaultValue={today}
-          className="admin-form-input text-sm w-36"
+          className="admin-form-input text-sm w-full sm:w-36"
         />
         {state.fieldErrors?.date && (
           <span className="text-xs text-red-500">{state.fieldErrors.date[0]}</span>
@@ -78,7 +78,7 @@ export function CreateCashTransactionForm({ defaultCurrency = CurrencyEnum.RUB }
       </div>
 
       <div className="flex flex-col gap-1">
-        <select name="type" defaultValue="IN" className="admin-form-input text-sm w-32">
+        <select name="type" defaultValue="IN" className="admin-form-input text-sm w-full sm:w-32">
           <option value="IN">Приход</option>
           <option value="OUT">Расход</option>
         </select>
@@ -88,7 +88,7 @@ export function CreateCashTransactionForm({ defaultCurrency = CurrencyEnum.RUB }
       </div>
 
       <div className="flex flex-col gap-1">
-        <select name="currency" defaultValue={defaultCurrency} className="admin-form-input text-sm w-36">
+        <select name="currency" defaultValue={defaultCurrency} className="admin-form-input text-sm w-full sm:w-36">
           {Object.values(CurrencyEnum).map((c) => (
             <option key={c} value={c}>{CURRENCY_LABELS[c]}</option>
           ))}
@@ -105,14 +105,14 @@ export function CreateCashTransactionForm({ defaultCurrency = CurrencyEnum.RUB }
           step="0.01"
           min="0.01"
           placeholder="Сумма"
-          className="admin-form-input text-sm w-36"
+          className="admin-form-input text-sm w-full sm:w-36"
         />
         {state.fieldErrors?.amount && (
           <span className="text-xs text-red-500">{state.fieldErrors.amount[0]}</span>
         )}
       </div>
 
-      <div className="flex flex-col gap-1 flex-1 min-w-48">
+      <div className="flex flex-col gap-1 col-span-2 sm:flex-1 sm:min-w-48">
         <input
           name="description"
           type="text"
@@ -122,10 +122,12 @@ export function CreateCashTransactionForm({ defaultCurrency = CurrencyEnum.RUB }
         />
       </div>
 
-      <SubmitButton />
+      <div className="col-span-2 sm:col-auto">
+        <SubmitButton />
+      </div>
 
       {state.error && (
-        <p className="w-full text-sm text-red-500">{state.error}</p>
+        <p className="col-span-2 text-sm text-red-500">{state.error}</p>
       )}
     </form>
   );
@@ -190,9 +192,9 @@ export function CashBalances({
 export function CashTableHeader({ currency }: { currency: CurrencyEnum }) {
   const sym = CURRENCY_SYMBOLS[currency];
   return (
-    <div className="grid grid-cols-[96px_180px_120px_120px_32px] gap-x-3 px-3 py-1.5 text-xs font-medium text-slate-400 border-b border-slate-200">
+    <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_32px] gap-x-3 px-3 py-1.5 text-xs font-medium text-slate-400 border-b border-slate-200">
       <div>Дата</div>
-      <div>Источник / комментарий</div>
+      <div>Описание</div>
       <div className="text-right text-emerald-600">Приход {sym}</div>
       <div className="text-right text-red-400">Расход {sym}</div>
       <div />
@@ -207,25 +209,45 @@ export function CashTransactionRow({ tx }: { tx: Transaction }) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+  const dateStr = new Date(tx.date).toLocaleDateString("ru-RU");
 
   return (
-    <div className="grid grid-cols-[96px_180px_120px_120px_32px] gap-x-3 px-3 py-1.5 text-sm hover:bg-slate-50 items-center">
-      <div className="text-xs text-slate-400">
-        {new Date(tx.date).toLocaleDateString("ru-RU")}
+    <>
+      {/* Mobile layout */}
+      <div className="sm:hidden flex items-center gap-2 px-3 py-2 border-b border-slate-50 hover:bg-slate-50">
+        <div className="flex-1 min-w-0">
+          <div className="text-sm text-slate-700 truncate">
+            {tx.description ?? <span className="text-slate-300 italic">—</span>}
+          </div>
+          <div className="text-xs text-slate-400 mt-0.5">{dateStr}</div>
+        </div>
+        <div className={`text-sm font-medium tabular-nums whitespace-nowrap ${isIn ? "text-emerald-600" : "text-red-500"}`}>
+          {isIn ? "+" : "−"}{formatted}
+        </div>
+        <DeleteItemButton
+          action={deleteCashTransactionAction}
+          fields={{ id: tx.id }}
+          message="Удалить операцию?"
+        />
       </div>
-      <div className="text-slate-700 truncate">{tx.description ?? <span className="text-slate-300 italic">—</span>}</div>
-      <div className={`text-right tabular-nums font-medium ${isIn ? "text-emerald-600" : "text-slate-200"}`}>
-        {isIn ? formatted : ""}
+
+      {/* Desktop layout */}
+      <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_32px] gap-x-3 px-3 py-1.5 text-sm hover:bg-slate-50 items-center">
+        <div className="text-xs text-slate-400">{dateStr}</div>
+        <div className="text-slate-700 truncate">{tx.description ?? <span className="text-slate-300 italic">—</span>}</div>
+        <div className={`text-right tabular-nums font-medium ${isIn ? "text-emerald-600" : "text-slate-200"}`}>
+          {isIn ? formatted : ""}
+        </div>
+        <div className={`text-right tabular-nums font-medium ${!isIn ? "text-red-500" : "text-slate-200"}`}>
+          {!isIn ? formatted : ""}
+        </div>
+        <DeleteItemButton
+          action={deleteCashTransactionAction}
+          fields={{ id: tx.id }}
+          message="Удалить операцию?"
+        />
       </div>
-      <div className={`text-right tabular-nums font-medium ${!isIn ? "text-red-500" : "text-slate-200"}`}>
-        {!isIn ? formatted : ""}
-      </div>
-      <DeleteItemButton
-        action={deleteCashTransactionAction}
-        fields={{ id: tx.id }}
-        message="Удалить операцию?"
-      />
-    </div>
+    </>
   );
 }
 
