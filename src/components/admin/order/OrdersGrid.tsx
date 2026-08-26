@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Pencil, FileText, ChevronDown, CircleDollarSign } from "lucide-react";
+import { Pencil, FileText, ChevronDown, CircleDollarSign, ChevronsUp, ChevronsDown } from "lucide-react";
 import { CreateOrderForm } from "./CreateOrderForm";
 import { type ProductOption } from "./AddOrderItemForm";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
@@ -1312,6 +1312,26 @@ export function OrdersGrid({
             </div>
           );
         })}
+      </div>
+
+      {/* Fixed scroll shortcuts */}
+      <div className="fixed bottom-6 right-4 flex flex-col gap-2 z-50">
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          title="К фильтрам"
+          className="w-9 h-9 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center text-slate-400 hover:text-slate-800 hover:border-slate-300 transition-colors"
+        >
+          <ChevronsUp className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}
+          title="К последнему заказу"
+          className="w-9 h-9 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center text-slate-400 hover:text-slate-800 hover:border-slate-300 transition-colors"
+        >
+          <ChevronsDown className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
