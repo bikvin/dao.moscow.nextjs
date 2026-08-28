@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createCashTransaction } from "@/actions/cash/createCashTransaction";
+import { updateCashTransaction } from "@/actions/cash/updateCashTransaction";
 import { deleteCashTransactionAction } from "@/actions/cash/deleteCashTransactionAction";
 import { CashFlowType, CurrencyEnum } from "@prisma/client";
 import { type CashTransactionFormState } from "@/zod/cash";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
-import { ChevronsUp, ChevronsDown } from "lucide-react";
+import { ChevronsUp, ChevronsDown, Pencil, X, Check } from "lucide-react";
 
 const CURRENCY_LABELS: Record<CurrencyEnum, string> = {
   RUB: "₽ Рубль",
@@ -192,24 +193,73 @@ export function CashBalances({
 export function CashTableHeader({ currency }: { currency: CurrencyEnum }) {
   const sym = CURRENCY_SYMBOLS[currency];
   return (
-    <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_32px] gap-x-3 px-3 py-1.5 text-xs font-medium text-slate-400 border-b border-slate-200">
+    <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_32px_28px] gap-x-2 px-3 py-1.5 text-xs font-medium text-slate-400 border-b border-slate-200">
       <div>Дата</div>
       <div>Описание</div>
       <div className="text-right text-emerald-600">Приход {sym}</div>
       <div className="text-right text-red-400">Расход {sym}</div>
       <div />
+      <div />
     </div>
   );
 }
 
-// Single row in the ledger table.
+// Single row in the ledger table with inline edit support.
 export function CashTransactionRow({ tx }: { tx: Transaction }) {
+  const [editing, setEditing] = useState(false);
+  const boundUpdate = updateCashTransaction.bind(null, tx.id);
+  const [state, updateAction] = useFormState<CashTransactionFormState, FormData>(boundUpdate, {});
+  const prevStateRef = useRef(state);
+
+  useEffect(() => {
+    if (prevStateRef.current !== state && !state.fieldErrors && !state.error) {
+      setEditing(false);
+    }
+    prevStateRef.current = state;
+  }, [state]);
+
   const isIn = tx.type === CashFlowType.IN;
   const formatted = (tx.amount / 100).toLocaleString("ru-RU", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
   const dateStr = new Date(tx.date).toLocaleDateString("ru-RU");
+  const dateInput = new Date(tx.date).toISOString().slice(0, 10);
+  const amountInput = (tx.amount / 100).toFixed(2);
+
+  if (editing) {
+    return (
+      <form action={updateAction} className="border-b border-slate-100 last:border-0 bg-slate-50">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 px-3 py-2">
+          <input name="date" type="date" defaultValue={dateInput} className="admin-form-input text-sm w-full sm:w-32" />
+          <select name="type" defaultValue={tx.type} className="admin-form-input text-sm w-full sm:w-24">
+            <option value="IN">Приход</option>
+            <option value="OUT">Расход</option>
+          </select>
+          <select name="currency" defaultValue={tx.currency} className="admin-form-input text-sm w-full sm:w-28">
+            {Object.values(CurrencyEnum).map((c) => (
+              <option key={c} value={c}>{CURRENCY_LABELS[c]}</option>
+            ))}
+          </select>
+          <input name="amount" type="number" step="0.01" min="0.01" defaultValue={amountInput} className="admin-form-input text-sm w-full sm:w-32" />
+          <input name="description" type="text" defaultValue={tx.description ?? ""} placeholder="Описание" className="admin-form-input text-sm col-span-2 w-full sm:flex-1 sm:min-w-32" />
+          <div className="col-span-2 sm:col-auto flex gap-2 items-center">
+            <button type="submit" className="flex items-center gap-1 text-sm px-3 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700">
+              <Check className="w-3.5 h-3.5" /> Сохранить
+            </button>
+            <button type="button" onClick={() => setEditing(false)} className="text-sm text-slate-400 hover:text-slate-600 px-1">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        {(state.fieldErrors || state.error) && (
+          <div className="px-3 pb-2 text-xs text-red-500">
+            {state.error ?? Object.values(state.fieldErrors ?? {}).flat()[0]}
+          </div>
+        )}
+      </form>
+    );
+  }
 
   return (
     <>
@@ -224,6 +274,9 @@ export function CashTransactionRow({ tx }: { tx: Transaction }) {
         <div className={`text-sm font-medium tabular-nums whitespace-nowrap ${isIn ? "text-emerald-600" : "text-red-500"}`}>
           {isIn ? "+" : "−"}{formatted}
         </div>
+        <button type="button" onClick={() => setEditing(true)} className="text-slate-300 hover:text-slate-500 flex-shrink-0">
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
         <DeleteItemButton
           action={deleteCashTransactionAction}
           fields={{ id: tx.id }}
@@ -232,7 +285,7 @@ export function CashTransactionRow({ tx }: { tx: Transaction }) {
       </div>
 
       {/* Desktop layout */}
-      <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_32px] gap-x-3 px-3 py-1.5 text-sm hover:bg-slate-50 items-center">
+      <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_32px_28px] gap-x-2 px-3 py-1.5 text-sm hover:bg-slate-50 items-center">
         <div className="text-xs text-slate-400">{dateStr}</div>
         <div className="text-slate-700 truncate">{tx.description ?? <span className="text-slate-300 italic">—</span>}</div>
         <div className={`text-right tabular-nums font-medium ${isIn ? "text-emerald-600" : "text-slate-200"}`}>
@@ -246,6 +299,9 @@ export function CashTransactionRow({ tx }: { tx: Transaction }) {
           fields={{ id: tx.id }}
           message="Удалить операцию?"
         />
+        <button type="button" onClick={() => setEditing(true)} className="text-slate-300 hover:text-slate-500 flex justify-center">
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
       </div>
     </>
   );
