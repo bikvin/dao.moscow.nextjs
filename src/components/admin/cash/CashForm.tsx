@@ -79,10 +79,16 @@ export function CreateCashTransactionForm({ defaultCurrency = CurrencyEnum.RUB }
       </div>
 
       <div className="flex flex-col gap-1">
-        <select name="type" defaultValue="IN" className="admin-form-input text-sm w-full sm:w-32">
-          <option value="IN">Приход</option>
-          <option value="OUT">Расход</option>
-        </select>
+        <div className="flex rounded-md overflow-hidden border border-slate-200 text-sm h-[34px]">
+          <label className="flex-1 flex items-center justify-center gap-1.5 cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:text-emerald-700 has-[:checked]:border-emerald-300 px-3">
+            <input type="radio" name="type" value="IN" defaultChecked className="sr-only" />
+            Приход
+          </label>
+          <label className="flex-1 flex items-center justify-center gap-1.5 cursor-pointer border-l border-slate-200 has-[:checked]:bg-red-50 has-[:checked]:text-red-600 has-[:checked]:border-red-300 px-3">
+            <input type="radio" name="type" value="OUT" className="sr-only" />
+            Расход
+          </label>
+        </div>
         {state.fieldErrors?.type && (
           <span className="text-xs text-red-500">{state.fieldErrors.type[0]}</span>
         )}
@@ -232,10 +238,16 @@ export function CashTransactionRow({ tx }: { tx: Transaction }) {
       <form action={updateAction} className="border-b border-slate-100 last:border-0 bg-slate-50">
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 px-3 py-2">
           <input name="date" type="date" defaultValue={dateInput} className="admin-form-input text-sm w-full sm:w-32" />
-          <select name="type" defaultValue={tx.type} className="admin-form-input text-sm w-full sm:w-24">
-            <option value="IN">Приход</option>
-            <option value="OUT">Расход</option>
-          </select>
+          <div className="flex rounded-md overflow-hidden border border-slate-200 text-sm h-[34px] w-full sm:w-auto">
+            <label className="flex-1 flex items-center justify-center cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:text-emerald-700 px-3">
+              <input type="radio" name="type" value="IN" defaultChecked={tx.type === "IN"} className="sr-only" />
+              Приход
+            </label>
+            <label className="flex-1 flex items-center justify-center cursor-pointer border-l border-slate-200 has-[:checked]:bg-red-50 has-[:checked]:text-red-600 px-3">
+              <input type="radio" name="type" value="OUT" defaultChecked={tx.type === "OUT"} className="sr-only" />
+              Расход
+            </label>
+          </div>
           <select name="currency" defaultValue={tx.currency} className="admin-form-input text-sm w-full sm:w-28">
             {Object.values(CurrencyEnum).map((c) => (
               <option key={c} value={c}>{CURRENCY_LABELS[c]}</option>
