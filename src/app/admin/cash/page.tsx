@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
-import { requireAdmin } from "@/lib/requireAdmin";
 import { CurrencyEnum } from "@prisma/client";
 import { CreateCashTransactionForm, CashBalances, CashTransactionRow, CashTableHeader, ScrollButtons } from "@/components/admin/cash/CashForm";
 import { CashFilters } from "@/components/admin/cash/CashFilters";
@@ -13,8 +12,6 @@ export default async function CashPage({
 }: {
   searchParams: { currency?: string; year?: string };
 }) {
-  await requireAdmin();
-
   const currentYear = new Date().getFullYear();
   const selectedYear = parseInt(searchParams.year ?? String(currentYear), 10) || currentYear;
   const selectedCurrency: CurrencyEnum = (searchParams.currency as CurrencyEnum | undefined) ?? CurrencyEnum.RUB;

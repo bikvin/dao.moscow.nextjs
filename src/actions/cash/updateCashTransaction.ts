@@ -1,7 +1,6 @@
 "use server";
 
 import { db } from "@/db";
-import { requireAdmin } from "@/lib/requireAdmin";
 import { cashTransactionSchema, CashTransactionFormState } from "@/zod/cash";
 import { revalidatePath } from "next/cache";
 
@@ -11,8 +10,6 @@ export async function updateCashTransaction(
   _prev: CashTransactionFormState,
   formData: FormData,
 ): Promise<CashTransactionFormState> {
-  await requireAdmin();
-
   const parsed = cashTransactionSchema.safeParse({
     date: formData.get("date"),
     type: formData.get("type"),
