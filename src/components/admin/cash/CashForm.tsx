@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createCashTransaction } from "@/actions/cash/createCashTransaction";
 import { updateCashTransaction } from "@/actions/cash/updateCashTransaction";
 import { deleteCashTransactionAction } from "@/actions/cash/deleteCashTransactionAction";
+import { linkCashToExpense } from "@/actions/cash/linkCashToExpense";
+import { unlinkCashFromExpense } from "@/actions/cash/unlinkCashFromExpense";
 import { CashFlowType, CurrencyEnum } from "@prisma/client";
 import { type CashTransactionFormState } from "@/zod/cash";
 import { DeleteItemButton } from "@/components/admin/partner/DeleteItemButton";
-import { ChevronsUp, ChevronsDown, Pencil, X, Check } from "lucide-react";
+import { ChevronsUp, ChevronsDown, Pencil, X, Check, Tag } from "lucide-react";
 
 const CURRENCY_LABELS: Record<CurrencyEnum, string> = {
   RUB: "₽ Рубль",
@@ -32,6 +34,7 @@ type Transaction = {
   currency: CurrencyEnum;
   amount: number;
   description: string | null;
+  expenseId: string | null;
 };
 
 function SubmitButton() {
@@ -199,11 +202,12 @@ export function CashBalances({
 export function CashTableHeader({ currency }: { currency: CurrencyEnum }) {
   const sym = CURRENCY_SYMBOLS[currency];
   return (
-    <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_32px_28px] gap-x-2 px-3 py-1.5 text-xs font-medium text-slate-400 border-b border-slate-200">
+    <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_28px_28px_28px] gap-x-2 px-3 py-1.5 text-xs font-medium text-slate-400 border-b border-slate-200">
       <div>Дата</div>
       <div>Описание</div>
       <div className="text-right text-emerald-600">Приход {sym}</div>
       <div className="text-right text-red-400">Расход {sym}</div>
+      <div />
       <div />
       <div />
     </div>
@@ -211,8 +215,19 @@ export function CashTableHeader({ currency }: { currency: CurrencyEnum }) {
 }
 
 // Single row in the ledger table with inline edit support.
-export function CashTransactionRow({ tx }: { tx: Transaction }) {
+export function CashTransactionRow({ tx, isAdmin }: { tx: Transaction; isAdmin: boolean }) {
   const [editing, setEditing] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  function toggleExpense() {
+    startTransition(async () => {
+      if (tx.expenseId) {
+        await unlinkCashFromExpense(tx.id);
+      } else {
+        await linkCashToExpense(tx.id);
+      }
+    });
+  }
   const boundUpdate = updateCashTransaction.bind(null, tx.id);
   const [state, updateAction] = useFormState<CashTransactionFormState, FormData>(boundUpdate, {});
   const prevStateRef = useRef(state);
@@ -294,10 +309,21 @@ export function CashTransactionRow({ tx }: { tx: Transaction }) {
           fields={{ id: tx.id }}
           message="Удалить операцию?"
         />
+        {isAdmin && !isIn && (
+          <button
+            type="button"
+            onClick={toggleExpense}
+            disabled={isPending}
+            title={tx.expenseId ? "Убрать из расходов" : "Добавить в расходы"}
+            className={`flex-shrink-0 transition-colors ${tx.expenseId ? "text-amber-500 hover:text-amber-700" : "text-slate-300 hover:text-slate-500"}`}
+          >
+            <Tag className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Desktop layout */}
-      <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_32px_28px] gap-x-2 px-3 py-1.5 text-sm hover:bg-slate-50 items-center">
+      <div className="hidden sm:grid grid-cols-[96px_180px_120px_120px_28px_28px_28px] gap-x-2 px-3 py-1.5 text-sm hover:bg-slate-50 items-center">
         <div className="text-xs text-slate-400">{dateStr}</div>
         <div className="text-slate-700 truncate">{tx.description ?? <span className="text-slate-300 italic">—</span>}</div>
         <div className={`text-right tabular-nums font-medium ${isIn ? "text-emerald-600" : "text-slate-200"}`}>
@@ -314,6 +340,19 @@ export function CashTransactionRow({ tx }: { tx: Transaction }) {
         <button type="button" onClick={() => setEditing(true)} className="text-slate-300 hover:text-slate-500 flex justify-center">
           <Pencil className="w-3.5 h-3.5" />
         </button>
+        <div className="flex justify-center">
+          {isAdmin && !isIn && (
+            <button
+              type="button"
+              onClick={toggleExpense}
+              disabled={isPending}
+              title={tx.expenseId ? "Убрать из расходов" : "Добавить в расходы"}
+              className={`transition-colors ${tx.expenseId ? "text-amber-500 hover:text-amber-700" : "text-slate-300 hover:text-slate-500"}`}
+            >
+              <Tag className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
     </>
   );

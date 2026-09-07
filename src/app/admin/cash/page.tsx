@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import { db } from "@/db";
+import { auth } from "@/auth";
 import { CurrencyEnum } from "@prisma/client";
 import { CreateCashTransactionForm, CashBalances, CashTransactionRow, CashTableHeader, ScrollButtons } from "@/components/admin/cash/CashForm";
 import { CashFilters } from "@/components/admin/cash/CashFilters";
@@ -12,6 +13,9 @@ export default async function CashPage({
 }: {
   searchParams: { currency?: string; year?: string };
 }) {
+  const session = await auth();
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const currentYear = new Date().getFullYear();
   const selectedYear = parseInt(searchParams.year ?? String(currentYear), 10) || currentYear;
   const selectedCurrency: CurrencyEnum = (searchParams.currency as CurrencyEnum | undefined) ?? CurrencyEnum.RUB;
@@ -84,7 +88,7 @@ export default async function CashPage({
           ) : (
             <div className="border-x border-b border-slate-100 rounded-b-md overflow-hidden">
               {allTransactions.map((tx) => (
-                <CashTransactionRow key={tx.id} tx={tx} />
+                <CashTransactionRow key={tx.id} tx={tx} isAdmin={isAdmin} />
               ))}
             </div>
           )}
