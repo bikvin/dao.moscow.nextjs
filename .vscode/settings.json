@@ -9,11 +9,11 @@
   "folder-color.pathColors": [
     {
       "folderPath": "dao.moscow.nextjs/src/components/",
-      "color": "foldercolorizer.color_00ccff"
+      "color": "foldercolorizer.color_00d7ff"
     },
     {
       "folderPath": "dao.moscow.nextjs/src/app/",
-      "color": "foldercolorizer.color_00cc00"
+      "color": "foldercolorizer.color_00ff00"
     },
     {
       "folderPath": "dao.moscow.nextjs/src/actions/",
