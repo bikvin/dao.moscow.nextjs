@@ -15,6 +15,7 @@ import { OzonAverageCommissionPercentForm } from "@/components/admin/ozon/OzonAv
 import { OzonAverageReturnLogisticFeeForm } from "@/components/admin/ozon/OzonAverageReturnLogisticFeeForm";
 import { RecalculateOzonCommissionsButton } from "@/components/admin/ozon/RecalculateOzonCommissionsButton";
 import { OzonDebugReturnsButton } from "@/components/admin/ozon/OzonDebugReturnsButton";
+import { OzonApiKeySettingsForm } from "@/components/admin/ozon/OzonApiKeySettingsForm";
 import Link from "next/link";
 import { OzonSyncStatusEnum } from "@prisma/client";
 
@@ -24,6 +25,8 @@ export default async function OzonPage() {
     bufferSetting, divisorSetting, warehouseSetting, markupSetting, crossedMarkupSetting,
     partnerIdSetting, paymentMethodIdSetting, avgServiceFeeSetting, avgCommissionPercentSetting,
     avgReturnLogisticFeeSetting,
+    ozonKeyRenewDateSetting,
+    ozonKeyPeriodDaysSetting,
     partners, paymentMethods,
   ] = await Promise.all([
     db.ozonSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
@@ -38,6 +41,8 @@ export default async function OzonPage() {
     db.settings.findUnique({ where: { field: "ozonAverageServiceFeeRub" } }),
     db.settings.findUnique({ where: { field: "ozonAverageCommissionPercent" } }),
     db.settings.findUnique({ where: { field: "ozonAverageReturnLogisticFeeRub" } }),
+    db.settings.findUnique({ where: { field: "ozonKeyRenewDate" } }),
+    db.settings.findUnique({ where: { field: "ozonKeyPeriodDays" } }),
     db.partner.findMany({
       include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
       orderBy: { createdAt: "desc" },
@@ -56,6 +61,8 @@ export default async function OzonPage() {
   const avgCommissionPercent = avgCommissionPercentSetting ? parseFloat(avgCommissionPercentSetting.value) : null;
   const avgReturnLogisticFee = avgReturnLogisticFeeSetting ? parseFloat(avgReturnLogisticFeeSetting.value) : null;
   const partnerOptions = partners.map((p) => ({ id: p.id, name: p.names[0]?.name ?? p.id }));
+  const ozonKeyRenewDate = ozonKeyRenewDateSetting?.value ?? null;
+  const ozonKeyPeriodDays = parseInt(ozonKeyPeriodDaysSetting?.value ?? "90", 10);
 
   return (
     <>
@@ -155,6 +162,21 @@ export default async function OzonPage() {
               <OzonPartnerForm partners={partnerOptions} currentPartnerId={currentPartnerId} />
               <OzonPaymentMethodForm paymentMethods={paymentMethods} currentPaymentMethodId={currentPaymentMethodId} />
             </div>
+          </div>
+
+          {/* API key expiry tracking */}
+          <div className="border rounded-md p-4 mt-8 shadow-main">
+            <h2 className="text-lg font-medium mb-2">API ключ</h2>
+            <p className="text-sm text-slate-500 mb-3">
+              Укажите дату последнего обновления ключа и срок его действия. Напоминание появится на странице склада за 14 дней до истечения.
+            </p>
+            <OzonApiKeySettingsForm
+              currentRenewDate={ozonKeyRenewDate}
+              currentPeriodDays={ozonKeyPeriodDays}
+            />
+            <p className="text-xs text-slate-400 mt-3">
+              Для обновления ключа на сервере: <code className="bg-slate-100 px-1 rounded">~/update-ozon-key.sh &lt;new-key&gt;</code>
+            </p>
           </div>
 
           {/* Commissions recalculation */}

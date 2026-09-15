@@ -5,10 +5,21 @@ import Link from "next/link";
 import { OzonSyncStatusEnum, YandexSyncStatusEnum } from "@prisma/client";
 
 export default async function WarehousePage() {
-  const [lastYandexLog, lastOzonLog] = await Promise.all([
+  const [lastYandexLog, lastOzonLog, ozonKeyRenewDateSetting, ozonKeyPeriodDaysSetting] = await Promise.all([
     db.yandexSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.ozonSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
+    db.settings.findUnique({ where: { field: "ozonKeyRenewDate" } }),
+    db.settings.findUnique({ where: { field: "ozonKeyPeriodDays" } }),
   ]);
+
+  const ozonKeyRenewDate = ozonKeyRenewDateSetting?.value ?? null;
+  const ozonKeyPeriodDays = parseInt(ozonKeyPeriodDaysSetting?.value ?? "90", 10);
+  let ozonKeyDaysLeft: number | null = null;
+  if (ozonKeyRenewDate) {
+    const expiresAt = new Date(ozonKeyRenewDate);
+    expiresAt.setDate(expiresAt.getDate() + ozonKeyPeriodDays);
+    ozonKeyDaysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  }
 
   return (
     <>
@@ -16,6 +27,28 @@ export default async function WarehousePage() {
 
       <div className="max-w-screen-lg mx-auto">
         <div className="w-[90%] mx-auto">
+          {/* Ozon API key expiry warning */}
+          {ozonKeyDaysLeft !== null && ozonKeyDaysLeft <= 14 && (
+            <div className={`mt-4 rounded-md px-4 py-3 text-sm ${ozonKeyDaysLeft <= 0 ? "bg-red-50 border border-red-200 text-red-700" : "bg-amber-50 border border-amber-200 text-amber-800"}`}>
+              <p className="font-medium">
+                {ozonKeyDaysLeft <= 0
+                  ? `Ключ Ozon API истёк ${Math.abs(ozonKeyDaysLeft)} дн. назад`
+                  : `Ключ Ozon API истекает через ${ozonKeyDaysLeft} дн.`}
+              </p>
+              <p className="mt-1 text-xs opacity-80">
+                Получите новый ключ в&nbsp;кабинете Ozon → Настройки → API&nbsp;ключи, затем выполните на сервере:
+              </p>
+              <code className="mt-1 block text-xs bg-white/60 rounded px-2 py-1 font-mono">
+                ssh bikvin@31.130.144.112 <br />
+                ~/update-ozon-key.sh &lt;новый-ключ&gt;
+              </code>
+              <p className="mt-1 text-xs opacity-80">
+                После обновления не забудьте обновить дату ключа на&nbsp;
+                <Link href="/admin/ozon" className="underline">странице Ozon</Link>.
+              </p>
+            </div>
+          )}
+
           {/* Marketplace sync banners — only shown on error */}
           <div className="mt-4 mb-2 flex flex-col gap-1">
             {lastYandexLog && lastYandexLog.status !== YandexSyncStatusEnum.SUCCESS && (
