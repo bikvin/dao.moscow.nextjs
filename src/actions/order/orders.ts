@@ -74,8 +74,12 @@ export async function createOrder(
       const customSeqNum = customSeqNumRaw ? parseInt(customSeqNumRaw, 10) : null;
 
       if (customSeqNum !== null) {
-        if (isNaN(customSeqNum) || customSeqNum <= maxSeqNum) {
-          throw new Error(`Номер заказа должен быть больше ${maxSeqNum}`);
+        if (isNaN(customSeqNum) || customSeqNum < 1) {
+          throw new Error(`Укажите корректный номер заказа`);
+        }
+        const existing = await tx.order.findUnique({ where: { year_sequenceNumber: { year, sequenceNumber: customSeqNum } } });
+        if (existing) {
+          throw new Error(`Номер заказа ${customSeqNum} уже занят`);
         }
       }
 

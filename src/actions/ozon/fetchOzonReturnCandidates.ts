@@ -169,8 +169,8 @@ async function fetchReturnLogisticsMap(
           page_size: 1000,
         }),
       });
-      const data = await res.json();
       if (!res.ok) break;
+      const data = await res.json();
 
       const ops: {
         operation_type: string;
