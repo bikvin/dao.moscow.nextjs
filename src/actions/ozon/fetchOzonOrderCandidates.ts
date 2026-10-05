@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { fetchOzonPostings } from "@/lib/ozon/fetchOzonPostings";
-import { fetchOzonTransactions, getOzonService } from "@/lib/ozon/fetchOzonTransactions";
+import { fetchOzonAccrualsByPosting } from "@/lib/ozon/fetchOzonTransactions";
 import { fetchOzonBuyoutProducts } from "@/lib/ozon/fetchOzonBuyoutProducts";
 import { OrderStatusEnum } from "@prisma/client";
 
@@ -203,41 +203,22 @@ export async function fetchOzonOrderCandidates(
 
     if (deliveredWithPayout.length > 0) {
       const deliveredNumbers = deliveredWithPayout.map((c) => c.postingNumber);
-      const txFrom = new Date(from);
-      txFrom.setDate(txFrom.getDate() - 7);
-      const txTo = new Date(to);
-      txTo.setDate(txTo.getDate() + 7);
-
-      const transactions = await fetchOzonTransactions(txFrom, txTo, deliveredNumbers);
-
-      const txByPosting = new Map<string, typeof transactions>();
-      for (const tx of transactions) {
-        const num = tx.posting?.posting_number;
-        if (!num) continue;
-        if (!txByPosting.has(num)) txByPosting.set(num, []);
-        txByPosting.get(num)!.push(tx);
-      }
+      const accrualMap = await fetchOzonAccrualsByPosting(deliveredNumbers);
 
       for (const candidate of deliveredWithPayout) {
-        const txList = txByPosting.get(candidate.postingNumber) ?? [];
-        const mainTx = txList.find((tx) => tx.operation_type === "OperationAgentDeliveredToCustomer");
-        if (!mainTx) continue;
+        const accruals = accrualMap.get(candidate.postingNumber);
+        if (!accruals?.isSettled) continue;
 
-        const allServices = txList.flatMap((tx) => tx.services);
-        const logisticsRub = Math.abs(
-          getOzonService(allServices, "MarketplaceServiceItemDirectFlowLogistic") +
-          getOzonService(allServices, "MarketplaceServiceItemDeliveryToHandoverPlaceOzon")
-        );
-        const dropoffRub = Math.abs(
-          getOzonService(allServices, "MarketplaceServiceItemDropoffPVZ") +
-          getOzonService(allServices, "MarketplaceServiceItemRedistributionDropOffApvz")
-        );
-        const lastMileRub = Math.abs(getOzonService(allServices, "MarketplaceServiceItemRedistributionLastMileCourier"));
-        const starsMembershipRub = Math.abs(getOzonService(allServices, "ItemAgentServiceStarsMembership"));
-        const acquiringRub = Math.abs(getOzonService(allServices, "MarketplaceRedistributionOfAcquiringOperation"));
-        const total = logisticsRub + dropoffRub + lastMileRub + starsMembershipRub + acquiringRub;
-
-        candidate.serviceFeesBreakdown = { logisticsRub, dropoffRub, lastMileRub, starsMembershipRub, acquiringRub, total };
+        // New Ozon API doesn't expose per-service breakdown; store total in logisticsRub.
+        const total = accruals.totalFeesRub;
+        candidate.serviceFeesBreakdown = {
+          logisticsRub: total,
+          dropoffRub: 0,
+          lastMileRub: 0,
+          starsMembershipRub: 0,
+          acquiringRub: 0,
+          total,
+        };
       }
     }
 

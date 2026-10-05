@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { fetchOzonPostings } from "@/lib/ozon/fetchOzonPostings";
-import { fetchOzonTransactions, getOzonService, type OzonTransaction } from "@/lib/ozon/fetchOzonTransactions";
+import { fetchOzonAccrualsByPosting } from "@/lib/ozon/fetchOzonTransactions";
 
 // Finds all imported Ozon orders with unsettled fees, fetches transaction data,
 // and for orders where the main sale operation has settled: recalculates per-item
@@ -26,24 +26,16 @@ export async function recalculateOzonCommissions(): Promise<{ updated: number }>
   const fromDate = new Date(minDate);
   fromDate.setDate(fromDate.getDate() - 1);
 
-  const allPostings = await fetchOzonPostings({ fromDate });
+  const [allPostings, accrualMap] = await Promise.all([
+    fetchOzonPostings({ fromDate }),
+    fetchOzonAccrualsByPosting(unsettledPostingNumbers),
+  ]);
+
   const postingMap = new Map(
     allPostings
       .filter((p) => unsettledPostingNumbers.includes(p.posting_number))
       .map((p) => [p.posting_number, p])
   );
-
-  const toDate = new Date();
-  const transactions = await fetchOzonTransactions(fromDate, toDate, unsettledPostingNumbers);
-
-  // Group transactions by posting number
-  const txByPosting = new Map<string, OzonTransaction[]>();
-  for (const tx of transactions) {
-    const num = tx.posting?.posting_number;
-    if (!num) continue;
-    if (!txByPosting.has(num)) txByPosting.set(num, []);
-    txByPosting.get(num)!.push(tx);
-  }
 
   const globalDivisorSetting = await db.settings.findUnique({
     where: { field: "ozonDefaultDivisor" },
@@ -75,31 +67,24 @@ export async function recalculateOzonCommissions(): Promise<{ updated: number }>
   for (const order of unsettled) {
     const ozonData = order.ozonData!;
     const posting = postingMap.get(ozonData.postingNumber);
-    const txList = txByPosting.get(ozonData.postingNumber) ?? [];
+    const accruals = accrualMap.get(ozonData.postingNumber);
 
-    // Only settle when the main delivery operation is present
-    const mainTx = txList.find((tx) => tx.operation_type === "OperationAgentDeliveredToCustomer");
-    if (!posting || !mainTx) continue;
+    // Only settle when Ozon has recorded final accruals for this posting
+    if (!posting || !accruals?.isSettled) continue;
 
     const totalOzonUnits = posting.products.reduce((s, p) => s + p.quantity, 0);
     const financialByProductId = new Map(
       (posting.financial_data?.products ?? []).map((fp) => [fp.product_id, fp])
     );
 
-    // Sum all service fees across all transaction operations for this posting
-    const allServices = txList.flatMap((tx) => tx.services);
-    const logisticsRub = Math.abs(
-      getOzonService(allServices, "MarketplaceServiceItemDirectFlowLogistic") +
-      getOzonService(allServices, "MarketplaceServiceItemDeliveryToHandoverPlaceOzon")
-    );
-    const dropoffRub = Math.abs(
-      getOzonService(allServices, "MarketplaceServiceItemDropoffPVZ") +
-      getOzonService(allServices, "MarketplaceServiceItemRedistributionDropOffApvz")
-    );
-    const lastMileRub = Math.abs(getOzonService(allServices, "MarketplaceServiceItemRedistributionLastMileCourier"));
-    const starsMembershipRub = Math.abs(getOzonService(allServices, "ItemAgentServiceStarsMembership"));
-    const acquiringRub = Math.abs(getOzonService(allServices, "MarketplaceRedistributionOfAcquiringOperation"));
-    const totalServiceFees = logisticsRub + dropoffRub + lastMileRub + starsMembershipRub + acquiringRub;
+    // Total service fees = sum of all negative non-product accruals (sku === 0).
+    // The new Ozon API doesn't expose per-service breakdown, so store everything in logisticsRub.
+    const totalServiceFees = accruals.totalFeesRub;
+    const logisticsRub = totalServiceFees;
+    const dropoffRub = 0;
+    const lastMileRub = 0;
+    const starsMembershipRub = 0;
+    const acquiringRub = 0;
 
     let newTotalRub = 0;
 

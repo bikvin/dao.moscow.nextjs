@@ -121,10 +121,9 @@ async function fetchAllReturns(
   return all;
 }
 
-// Fetches all OperationReturnGoodsFBSofRMS transactions for the months covered by the
-// given return dates (+ 1 extra month for settlement lag). Returns both:
-// - amountByPosting: postingNumber → total absolute logistics fee
-// - transactionsByPosting: postingNumber → raw transaction records (for display)
+// Queries /v1/finance/accrual/postings for each return posting to get settled logistics fees.
+// Returns amountByPosting (postingNumber → total absolute service fees) and
+// transactionsByPosting (postingNumber → raw accrual list for display).
 async function fetchReturnLogisticsMap(
   clientId: string,
   apiKey: string,
@@ -136,68 +135,33 @@ async function fetchReturnLogisticsMap(
     "Content-Type": "application/json",
   };
 
-  // Collect unique year-months from return dates + next month for settlement lag
-  const months = new Set<string>();
-  for (const r of returns) {
-    const d = r.logistic.return_date ?? r.logistic.final_moment ?? null;
-    if (!d) continue;
-    months.add(d.slice(0, 7));
-    const next = new Date(d);
-    next.setMonth(next.getMonth() + 1);
-    months.add(next.toISOString().slice(0, 7));
-  }
-
+  const postingNumbers = [...new Set(returns.map((r) => r.posting_number))];
   const amountByPosting = new Map<string, number>();
   const transactionsByPosting = new Map<string, unknown[]>();
 
-  for (const ym of [...months].sort()) {
-    const [y, m] = ym.split("-").map(Number);
-    const from = new Date(Date.UTC(y, m - 1, 1));
-    const to = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+  for (let i = 0; i < postingNumbers.length; i += 200) {
+    const batch = postingNumbers.slice(i, i + 200);
+    const res = await fetch(`${OZON_API_BASE}/v1/finance/accrual/postings`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ posting_numbers: batch }),
+    });
+    if (!res.ok) continue;
 
-    let page = 1;
-    while (true) {
-      const res = await fetch(`${OZON_API_BASE}/v3/finance/transaction/list`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          filter: {
-            date: { from: from.toISOString(), to: to.toISOString() },
-            transaction_type: "all",
-          },
-          page,
-          page_size: 1000,
-        }),
-      });
-      if (!res.ok) break;
-      const data = await res.json();
+    const data = await res.json();
+    const postingAccruals: {
+      posting_number: string;
+      accruals: { accrued: { amount: string }; sku: number }[];
+    }[] = data.posting_accruals ?? [];
 
-      const ops: {
-        operation_type: string;
-        amount: number;
-        type: string;
-        posting?: { posting_number?: string };
-        services?: { name: string; price: number }[];
-      }[] = data.result?.operations ?? [];
+    for (const pa of postingAccruals) {
+      // Sum absolute values of negative non-product accruals (sku === 0 = service fee entries).
+      const feeTotal = pa.accruals
+        .filter((a) => a.sku === 0 && parseFloat(a.accrued.amount) < 0)
+        .reduce((sum, a) => sum + Math.abs(parseFloat(a.accrued.amount)), 0);
 
-      for (const op of ops) {
-        if (op.operation_type === "OperationReturnGoodsFBSofRMS" && op.posting?.posting_number) {
-          const pn = op.posting.posting_number;
-          // Exclude DirectFlowLogistic — it's the original forward delivery cost already
-          // subtracted when the order was imported. All other services are return-specific costs.
-          const returnOnlyFee = (op.services ?? [])
-            .filter((s) => s.name !== "MarketplaceServiceItemDirectFlowLogistic")
-            .reduce((sum, s) => sum + Math.abs(s.price), 0);
-          if (returnOnlyFee > 0) {
-            amountByPosting.set(pn, (amountByPosting.get(pn) ?? 0) + returnOnlyFee);
-          }
-          if (!transactionsByPosting.has(pn)) transactionsByPosting.set(pn, []);
-          transactionsByPosting.get(pn)!.push(op);
-        }
-      }
-
-      if (page >= (data.result?.page_count ?? 1) || ops.length === 0) break;
-      page++;
+      if (feeTotal > 0) amountByPosting.set(pa.posting_number, feeTotal);
+      if (pa.accruals.length > 0) transactionsByPosting.set(pa.posting_number, pa.accruals);
     }
   }
 

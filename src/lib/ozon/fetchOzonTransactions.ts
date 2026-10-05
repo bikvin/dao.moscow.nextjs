@@ -1,89 +1,60 @@
 const OZON_API_BASE = "https://api-seller.ozon.ru";
 
-// Ozon transaction API allows at most 31 days per request.
-const MAX_WINDOW_MS = 31 * 24 * 60 * 60 * 1000;
-
-export type OzonTransaction = {
-  operation_type: string;
-  posting: { posting_number: string };
-  accruals_for_sale: number;
-  sale_commission: number;
-  amount: number;
-  services: { name: string; price: number }[];
+// Settled accruals for a single posting, computed from the new /v1/finance/accrual/postings API.
+export type OzonPostingAccruals = {
+  posting_number: string;
+  // True when Ozon has recorded any accruals for this posting (fees are finalized).
+  isSettled: boolean;
+  // Sum of absolute-valued negative non-product accruals (sku === 0). Represents total service
+  // fees charged by Ozon (logistics, dropoff, acquiring, etc.) for this posting.
+  totalFeesRub: number;
 };
 
-export function getOzonService(
-  services: { name: string; price: number }[],
-  name: string
-): number {
-  return services.find((s) => s.name === name)?.price ?? 0;
-}
+// Queries /v1/finance/accrual/postings for the given posting numbers (batched by 200).
+// Returns a map of posting_number → settled accruals. Postings not yet processed by Ozon
+// are absent from the map (isSettled would be false).
+export async function fetchOzonAccrualsByPosting(
+  postingNumbers: string[]
+): Promise<Map<string, OzonPostingAccruals>> {
+  const clientId = process.env.OZON_CLIENT_ID;
+  const apiKey = process.env.OZON_API_KEY;
+  if (!clientId || !apiKey) return new Map();
 
-// Fetches one page window of transactions from Ozon (must be ≤31 days).
-async function fetchTransactionWindow(
-  clientId: string,
-  apiKey: string,
-  from: Date,
-  to: Date,
-  postingSet: Set<string>
-): Promise<OzonTransaction[]> {
-  const results: OzonTransaction[] = [];
-  let page = 1;
+  const result = new Map<string, OzonPostingAccruals>();
 
-  while (true) {
-    const res = await fetch(`${OZON_API_BASE}/v3/finance/transaction/list`, {
+  for (let i = 0; i < postingNumbers.length; i += 200) {
+    const batch = postingNumbers.slice(i, i + 200);
+    const res = await fetch(`${OZON_API_BASE}/v1/finance/accrual/postings`, {
       method: "POST",
       headers: {
         "Client-Id": clientId,
         "Api-Key": apiKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        filter: {
-          date: { from: from.toISOString(), to: to.toISOString() },
-          transaction_type: "all",
-        },
-        page,
-        page_size: 1000,
-      }),
+      body: JSON.stringify({ posting_numbers: batch }),
     });
 
+    if (!res.ok) continue;
+
     const data = await res.json();
-    if (!res.ok) break;
+    const postingAccruals: {
+      posting_number: string;
+      accruals: { accrued: { amount: string }; sku: number }[];
+    }[] = data.posting_accruals ?? [];
 
-    const ops: OzonTransaction[] = data.result?.operations ?? [];
-    results.push(...ops.filter((op) => postingSet.has(op.posting?.posting_number)));
+    for (const pa of postingAccruals) {
+      // Service fees have sku === 0; product entries (sale credits/debits) have sku > 0.
+      const totalFeesRub = pa.accruals
+        .filter((a) => a.sku === 0 && parseFloat(a.accrued.amount) < 0)
+        .reduce((sum, a) => sum + Math.abs(parseFloat(a.accrued.amount)), 0);
 
-    if (page >= (data.result?.page_count ?? 1)) break;
-    page++;
+      result.set(pa.posting_number, {
+        posting_number: pa.posting_number,
+        isSettled: pa.accruals.length > 0,
+        totalFeesRub,
+      });
+    }
   }
 
-  return results;
-}
-
-// Fetches Ozon financial transactions for a date range, filtered to the given posting numbers.
-// Splits into 31-day chunks automatically (Ozon API limit).
-// Posting number filtering is done client-side since the API doesn't support it.
-export async function fetchOzonTransactions(
-  fromDate: Date,
-  toDate: Date,
-  postingNumbers: string[]
-): Promise<OzonTransaction[]> {
-  const clientId = process.env.OZON_CLIENT_ID;
-  const apiKey = process.env.OZON_API_KEY;
-  if (!clientId || !apiKey) return [];
-
-  const postingSet = new Set(postingNumbers);
-  const results: OzonTransaction[] = [];
-
-  // Walk through the date range in 31-day windows
-  let windowStart = new Date(fromDate);
-  while (windowStart < toDate) {
-    const windowEnd = new Date(Math.min(windowStart.getTime() + MAX_WINDOW_MS, toDate.getTime()));
-    const chunk = await fetchTransactionWindow(clientId, apiKey, windowStart, windowEnd, postingSet);
-    results.push(...chunk);
-    windowStart = new Date(windowEnd.getTime() + 1);
-  }
-
-  return results;
+  return result;
 }
