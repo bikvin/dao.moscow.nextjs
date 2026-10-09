@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { db } from "@/db";
 import { syncYandexStock } from "@/lib/yandex/syncYandexStock";
 import { syncOzonStock } from "@/lib/ozon/syncOzonStock";
 import { syncYandexPrices } from "@/lib/yandex/syncYandexPrices";
@@ -60,8 +61,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { updated } = await recalculateOzonCommissions();
+    const { updated, changes } = await recalculateOzonCommissions();
     results.ozonCommissions = updated > 0 ? `updated ${updated} orders` : "no orders to update";
+    if (updated > 0) {
+      await db.settings.upsert({
+        where: { field: "lastOzonCommissionRecalcResult" },
+        update: { value: JSON.stringify({ updated, changes, at: new Date().toISOString() }) },
+        create: { field: "lastOzonCommissionRecalcResult", value: JSON.stringify({ updated, changes, at: new Date().toISOString() }) },
+      });
+    }
   } catch (err: unknown) {
     results.ozonCommissions = err instanceof Error ? err.message : "error";
   }

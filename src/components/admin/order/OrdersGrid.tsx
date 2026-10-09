@@ -229,7 +229,7 @@ type Order = {
     buyerTotal: number;
     subsidyTotal: number;
   } | null;
-  ozonData: { feesSettled: boolean; buyerTotal: number } | null;
+  ozonData: { feesSettled: boolean; feesEstimated: boolean; buyerTotal: number } | null;
   ozonReturnData: { feesSettled: boolean; returnLogisticFeeRub: number } | null;
 };
 
@@ -433,7 +433,7 @@ export function OrdersGrid({
                   "—";
                 const isEstimate =
                   (order.yandexData != null && !order.yandexData.feesSettled) ||
-                  (order.ozonData != null && !order.ozonData.feesSettled) ||
+                  (order.ozonData != null && (!order.ozonData.feesSettled || order.ozonData.feesEstimated)) ||
                   (order.ozonReturnData != null &&
                     !order.ozonReturnData.feesSettled);
                 const approx = (v: string) => (isEstimate ? `≈${v}` : v);

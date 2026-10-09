@@ -696,7 +696,11 @@ model OzonOrderData {
   starsMembershipRub Float @default(0) // ItemAgentServiceStarsMembership
   acquiringRub      Float @default(0)  // MarketplaceRedistributionOfAcquiringOperation
 
-  feesSettled Boolean @default(false)
+  feesSettled   Boolean @default(false)
+  // True when settlement used estimated payout (buyer price × avg commission) instead of
+  // actual Ozon data. Happens for old postings where financial_data.payout = 0 and the
+  // accruals API no longer has records (typically > 3 months after shipment).
+  feesEstimated Boolean @default(false)
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)

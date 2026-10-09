@@ -1,16 +1,22 @@
 import { TopMenu } from "@/components/admin/topMenu/TopMenu";
 import WarehouseTable from "@/components/admin/warehouse/WarehouseTable";
+import { OzonRecalcBanner } from "@/components/admin/warehouse/OzonRecalcBanner";
 import { db } from "@/db";
 import Link from "next/link";
 import { OzonSyncStatusEnum, YandexSyncStatusEnum } from "@prisma/client";
 
 export default async function WarehousePage() {
-  const [lastYandexLog, lastOzonLog, ozonKeyRenewDateSetting, ozonKeyPeriodDaysSetting] = await Promise.all([
+  const [lastYandexLog, lastOzonLog, ozonKeyRenewDateSetting, ozonKeyPeriodDaysSetting, ozonRecalcResultSetting] = await Promise.all([
     db.yandexSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.ozonSyncLog.findFirst({ orderBy: { createdAt: "desc" } }),
     db.settings.findUnique({ where: { field: "ozonKeyRenewDate" } }),
     db.settings.findUnique({ where: { field: "ozonKeyPeriodDays" } }),
+    db.settings.findUnique({ where: { field: "lastOzonCommissionRecalcResult" } }),
   ]);
+
+  const ozonRecalcResult = ozonRecalcResultSetting
+    ? (() => { try { return JSON.parse(ozonRecalcResultSetting.value); } catch { return null; } })()
+    : null;
 
   const ozonKeyRenewDate = ozonKeyRenewDateSetting?.value ?? null;
   const ozonKeyPeriodDays = parseInt(ozonKeyPeriodDaysSetting?.value ?? "90", 10);
@@ -47,6 +53,15 @@ export default async function WarehousePage() {
                 <Link href="/admin/ozon" className="underline">странице Ozon</Link>.
               </p>
             </div>
+          )}
+
+          {/* Ozon commission recalculation result banner */}
+          {ozonRecalcResult && (
+            <OzonRecalcBanner
+              updated={ozonRecalcResult.updated}
+              changes={ozonRecalcResult.changes}
+              at={ozonRecalcResult.at}
+            />
           )}
 
           {/* Marketplace sync banners — only shown on error */}

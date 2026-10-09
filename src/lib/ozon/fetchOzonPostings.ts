@@ -104,3 +104,42 @@ export async function fetchOzonPostings(options?: {
 
   return allPostings;
 }
+
+// Fetches individual postings by their posting numbers using /v3/posting/fbs/get.
+// Used as a fallback for old finalized postings that no longer appear in the list endpoint.
+export async function fetchOzonPostingsByNumbers(postingNumbers: string[]): Promise<OzonPosting[]> {
+  const clientId = process.env.OZON_CLIENT_ID;
+  const apiKey = process.env.OZON_API_KEY;
+  if (!clientId || !apiKey) return [];
+
+  const headers = {
+    "Client-Id": clientId,
+    "Api-Key": apiKey,
+    "Content-Type": "application/json",
+  };
+
+  const results: OzonPosting[] = [];
+
+  for (const postingNumber of postingNumbers) {
+    try {
+      const res = await fetch(`${OZON_API_BASE}/v3/posting/fbs/get`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          posting_number: postingNumber,
+          with: { financial_data: true, analytics_data: true },
+        }),
+      });
+
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const posting: OzonPosting | null = data.result ?? null;
+      if (posting) results.push(posting);
+    } catch {
+      // Skip individual failures — network blip or posting not found
+    }
+  }
+
+  return results;
+}

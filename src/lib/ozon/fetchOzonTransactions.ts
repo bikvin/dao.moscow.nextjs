@@ -8,6 +8,9 @@ export type OzonPostingAccruals = {
   // Sum of absolute-valued negative non-product accruals (sku === 0). Represents total service
   // fees charged by Ozon (logistics, dropoff, acquiring, etc.) for this posting.
   totalFeesRub: number;
+  // Gross sale payout per product SKU from accruals (sku > 0, positive entries).
+  // Useful for old postings where financial_data.products[i].payout = 0 (already disbursed).
+  payoutByProductSku: Map<number, number>;
 };
 
 // Queries /v1/finance/accrual/postings for the given posting numbers (batched by 200).
@@ -48,10 +51,22 @@ export async function fetchOzonAccrualsByPosting(
         .filter((a) => a.sku === 0 && parseFloat(a.accrued.amount) < 0)
         .reduce((sum, a) => sum + Math.abs(parseFloat(a.accrued.amount)), 0);
 
+      // Gross payout per product SKU — positive accruals on product entries.
+      // For old postings where financial_data.payout is already 0 (disbursed), these
+      // are the only source of the actual sale amount.
+      const payoutByProductSku = new Map<number, number>();
+      for (const a of pa.accruals) {
+        const amount = parseFloat(a.accrued.amount);
+        if (a.sku !== 0 && amount > 0) {
+          payoutByProductSku.set(a.sku, (payoutByProductSku.get(a.sku) ?? 0) + amount);
+        }
+      }
+
       result.set(pa.posting_number, {
         posting_number: pa.posting_number,
         isSettled: pa.accruals.length > 0,
         totalFeesRub,
+        payoutByProductSku,
       });
     }
   }

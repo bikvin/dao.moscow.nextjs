@@ -185,7 +185,7 @@ export default async function OrdersPage({
           select: { feesSettled: true, buyerTotal: true, subsidyTotal: true },
         },
         ozonData: {
-          select: { feesSettled: true, buyerTotal: true },
+          select: { feesSettled: true, feesEstimated: true, buyerTotal: true },
         },
         ozonReturnData: {
           select: { feesSettled: true, returnLogisticFeeRub: true },
