@@ -92,7 +92,7 @@ async function fetchAllReturns(
   return all;
 }
 
-// Fetches a single order from the Yandex orders API to get per-item priceBeforeDiscount.
+// Fetches a single order from the Yandex orders API to get per-item buyerPriceBeforeDiscount.
 async function fetchOrderItems(
   token: string,
   campaignId: string,
@@ -106,10 +106,10 @@ async function fetchOrderItems(
     return null;
   }
   const data = await res.json();
-  return (data.order?.items ?? []).map((i: { offerId: string; shopSku?: string; count: number; priceBeforeDiscount?: number; price?: number }) => ({
+  return (data.order?.items ?? []).map((i: { offerId: string; shopSku?: string; count: number; buyerPriceBeforeDiscount?: number; buyerPrice?: number }) => ({
     offerId: i.shopSku ?? i.offerId,
     count: i.count,
-    priceBeforeDiscount: i.priceBeforeDiscount ?? i.price ?? 0,
+    priceBeforeDiscount: i.buyerPriceBeforeDiscount ?? i.buyerPrice ?? 0,
   }));
 }
 

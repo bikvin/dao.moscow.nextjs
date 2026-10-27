@@ -1,5 +1,4 @@
 import { db } from "@/db";
-import { fetchYandexOrders } from "@/lib/yandex/fetchYandexOrders";
 
 const YANDEX_API_BASE = "https://api.partner.market.yandex.ru/v2";
 
@@ -19,6 +18,31 @@ type OrderStat = {
   id: number;
   commissions?: { type: string; actual: number }[];
 };
+
+// Fetches a single order from Yandex by ID to get per-item buyerPriceBeforeDiscount.
+// Avoids date-range listing which is capped at 30 days by the API.
+async function fetchOrderById(
+  token: string,
+  campaignId: string,
+  orderId: string
+): Promise<YandexOrder | null> {
+  const res = await fetch(`${YANDEX_API_BASE}/campaigns/${campaignId}/orders/${orderId}`, {
+    headers: { "Api-Key": token },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const o = data.order;
+  if (!o) return null;
+  return {
+    id: o.id,
+    fake: o.fake ?? false,
+    items: (o.items ?? []).map((i: { shopSku?: string; offerId: string; count: number; buyerPriceBeforeDiscount?: number; buyerPrice?: number }) => ({
+      offerId: i.shopSku ?? i.offerId,
+      count: i.count,
+      priceBeforeDiscount: i.buyerPriceBeforeDiscount ?? i.buyerPrice ?? 0,
+    })),
+  };
+}
 
 // Fetches financial stats from Yandex stats/orders API for a batch of order IDs.
 async function fetchStats(orderIds: number[]): Promise<OrderStat[]> {
@@ -45,11 +69,19 @@ function getFee(stat: OrderStat | undefined, type: string): number {
   return stat?.commissions?.find((c) => c.type === type)?.actual ?? 0;
 }
 
+export type YandexCommissionChange = {
+  orderId: string;
+  sequenceNumber: number;
+  year: number;
+  estimatedTotalRub: number;
+  realTotalRub: number | null; // null = still pending
+};
+
 // Finds all imported orders with unsettled Yandex fees, fetches the latest commission
 // data from the Yandex API, and recalculates per-item net prices + order totals for
 // any orders that are now fully settled (at least one non-AGENCY commission present).
-// Returns the count of updated orders.
-export async function recalculateYandexCommissions(): Promise<{ updated: number }> {
+// Returns the count of updated orders and a before/after list for display.
+export async function recalculateYandexCommissions(): Promise<{ updated: number; changes: YandexCommissionChange[] }> {
   const unsettled = await db.order.findMany({
     where: { yandexData: { feesSettled: false } },
     include: {
@@ -58,28 +90,29 @@ export async function recalculateYandexCommissions(): Promise<{ updated: number 
     },
   });
 
-  if (unsettled.length === 0) return { updated: 0 };
+  if (unsettled.length === 0) return { updated: 0, changes: [] };
 
-  const minDate = unsettled.reduce(
-    (min, o) => (o.orderDate < min ? o.orderDate : min),
-    unsettled[0].orderDate
-  );
-  const fromDate = new Date(minDate);
-  fromDate.setDate(fromDate.getDate() - 1);
+  const token = process.env.YANDEX_API_TOKEN;
+  const campaignId = process.env.YANDEX_CAMPAIGN_ID;
+  if (!token || !campaignId) throw new Error("Не заданы переменные окружения YANDEX_API_TOKEN или YANDEX_CAMPAIGN_ID");
 
-  const allYandexOrders = (await fetchYandexOrders({
-    fromDate,
-    toDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
-  })) as YandexOrder[];
+  const unsettledYandexIds = unsettled.map((o) => o.yandexData!.yandexOrderId);
 
-  const unsettledYandexIds = new Set(unsettled.map((o) => o.yandexData!.yandexOrderId));
+  // Fetch orders individually by ID (avoids the 30-day date-range limit on the listing API).
+  // Batched in groups of 5 to stay within Yandex rate limits.
+  const fetchedOrders: (YandexOrder | null)[] = [];
+  for (let i = 0; i < unsettledYandexIds.length; i += 5) {
+    const batch = unsettledYandexIds.slice(i, i + 5);
+    const results = await Promise.all(batch.map((id) => fetchOrderById(token, campaignId, id)));
+    fetchedOrders.push(...results);
+  }
   const yandexOrderMap = new Map(
-    allYandexOrders
-      .filter((o) => !o.fake && unsettledYandexIds.has(String(o.id)))
+    fetchedOrders
+      .filter((o): o is YandexOrder => o !== null && !o.fake)
       .map((o) => [String(o.id), o])
   );
 
-  const stats = await fetchStats([...unsettledYandexIds].map((id) => parseInt(id)));
+  const stats = await fetchStats(unsettledYandexIds.map((id) => parseInt(id)));
   const statsById = new Map(stats.map((s) => [String(s.id), s]));
 
   const [commissionRateSetting, globalDivisorSetting] = await Promise.all([
@@ -110,6 +143,7 @@ export async function recalculateYandexCommissions(): Promise<{ updated: number 
   const productIdBySku = new Map(products.map((p) => [p.sku, p.id]));
 
   let updatedCount = 0;
+  const changes: YandexCommissionChange[] = [];
 
   for (const order of unsettled) {
     const yandexData = order.yandexData!;
@@ -121,6 +155,7 @@ export async function recalculateYandexCommissions(): Promise<{ updated: number 
     const isSettled = stat?.commissions?.some((c) => c.type !== "AGENCY") ?? false;
     if (!yandexOrder || !isSettled) continue;
 
+    const estimatedTotalRub = order.totalRub ?? 0;
     const totalYandexUnits = yandexOrder.items.reduce((s, i) => s + i.count, 0);
     const deliveryRub = getFee(stat, "DELIVERY_TO_CUSTOMER");
     const expressDeliveryRub = getFee(stat, "EXPRESS_DELIVERY_TO_CUSTOMER");
@@ -200,8 +235,29 @@ export async function recalculateYandexCommissions(): Promise<{ updated: number 
       });
     });
 
+    changes.push({
+      orderId: order.id,
+      sequenceNumber: order.sequenceNumber,
+      year: order.year,
+      estimatedTotalRub,
+      realTotalRub: newTotalRub,
+    });
     updatedCount++;
   }
 
-  return { updated: updatedCount };
+  // Append orders still pending (not yet settled by Yandex)
+  const settledIds = new Set(changes.map((c) => c.orderId));
+  for (const order of unsettled) {
+    if (settledIds.has(order.id)) continue;
+    changes.push({
+      orderId: order.id,
+      sequenceNumber: order.sequenceNumber,
+      year: order.year,
+      estimatedTotalRub: order.totalRub ?? 0,
+      realTotalRub: null,
+    });
+  }
+
+  changes.sort((a, b) => a.year !== b.year ? a.year - b.year : a.sequenceNumber - b.sequenceNumber);
+  return { updated: updatedCount, changes };
 }

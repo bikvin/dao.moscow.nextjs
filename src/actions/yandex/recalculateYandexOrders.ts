@@ -1,25 +1,36 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { recalculateYandexCommissions } from "@/lib/yandex/recalculateYandexCommissions";
-import type { DeleteFormState } from "@/components/common/delete/deleteTypes";
+import { recalculateYandexCommissions, type YandexCommissionChange } from "@/lib/yandex/recalculateYandexCommissions";
+
+export type RecalculateYandexState = {
+  errors?: { _form?: string[] };
+  success?: { message: string; changes?: YandexCommissionChange[] };
+};
 
 // Server action wrapper for recalculateYandexCommissions — called from the button on the Yandex settings page.
 export async function recalculateYandexOrders(
-  _state: DeleteFormState,
+  _state: RecalculateYandexState,
   _fd: FormData
-): Promise<DeleteFormState> {
+): Promise<RecalculateYandexState> {
   try {
-    const { updated } = await recalculateYandexCommissions();
+    const { updated, changes } = await recalculateYandexCommissions();
     revalidatePath("/admin");
     return {
       success: {
         message: updated > 0
           ? `Обновлено заказов: ${updated}`
-          : "Нет новых данных для пересчёта",
+          : "Все заказы урегулированы",
+        changes: changes.length > 0 ? changes : undefined,
       },
     };
   } catch (err) {
-    return { errors: { _form: [err instanceof Error ? err.message : "Ошибка при пересчёте"] } };
+    let message = "Ошибка при пересчёте";
+    if (err instanceof Error) {
+      message = err.message;
+      const cause = (err as NodeJS.ErrnoException).cause;
+      if (cause instanceof Error) message += `: ${cause.message}`;
+    }
+    return { errors: { _form: [message] } };
   }
 }

@@ -54,8 +54,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { updated } = await recalculateYandexCommissions();
+    const { updated, changes } = await recalculateYandexCommissions();
     results.yandexCommissions = updated > 0 ? `updated ${updated} orders` : "no orders to update";
+    void changes; // changes available for future use (e.g. warehouse banner)
   } catch (err: unknown) {
     results.yandexCommissions = err instanceof Error ? err.message : "error";
   }
