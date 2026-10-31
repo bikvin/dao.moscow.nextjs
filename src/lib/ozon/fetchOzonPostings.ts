@@ -5,17 +5,20 @@ export type OzonPostingProduct = {
   sku: number;
   name: string;
   quantity: number;
-  price: string; // decimal string, e.g. "2410.0000"
+  price: string; // decimal string from v3 get endpoint; v4 list returns object — normalised on fetch
+  is_marketplace_buyout?: boolean;
 };
 
 export type OzonPostingFinancialProduct = {
   product_id: number;
-  commission_amount: number; // negative — Ozon's commission
-  commission_percent: number;
+  commission: { amount: number; percent: number } | null; // null for very old postings
   payout: number;            // gross seller revenue after commission
   price: number;             // final buyer price
   old_price: number;         // price before discount
   quantity: number;
+  // Derived convenience accessors (populated after fetch)
+  commission_amount: number;
+  commission_percent: number;
 };
 
 export type OzonPosting = {
@@ -36,8 +39,48 @@ export type OzonPosting = {
   } | null;
 };
 
+// Normalises a v4 posting response to the shared OzonPosting shape:
+// - flattens commission object to commission_amount / commission_percent
+// - normalises products[].price from { amount, currency } object to decimal string
+// - hoists is_marketplace_buyout from product level to posting level (true if any product has it)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normaliseV4Posting(p: any): OzonPosting {
+  const products: OzonPostingProduct[] = (p.products ?? []).map((i: any) => ({
+    offer_id: i.offer_id,
+    sku: i.sku,
+    name: i.name,
+    quantity: i.quantity,
+    price: typeof i.price === "object" ? (i.price?.amount ?? "0") : String(i.price ?? "0"),
+    is_marketplace_buyout: i.is_marketplace_buyout ?? false,
+  }));
+
+  const financialProducts: OzonPostingFinancialProduct[] = (p.financial_data?.products ?? []).map((fp: any) => ({
+    product_id: fp.product_id,
+    commission: fp.commission ?? null,
+    commission_amount: fp.commission?.amount ?? 0,
+    commission_percent: fp.commission?.percent ?? 0,
+    payout: fp.payout ?? 0,
+    price: fp.price ?? 0,
+    old_price: fp.old_price ?? 0,
+    quantity: fp.quantity ?? 0,
+  }));
+
+  return {
+    posting_number: p.posting_number,
+    order_id: p.order_id,
+    status: p.status,
+    in_process_at: p.in_process_at,
+    shipment_date: p.shipment_date,
+    delivering_date: p.delivering_date ?? null,
+    is_marketplace_buyout: products.some((i) => i.is_marketplace_buyout === true),
+    products,
+    financial_data: p.financial_data ? { products: financialProducts } : null,
+    analytics_data: p.analytics_data ?? null,
+  };
+}
+
 // Fetches FBS postings from Ozon for a given date range with financial and analytics data.
-// Paginates automatically (1000 per page, Ozon max).
+// Paginates automatically (1000 per page, Ozon max) using v4 cursor-based pagination.
 export async function fetchOzonPostings(options?: {
   fromDate?: Date;
   toDate?: Date;
@@ -64,8 +107,8 @@ export async function fetchOzonPostings(options?: {
   };
 
   const allPostings: OzonPosting[] = [];
-  let offset = 0;
-  const limit = 1000;
+  let cursor: string | undefined;
+  const limit = 100;
 
   while (true) {
     const body: Record<string, unknown> = {
@@ -76,30 +119,33 @@ export async function fetchOzonPostings(options?: {
         ...(options?.status ? { status: options.status } : {}),
       },
       limit,
-      offset,
       with: {
         financial_data: true,
         analytics_data: true,
       },
+      ...(cursor ? { cursor } : {}),
     };
 
-    const response = await fetch(`${OZON_API_BASE}/v3/posting/fbs/list`, {
+    const response = await fetch(`${OZON_API_BASE}/v4/posting/fbs/list`, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
-      throw new Error(data.message || `HTTP ${response.status}`);
+      const text = await response.text();
+      let message = `HTTP ${response.status}`;
+      try { message = JSON.parse(text).message || message; } catch { /* non-JSON body */ }
+      throw new Error(message);
     }
 
-    const postings: OzonPosting[] = data.result?.postings ?? [];
-    allPostings.push(...postings);
+    const data = await response.json();
+    // v4: top-level { has_next, cursor, postings[] } — no result wrapper
+    const raw: OzonPosting[] = (data.postings ?? []).map(normaliseV4Posting);
+    allPostings.push(...raw);
 
-    if (postings.length < limit) break;
-    offset += limit;
+    if (!data.has_next) break;
+    cursor = data.cursor;
   }
 
   return allPostings;
