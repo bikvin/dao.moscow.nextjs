@@ -846,3 +846,21 @@ model CashTransaction {
   @@index([date])
   @@index([currency])
 }
+
+enum SkippedCandidateSource {
+  OZON_ORDER
+  OZON_RETURN
+  YANDEX_ORDER
+  YANDEX_RETURN
+}
+
+model SkippedCandidate {
+  id         String                 @id @default(uuid())
+  source     SkippedCandidateSource
+  externalId String
+  label      String
+  createdAt  DateTime               @default(now())
+
+  @@unique([source, externalId])
+  @@index([source])
+}

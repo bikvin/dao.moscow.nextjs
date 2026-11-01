@@ -1,6 +1,8 @@
 "use server";
 
 import { db } from "@/db";
+import { SkippedCandidateSource } from "@prisma/client";
+import type { SkippedEntry } from "@/actions/ozon/fetchOzonOrderCandidates";
 
 const YANDEX_API_BASE = "https://api.partner.market.yandex.ru/v2";
 
@@ -124,7 +126,7 @@ export async function fetchReturnCandidates(
   fromDate: string,
   toDate: string,
   commissionRate: number
-): Promise<{ candidates: ReturnCandidate[] } | { error: string }> {
+): Promise<{ candidates: ReturnCandidate[]; skipped: SkippedEntry[] } | { error: string }> {
   const token = process.env.YANDEX_API_TOKEN;
   const campaignId = process.env.YANDEX_CAMPAIGN_ID;
   if (!token || !campaignId) {
@@ -135,8 +137,19 @@ export async function fetchReturnCandidates(
     const from = toYandexDate(new Date(fromDate));
     const to = toYandexDate(new Date(toDate));
 
-    const allReturns = await fetchAllReturns(token, campaignId, from, to);
-    if (allReturns.length === 0) return { candidates: [] };
+    const [allReturns, skippedRows] = await Promise.all([
+      fetchAllReturns(token, campaignId, from, to),
+      db.skippedCandidate.findMany({ where: { source: SkippedCandidateSource.YANDEX_RETURN } }),
+    ]);
+
+    const skipped: SkippedEntry[] = skippedRows.map((r) => ({
+      externalId: r.externalId,
+      label: r.label,
+      skippedAt: r.createdAt.toISOString(),
+    }));
+    const skippedIds = new Set(skippedRows.map((r) => r.externalId));
+
+    if (allReturns.length === 0) return { candidates: [], skipped };
 
     // Filter out already-imported returns
     const allReturnIds = allReturns.map((r) => String(r.id));
@@ -145,8 +158,10 @@ export async function fetchReturnCandidates(
       select: { yandexReturnId: true },
     });
     const importedIds = new Set(existing.map((e) => e.yandexReturnId));
-    const toProcess = allReturns.filter((r) => !importedIds.has(String(r.id)));
-    if (toProcess.length === 0) return { candidates: [] };
+    const toProcess = allReturns.filter(
+      (r) => !importedIds.has(String(r.id)) && !skippedIds.has(String(r.id))
+    );
+    if (toProcess.length === 0) return { candidates: [], skipped };
 
     // Fetch original Yandex order data and our DB records in parallel
     const uniqueOrderIds = [...new Set(toProcess.map((r) => r.orderId))];
@@ -246,7 +261,7 @@ export async function fetchReturnCandidates(
       };
     });
 
-    return { candidates };
+    return { candidates, skipped };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Ошибка при загрузке возвратов" };
   }

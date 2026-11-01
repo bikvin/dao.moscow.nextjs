@@ -2,8 +2,9 @@
 
 import { db } from "@/db";
 import { fetchYandexOrders } from "@/lib/yandex/fetchYandexOrders";
-import { OrderStatusEnum } from "@prisma/client";
+import { OrderStatusEnum, SkippedCandidateSource } from "@prisma/client";
 import { STATUS_MAP } from "./yandexStatusMap";
+import type { SkippedEntry } from "@/actions/ozon/fetchOzonOrderCandidates";
 
 const YANDEX_API_BASE = "https://api.partner.market.yandex.ru/v2";
 
@@ -132,15 +133,22 @@ function getFee(stat: OrderStat | undefined, type: string): number {
 export async function fetchOrderCandidates(
   fromDate: string,
   toDate: string
-): Promise<{ candidates: OrderCandidate[] } | { error: string }> {
+): Promise<{ candidates: OrderCandidate[]; skipped: SkippedEntry[] } | { error: string }> {
   try {
-    const orders = (await fetchYandexOrders({
-      fromDate: new Date(fromDate),
-      toDate: new Date(toDate),
-    })) as YandexOrder[];
+    const [orders, skippedRows] = await Promise.all([
+      fetchYandexOrders({ fromDate: new Date(fromDate), toDate: new Date(toDate) }) as Promise<YandexOrder[]>,
+      db.skippedCandidate.findMany({ where: { source: SkippedCandidateSource.YANDEX_ORDER } }),
+    ]);
+
+    const skipped: SkippedEntry[] = skippedRows.map((r) => ({
+      externalId: r.externalId,
+      label: r.label,
+      skippedAt: r.createdAt.toISOString(),
+    }));
+    const skippedIds = new Set(skippedRows.map((r) => r.externalId));
 
     const nonFake = orders.filter((o) => !o.fake);
-    if (nonFake.length === 0) return { candidates: [] };
+    if (nonFake.length === 0) return { candidates: [], skipped };
 
     // Check which orders are already imported
     const allIds = nonFake.map((o) => String(o.id));
@@ -149,9 +157,11 @@ export async function fetchOrderCandidates(
       select: { yandexOrderId: true },
     });
     const importedIds = new Set(existing.map((e) => e.yandexOrderId));
-    const toProcess = nonFake.filter((o) => !importedIds.has(String(o.id)));
+    const toProcess = nonFake.filter(
+      (o) => !importedIds.has(String(o.id)) && !skippedIds.has(String(o.id))
+    );
 
-    if (toProcess.length === 0) return { candidates: [] };
+    if (toProcess.length === 0) return { candidates: [], skipped };
 
     // Fetch financial stats — available only for settled orders
     const stats = await fetchStats(toProcess.map((o) => o.id));
@@ -226,7 +236,7 @@ export async function fetchOrderCandidates(
       };
     });
 
-    return { candidates };
+    return { candidates, skipped };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Ошибка при загрузке заказов" };
   }

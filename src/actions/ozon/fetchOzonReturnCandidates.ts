@@ -1,6 +1,8 @@
 "use server";
 
 import { db } from "@/db";
+import { SkippedCandidateSource } from "@prisma/client";
+import type { SkippedEntry } from "@/actions/ozon/fetchOzonOrderCandidates";
 
 const OZON_API_BASE = "https://api-seller.ozon.ru";
 
@@ -175,7 +177,7 @@ async function fetchReturnLogisticsMap(
 export async function fetchOzonReturnCandidates(
   fromDate: string,
   toDate: string
-): Promise<{ candidates: OzonReturnCandidate[] } | { error: string }> {
+): Promise<{ candidates: OzonReturnCandidate[]; skipped: SkippedEntry[] } | { error: string }> {
   const clientId = process.env.OZON_CLIENT_ID;
   const apiKey = process.env.OZON_API_KEY;
   if (!clientId || !apiKey) {
@@ -183,8 +185,19 @@ export async function fetchOzonReturnCandidates(
   }
 
   try {
-    const allReturns = await fetchAllReturns(clientId, apiKey, fromDate, toDate);
-    if (allReturns.length === 0) return { candidates: [] };
+    const [allReturns, skippedRows] = await Promise.all([
+      fetchAllReturns(clientId, apiKey, fromDate, toDate),
+      db.skippedCandidate.findMany({ where: { source: SkippedCandidateSource.OZON_RETURN } }),
+    ]);
+
+    const skipped: SkippedEntry[] = skippedRows.map((r) => ({
+      externalId: r.externalId,
+      label: r.label,
+      skippedAt: r.createdAt.toISOString(),
+    }));
+    const skippedIds = new Set(skippedRows.map((r) => r.externalId));
+
+    if (allReturns.length === 0) return { candidates: [], skipped };
 
     // Group raw records by order_number — multiple postings from the same order merge into one candidate
     const byOrderNumber = new Map<string, OzonReturnRecord[]>();
@@ -328,13 +341,25 @@ export async function fetchOzonReturnCandidates(
       });
     }
 
-    candidates.sort((a, b) => {
+    // Filter out already-imported returns (by postingNumber = orderNumber in OzonReturnData)
+    const allOrderNumbers = candidates.map((c) => c.postingNumber);
+    const importedReturns = await db.ozonReturnData.findMany({
+      where: { postingNumber: { in: allOrderNumbers } },
+      select: { postingNumber: true },
+    });
+    const importedReturnNumbers = new Set(importedReturns.map((r) => r.postingNumber));
+
+    const filtered = candidates.filter(
+      (c) => !importedReturnNumbers.has(c.postingNumber) && !skippedIds.has(c.postingNumber)
+    );
+
+    filtered.sort((a, b) => {
       if (!a.returnDate) return 1;
       if (!b.returnDate) return -1;
       return b.returnDate.localeCompare(a.returnDate);
     });
 
-    return { candidates };
+    return { candidates: filtered, skipped };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Ошибка при загрузке возвратов" };
   }

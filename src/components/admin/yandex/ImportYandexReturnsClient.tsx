@@ -6,6 +6,9 @@ import { fetchReturnCandidates } from "@/actions/yandex/fetchReturnCandidates";
 import type { ReturnCandidate } from "@/actions/yandex/fetchReturnCandidates";
 import { importYandexReturns } from "@/actions/yandex/importYandexReturns";
 import type { ImportYandexReturn } from "@/actions/yandex/importYandexReturns";
+import { skipCandidate, unskipCandidate } from "@/actions/common/skipCandidate";
+import { SkippedCandidateSource } from "@prisma/client";
+import type { SkippedEntry } from "@/actions/ozon/fetchOzonOrderCandidates";
 
 function fmt(n: number): string {
   return Math.abs(n).toLocaleString("ru-RU");
@@ -61,6 +64,8 @@ export function ImportYandexReturnsClient({
   const [fromDate, setFromDate] = useState(sixMonthsAgo);
   const [toDate, setToDate] = useState(today);
   const [candidates, setCandidates] = useState<ReturnCandidate[]>([]);
+  const [skippedList, setSkippedList] = useState<SkippedEntry[]>([]);
+  const [activeTab, setActiveTab] = useState<"new" | "skipped">("new");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [variantSelections, setVariantSelections] = useState<
     Record<string, Record<string, string>>
@@ -86,6 +91,7 @@ export function ImportYandexReturnsClient({
       const sels = buildInitialSelections(result.candidates);
       setVariantSelections(sels);
       setCandidates(result.candidates);
+      setSkippedList(result.skipped);
       setSelectedIds(new Set());
       setExpandedRaw(new Set());
       setHasFetched(true);
@@ -113,6 +119,18 @@ export function ImportYandexReturnsClient({
       ...prev,
       [returnId]: { ...prev[returnId], [shopSku]: variantId },
     }));
+  }
+
+  async function handleSkip(c: ReturnCandidate) {
+    const label = `#${c.yandexReturnId} · ${c.creationDate ? c.creationDate.slice(0, 10) : "—"}`;
+    await skipCandidate(SkippedCandidateSource.YANDEX_RETURN, c.yandexReturnId, label);
+    setCandidates((prev) => prev.filter((x) => x.yandexReturnId !== c.yandexReturnId));
+    setSkippedList((prev) => [...prev, { externalId: c.yandexReturnId, label, skippedAt: new Date().toISOString() }]);
+  }
+
+  async function handleUnskip(externalId: string) {
+    await unskipCandidate(SkippedCandidateSource.YANDEX_RETURN, externalId);
+    setSkippedList((prev) => prev.filter((x) => x.externalId !== externalId));
   }
 
   function handleImport() {
@@ -200,7 +218,58 @@ export function ImportYandexReturnsClient({
 
       {hasFetched && (
         <div className="mt-6">
-          {candidates.length === 0 ? (
+          {/* Tab switcher */}
+          <div className="flex gap-2 mb-4 border-b">
+            <button
+              type="button"
+              onClick={() => setActiveTab("new")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                activeTab === "new"
+                  ? "border-emerald-500 text-emerald-700"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Новые{candidates.length > 0 && ` (${candidates.length})`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("skipped")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                activeTab === "skipped"
+                  ? "border-slate-500 text-slate-700"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Загруженные вручную{skippedList.length > 0 && ` (${skippedList.length})`}
+            </button>
+          </div>
+
+          {activeTab === "skipped" ? (
+            skippedList.length === 0 ? (
+              <p className="text-slate-500 text-sm">Нет возвратов, отмеченных как загруженные вручную</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {skippedList.map((s) => (
+                  <div key={s.externalId} className="border rounded-md p-3 bg-slate-50 flex items-center justify-between gap-3">
+                    <div>
+                      <span className="font-mono text-sm font-medium">{s.externalId}</span>
+                      <span className="text-xs text-slate-400 ml-3">
+                        {new Date(s.skippedAt).toLocaleDateString("ru-RU")}
+                      </span>
+                      <span className="text-xs text-slate-500 ml-3">{s.label}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleUnskip(s.externalId)}
+                      className="text-xs text-blue-500 hover:text-blue-700 underline whitespace-nowrap"
+                    >
+                      Восстановить
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : candidates.length === 0 ? (
             <p className="text-slate-500 text-sm">Нет новых возвратов за выбранный период</p>
           ) : (
             <>
@@ -401,6 +470,15 @@ export function ImportYandexReturnsClient({
                             )}
                           </div>
                         )}
+                      </div>
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleSkip(c)}
+                          className="text-xs text-slate-400 hover:text-slate-600 underline"
+                        >
+                          Отметить как загруженный вручную
+                        </button>
                       </div>
                     </div>
                   );

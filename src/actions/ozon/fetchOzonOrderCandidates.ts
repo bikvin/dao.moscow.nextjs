@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { fetchOzonPostings } from "@/lib/ozon/fetchOzonPostings";
 import { fetchOzonAccrualsByPosting } from "@/lib/ozon/fetchOzonTransactions";
 import { fetchOzonBuyoutProducts } from "@/lib/ozon/fetchOzonBuyoutProducts";
-import { OrderStatusEnum } from "@prisma/client";
+import { OrderStatusEnum, SkippedCandidateSource } from "@prisma/client";
 
 // Ozon FBS statuses that represent active orders (not yet shipped or cancelled)
 const ACTIVE_STATUSES = new Set([
@@ -72,18 +72,30 @@ export type OzonOrderCandidate = {
 //   3. Look up matching products by SKU (offer_id = our product.sku)
 //   4. For delivered postings: fetch transactions to get exact service fees
 //   5. Return structured candidates ready for the import screen
+export type SkippedEntry = { externalId: string; label: string; skippedAt: string };
+
 export async function fetchOzonOrderCandidates(
   fromDate: string,
   toDate: string
-): Promise<{ candidates: OzonOrderCandidate[] } | { error: string }> {
+): Promise<{ candidates: OzonOrderCandidate[]; skipped: SkippedEntry[] } | { error: string }> {
   try {
     const from = new Date(fromDate);
     const to = new Date(toDate);
 
-    const allPostings = await fetchOzonPostings({ fromDate: from, toDate: to });
+    const [allPostings, skippedRows] = await Promise.all([
+      fetchOzonPostings({ fromDate: from, toDate: to }),
+      db.skippedCandidate.findMany({ where: { source: SkippedCandidateSource.OZON_ORDER } }),
+    ]);
+
+    const skipped: SkippedEntry[] = skippedRows.map((r) => ({
+      externalId: r.externalId,
+      label: r.label,
+      skippedAt: r.createdAt.toISOString(),
+    }));
+    const skippedIds = new Set(skippedRows.map((r) => r.externalId));
 
     const active = allPostings.filter((p) => ACTIVE_STATUSES.has(p.status));
-    if (active.length === 0) return { candidates: [] };
+    if (active.length === 0) return { candidates: [], skipped };
 
     const allPostingNumbers = active.map((p) => p.posting_number);
     const existing = await db.ozonOrderData.findMany({
@@ -91,9 +103,11 @@ export async function fetchOzonOrderCandidates(
       select: { postingNumber: true },
     });
     const importedNumbers = new Set(existing.map((e) => e.postingNumber));
-    const toProcess = active.filter((p) => !importedNumbers.has(p.posting_number));
+    const toProcess = active.filter(
+      (p) => !importedNumbers.has(p.posting_number) && !skippedIds.has(p.posting_number)
+    );
 
-    if (toProcess.length === 0) return { candidates: [] };
+    if (toProcess.length === 0) return { candidates: [], skipped };
 
     const allOfferIds = [...new Set(toProcess.flatMap((p) => p.products.map((i) => i.offer_id)))];
     const products = await db.product.findMany({
@@ -222,7 +236,7 @@ export async function fetchOzonOrderCandidates(
       }
     }
 
-    return { candidates };
+    return { candidates, skipped };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Ошибка при загрузке заказов" };
   }
