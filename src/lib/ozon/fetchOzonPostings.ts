@@ -33,6 +33,7 @@ export type OzonPosting = {
   products: OzonPostingProduct[];
   financial_data: {
     products: OzonPostingFinancialProduct[];
+    cluster_to: string;  // delivery cluster city, e.g. "Казань" — inside financial_data in Ozon API
   } | null;
   analytics_data: {
     city: string;
@@ -76,7 +77,7 @@ function normaliseV4Posting(p: any): OzonPosting {
     delivering_date: p.delivering_date ?? null,
     is_marketplace_buyout: products.some((i) => i.is_marketplace_buyout === true),
     products,
-    financial_data: p.financial_data ? { products: financialProducts } : null,
+    financial_data: p.financial_data ? { products: financialProducts, cluster_to: p.financial_data.cluster_to ?? "" } : null,
     analytics_data: p.analytics_data ?? null,
   };
 }

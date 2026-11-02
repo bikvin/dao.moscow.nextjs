@@ -164,7 +164,7 @@ export async function fetchOzonOrderCandidates(
         orderDate: posting.in_process_at,
         ozonStatus: posting.status,
         mappedStatus: STATUS_MAP[posting.status] ?? OrderStatusEnum.SHIPMENT_PLANNED,
-        city: posting.analytics_data?.city || posting.analytics_data?.region || null,
+        city: posting.analytics_data?.city || posting.analytics_data?.region || posting.financial_data?.cluster_to || null,
         shipmentDate: posting.shipment_date ?? null,
         totalBuyerPrice,
         totalPayout,
