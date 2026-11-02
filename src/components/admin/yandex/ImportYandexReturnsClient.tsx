@@ -295,11 +295,26 @@ export function ImportYandexReturnsClient({
                     </button>
                   )}
                 </div>
-                {selectedReady.length > 0 && (
-                  <p className="text-sm font-medium text-red-700">
-                    Выбрано: {selectedReady.length} — итого −{fmt(totalImpact)} ₽
-                  </p>
-                )}
+                <div className="flex items-center gap-4">
+                  {selectedReady.length > 0 && (
+                    <p className="text-sm font-medium text-red-700">
+                      Выбрано: {selectedReady.length} — итого −{fmt(totalImpact)} ₽
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleImport}
+                    disabled={isImporting || selectedReady.length === 0}
+                    className="border-0 rounded-md text-white cursor-pointer bg-green-500 hover:bg-green-600 disabled:bg-slate-300 p-[5px] px-4 text-sm"
+                  >
+                    {isImporting
+                      ? "Импорт..."
+                      : `Импортировать выбранные (${selectedReady.length})`}
+                  </button>
+                  {importError && (
+                    <p className="text-red-600 text-sm">{importError}</p>
+                  )}
+                </div>
               </div>
 
               {/* Return cards */}

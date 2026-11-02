@@ -401,18 +401,33 @@ export function ImportOrdersClient({
                     </button>
                   )}
                 </div>
-                {selectedReady.length > 0 && (
-                  <p className="text-sm font-medium">
-                    Выбрано: {selectedReady.length} заказов —{" "}
-                    {fmt(selectedSellTotal)} ₽ продажи,{" "}
-                    ≈{fmt(selectedNetTotal)} ₽ чистыми
-                    {selectedSellTotal > 0 && (
-                      <span className="ml-1.5 text-slate-400 font-normal">
-                        ({(100 * (selectedSellTotal - selectedNetTotal) / selectedSellTotal).toFixed(1)}% издержки)
-                      </span>
-                    )}
-                  </p>
-                )}
+                <div className="flex items-center gap-4">
+                  {selectedReady.length > 0 && (
+                    <p className="text-sm font-medium">
+                      Выбрано: {selectedReady.length} заказов —{" "}
+                      {fmt(selectedSellTotal)} ₽ продажи,{" "}
+                      ≈{fmt(selectedNetTotal)} ₽ чистыми
+                      {selectedSellTotal > 0 && (
+                        <span className="ml-1.5 text-slate-400 font-normal">
+                          ({(100 * (selectedSellTotal - selectedNetTotal) / selectedSellTotal).toFixed(1)}% издержки)
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleImport}
+                    disabled={isImporting || selectedReady.length === 0}
+                    className="border-0 rounded-md text-white cursor-pointer bg-green-500 hover:bg-green-600 disabled:bg-slate-300 p-[5px] px-4 text-sm"
+                  >
+                    {isImporting
+                      ? "Импорт..."
+                      : `Импортировать выбранные (${selectedReady.length})`}
+                  </button>
+                  {importError && (
+                    <p className="text-red-600 text-sm">{importError}</p>
+                  )}
+                </div>
               </div>
 
               {/* Order cards */}

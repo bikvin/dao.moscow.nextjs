@@ -437,6 +437,23 @@ export function ImportOzonReturnsClient({ partnerId }: { partnerId: string }) {
                   );
                 })}
               </div>
+
+              {/* Import button (bottom) */}
+              <div className="mt-6 flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={handleImport}
+                  disabled={isImporting || selectedReady.length === 0}
+                  className="border-0 rounded-md text-white cursor-pointer bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 p-[10px] px-6 text-base"
+                >
+                  {isImporting
+                    ? "Импорт..."
+                    : selectedReady.length === 0
+                    ? "Импортировать"
+                    : `Импортировать (${selectedReady.length})`}
+                </button>
+                {importError && <p className="text-red-600 text-sm">{importError}</p>}
+              </div>
             </>
           )}
         </div>

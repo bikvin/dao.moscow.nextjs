@@ -472,22 +472,37 @@ export function ImportOzonOrdersClient({
                     </button>
                   )}
                 </div>
-                {selectedReady.length > 0 && (
-                  <p className="text-sm font-medium">
-                    Выбрано: {selectedReady.length} заказов —{" "}
-                    {fmt(Math.round(selectedBuyerTotal))} ₽ покупатель
-                    {selectedWithData.length > 0 && (
-                      <>
-                        ,{" "}≈{fmt(selectedNetTotal)} ₽ чистыми
-                        {selectedWithData.length < selectedReady.length && (
-                          <span className="ml-1 text-slate-400 font-normal text-xs">
-                            (по {selectedWithData.length} из {selectedReady.length})
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </p>
-                )}
+                <div className="flex items-center gap-4">
+                  {selectedReady.length > 0 && (
+                    <p className="text-sm font-medium">
+                      Выбрано: {selectedReady.length} заказов —{" "}
+                      {fmt(Math.round(selectedBuyerTotal))} ₽ покупатель
+                      {selectedWithData.length > 0 && (
+                        <>
+                          ,{" "}≈{fmt(selectedNetTotal)} ₽ чистыми
+                          {selectedWithData.length < selectedReady.length && (
+                            <span className="ml-1 text-slate-400 font-normal text-xs">
+                              (по {selectedWithData.length} из {selectedReady.length})
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleImport}
+                    disabled={isImporting || selectedReady.length === 0}
+                    className="border-0 rounded-md text-white cursor-pointer bg-green-500 hover:bg-green-600 disabled:bg-slate-300 p-[5px] px-4 text-sm"
+                  >
+                    {isImporting
+                      ? "Импорт..."
+                      : `Импортировать выбранные (${selectedReady.length})`}
+                  </button>
+                  {importError && (
+                    <p className="text-red-600 text-sm">{importError}</p>
+                  )}
+                </div>
               </div>
 
               {/* Order cards */}
