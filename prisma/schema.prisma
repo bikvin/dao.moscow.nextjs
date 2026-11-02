@@ -622,7 +622,7 @@ model Order {
   receipts ProductReceipt[]
   invoices Invoice[]
   yandexData       YandexOrderData?
-  ozonData         OzonOrderData?
+  ozonData         OzonOrderData[]
   yandexReturnData YandexReturnData?
   ozonReturnData   OzonReturnData?
 
@@ -702,7 +702,7 @@ model OzonOrderData {
   // accruals API no longer has records (typically > 3 months after shipment).
   feesEstimated Boolean @default(false)
 
-  orderId String @unique
+  orderId String
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 

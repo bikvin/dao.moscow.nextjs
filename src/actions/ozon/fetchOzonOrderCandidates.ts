@@ -52,6 +52,7 @@ export type OzonServiceFeesBreakdown = {
 
 export type OzonOrderCandidate = {
   postingNumber: string;
+  orderNumber: string;      // shared base order number from Ozon (groups split postings)
   orderDate: string;        // ISO string
   ozonStatus: string;
   mappedStatus: OrderStatusEnum;
@@ -159,6 +160,7 @@ export async function fetchOzonOrderCandidates(
 
       return {
         postingNumber: posting.posting_number,
+        orderNumber: posting.order_number,
         orderDate: posting.in_process_at,
         ozonStatus: posting.status,
         mappedStatus: STATUS_MAP[posting.status] ?? OrderStatusEnum.SHIPMENT_PLANNED,

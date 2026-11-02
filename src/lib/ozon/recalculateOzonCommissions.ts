@@ -16,7 +16,7 @@ export type CommissionChange = {
 
 export async function recalculateOzonCommissions(): Promise<{ updated: number; changes: CommissionChange[] }> {
   const unsettled = await db.order.findMany({
-    where: { ozonData: { feesSettled: false } },
+    where: { ozonData: { some: { feesSettled: false } } },
     include: {
       ozonData: true,
       items: { select: { id: true, productId: true, quantity: true } },
@@ -25,7 +25,9 @@ export async function recalculateOzonCommissions(): Promise<{ updated: number; c
 
   if (unsettled.length === 0) return { updated: 0, changes: [] };
 
-  const unsettledPostingNumbers = unsettled.map((o) => o.ozonData!.postingNumber);
+  const unsettledPostingNumbers = unsettled.flatMap((o) =>
+    o.ozonData.filter((d) => !d.feesSettled).map((d) => d.postingNumber)
+  );
 
   // Re-fetch postings to get current financial_data (payout per item)
   const minDate = unsettled.reduce(
@@ -88,128 +90,144 @@ export async function recalculateOzonCommissions(): Promise<{ updated: number; c
   const changes: CommissionChange[] = [];
 
   for (const order of unsettled) {
-    const ozonData = order.ozonData!;
-    const posting = postingMap.get(ozonData.postingNumber);
-    const accruals = accrualMap.get(ozonData.postingNumber);
-
-    // financial_data being populated is the authoritative sign the order is settled.
-    // Accruals are used only for the fee amount; if unavailable (old orders beyond the
-    // accruals API lookback), fall back to 0 fees so payout is used as-is.
-    const financialProducts = posting?.financial_data?.products ?? [];
-    if (!posting || financialProducts.length === 0) continue;
-
     const estimatedTotalRub = order.totalRub ?? 0;
+    let orderSettled = false;
+    let orderNewTotalRub = 0;
+    let anyEstimate = false;
 
-    const totalOzonUnits = posting.products.reduce((s, p) => s + p.quantity, 0);
-    const financialByProductId = new Map(
-      financialProducts.map((fp) => [fp.product_id, fp])
-    );
+    for (const ozonData of order.ozonData) {
+      if (ozonData.feesSettled) continue;
 
-    const totalServiceFees = accruals?.totalFeesRub ?? 0;
-    const logisticsRub = totalServiceFees;
-    const dropoffRub = 0;
-    const lastMileRub = 0;
-    const starsMembershipRub = 0;
-    const acquiringRub = 0;
+      const posting = postingMap.get(ozonData.postingNumber);
+      const accruals = accrualMap.get(ozonData.postingNumber);
 
-    let newTotalRub = 0;
-    let usedEstimate = false;
+      // financial_data being populated is the authoritative sign the order is settled.
+      // Accruals are used only for the fee amount; if unavailable (old orders beyond the
+      // accruals API lookback), fall back to 0 fees so payout is used as-is.
+      const financialProducts = posting?.financial_data?.products ?? [];
+      if (!posting || financialProducts.length === 0) continue;
 
-    await db.$transaction(async (tx) => {
-      for (const postingItem of posting.products) {
-        // Find the order item whose product's sku matches this posting item's offer_id.
-        // Using order.items as the source of truth avoids stale-id mismatches when
-        // two products share a sku but have different DB ids.
-        const dbItem = order.items.find(
-          (i) => productSkuById.get(i.productId) === postingItem.offer_id
-        );
-        if (!dbItem) continue;
+      const totalOzonUnits = posting.products.reduce((s, p) => s + p.quantity, 0);
+      const financialByProductId = new Map(
+        financialProducts.map((fp) => [fp.product_id, fp])
+      );
 
-        const productId = dbItem.productId;
+      const totalServiceFees = accruals?.totalFeesRub ?? 0;
 
-        const fp = financialByProductId.get(postingItem.sku);
-        if (!fp) continue;
+      let newTotalRub = 0;
+      let usedEstimate = false;
 
-        const effectiveDivisor = divisorBySku.get(postingItem.offer_id) ?? globalDivisor;
-        // Payout source priority (most → least accurate):
-        // 1. Accruals API: the authoritative settled amount (sku > 0, positive entries)
-        // 2. financial_data.payout: present for recent orders not yet cleared
-        // 3. Price × (1 − avg commission): estimate for very old orders where Ozon
-        //    has already disbursed and zeroed out both payout and commission fields
-        const accrualPayout = accruals?.payoutByProductSku.get(postingItem.sku);
-        const usingEstimate = !(accrualPayout != null && accrualPayout > 0) && !(fp.payout > 0);
-        if (usingEstimate) usedEstimate = true;
-        const rawPayout = (accrualPayout != null && accrualPayout > 0)
-          ? accrualPayout
-          : fp.payout > 0
-            ? fp.payout
-            : fp.price * fp.quantity * (1 - avgCommissionPercent / 100);
-        const payoutPerOzonUnit = rawPayout / fp.quantity;
-        const netPerOzonUnit = payoutPerOzonUnit - totalServiceFees / totalOzonUnits;
-        const warehouseQty = postingItem.quantity * effectiveDivisor;
+      // Items already matched by prior postings in this order; track to avoid double-updating
+      // the same DB item when multiple postings reference the same product.
+      const matchedItemIds = new Set<string>();
 
-        const dims = dimensionsById.get(productId);
-        let priceRubKopecks: number;
-        let itemTotal: number;
+      await db.$transaction(async (tx) => {
+        for (const postingItem of posting.products) {
+          // Find the order item whose product's sku matches this posting item's offer_id.
+          // For merged orders with the same sku in multiple postings, skip already-matched items.
+          const dbItem = order.items.find(
+            (i) =>
+              productSkuById.get(i.productId) === postingItem.offer_id &&
+              !matchedItemIds.has(i.id)
+          );
+          if (!dbItem) continue;
+          matchedItemIds.add(dbItem.id);
 
-        if (dims?.length_mm && dims.width_mm) {
-          const m2PerOzonUnit = (dims.length_mm * dims.width_mm * effectiveDivisor) / 1_000_000;
-          const quantityM2 = (dims.length_mm * dims.width_mm * warehouseQty) / 1_000_000;
-          priceRubKopecks = Math.round((netPerOzonUnit / m2PerOzonUnit) * 100);
-          itemTotal = Math.round(quantityM2 * priceRubKopecks);
-          await tx.orderItem.update({
-            where: { id: dbItem.id },
-            data: {
-              priceInCents: priceRubKopecks,
-              priceRub: priceRubKopecks,
-              totalRub: itemTotal,
-              quantityM2: (dims.length_mm * dims.width_mm * warehouseQty) / 1_000_000,
-            },
-          });
-        } else {
-          priceRubKopecks = Math.round((netPerOzonUnit / effectiveDivisor) * 100);
-          itemTotal = warehouseQty * priceRubKopecks;
-          await tx.orderItem.update({
-            where: { id: dbItem.id },
-            data: { priceInCents: priceRubKopecks, priceRub: priceRubKopecks, totalRub: itemTotal },
-          });
+          const productId = dbItem.productId;
+
+          const fp = financialByProductId.get(postingItem.sku);
+          if (!fp) continue;
+
+          const effectiveDivisor = divisorBySku.get(postingItem.offer_id) ?? globalDivisor;
+          // Payout source priority (most → least accurate):
+          // 1. Accruals API: the authoritative settled amount (sku > 0, positive entries)
+          // 2. financial_data.payout: present for recent orders not yet cleared
+          // 3. Price × (1 − avg commission): estimate for very old orders where Ozon
+          //    has already disbursed and zeroed out both payout and commission fields
+          const accrualPayout = accruals?.payoutByProductSku.get(postingItem.sku);
+          const usingEstimate = !(accrualPayout != null && accrualPayout > 0) && !(fp.payout > 0);
+          if (usingEstimate) usedEstimate = true;
+          const rawPayout = (accrualPayout != null && accrualPayout > 0)
+            ? accrualPayout
+            : fp.payout > 0
+              ? fp.payout
+              : fp.price * fp.quantity * (1 - avgCommissionPercent / 100);
+          const payoutPerOzonUnit = rawPayout / fp.quantity;
+          const netPerOzonUnit = payoutPerOzonUnit - totalServiceFees / totalOzonUnits;
+          const warehouseQty = postingItem.quantity * effectiveDivisor;
+
+          const dims = dimensionsById.get(productId);
+          let priceRubKopecks: number;
+          let itemTotal: number;
+
+          if (dims?.length_mm && dims.width_mm) {
+            const m2PerOzonUnit = (dims.length_mm * dims.width_mm * effectiveDivisor) / 1_000_000;
+            const quantityM2 = (dims.length_mm * dims.width_mm * warehouseQty) / 1_000_000;
+            priceRubKopecks = Math.round((netPerOzonUnit / m2PerOzonUnit) * 100);
+            itemTotal = Math.round(quantityM2 * priceRubKopecks);
+            await tx.orderItem.update({
+              where: { id: dbItem.id },
+              data: {
+                priceInCents: priceRubKopecks,
+                priceRub: priceRubKopecks,
+                totalRub: itemTotal,
+                quantityM2: (dims.length_mm * dims.width_mm * warehouseQty) / 1_000_000,
+              },
+            });
+          } else {
+            priceRubKopecks = Math.round((netPerOzonUnit / effectiveDivisor) * 100);
+            itemTotal = warehouseQty * priceRubKopecks;
+            await tx.orderItem.update({
+              where: { id: dbItem.id },
+              data: { priceInCents: priceRubKopecks, priceRub: priceRubKopecks, totalRub: itemTotal },
+            });
+          }
+
+          newTotalRub += itemTotal;
         }
 
-        newTotalRub += itemTotal;
+        // Skip settling if no items were matched — product SKUs may not align with Ozon offer_ids.
+        // This keeps feesSettled: false so the order retries on the next recalculation run.
+        if (newTotalRub === 0) return;
+
+        await tx.ozonOrderData.update({
+          where: { id: ozonData.id },
+          data: {
+            feesSettled: true,
+            feesEstimated: usedEstimate,
+            logisticsRub: totalServiceFees,
+            dropoffRub: 0,
+            lastMileRub: 0,
+            starsMembershipRub: 0,
+            acquiringRub: 0,
+          },
+        });
+      });
+
+      if (newTotalRub > 0) {
+        orderSettled = true;
+        orderNewTotalRub += newTotalRub;
+        if (usedEstimate) anyEstimate = true;
       }
+    }
 
-      // Skip settling if no items were matched — product SKUs may not align with Ozon offer_ids.
-      // This keeps feesSettled: false so the order retries on the next recalculation run.
-      if (newTotalRub === 0) return;
+    if (!orderSettled) continue;
 
-      await tx.ozonOrderData.update({
-        where: { id: ozonData.id },
-        data: {
-          feesSettled: true,
-          feesEstimated: usedEstimate,
-          logisticsRub,
-          dropoffRub,
-          lastMileRub,
-          starsMembershipRub,
-          acquiringRub,
-        },
-      });
-
-      await tx.order.update({
-        where: { id: order.id },
-        data: { totalRub: newTotalRub },
-      });
+    // Update order total as sum across all postings that were settled this run.
+    // For multi-posting orders, previously-settled postings' item totals are already
+    // reflected in the DB; we add only newly-settled amounts here.
+    await db.order.update({
+      where: { id: order.id },
+      data: { totalRub: orderNewTotalRub },
     });
-
-    if (newTotalRub === 0) continue;
 
     changes.push({
       orderId: order.id,
       sequenceNumber: order.sequenceNumber,
       year: order.year,
       estimatedTotalRub,
-      realTotalRub: newTotalRub,
-      isEstimated: usedEstimate || undefined,
+      realTotalRub: orderNewTotalRub,
+      isEstimated: anyEstimate || undefined,
     });
     updatedCount++;
   }

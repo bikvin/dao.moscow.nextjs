@@ -24,6 +24,7 @@ export type OzonPostingFinancialProduct = {
 export type OzonPosting = {
   posting_number: string;
   order_id: number;
+  order_number: string;  // human-readable Ozon order number shared by all postings of the same order
   status: string;
   in_process_at: string;     // ISO date — when order entered processing
   shipment_date: string;     // ISO date — warehouse handoff deadline
@@ -68,6 +69,7 @@ function normaliseV4Posting(p: any): OzonPosting {
   return {
     posting_number: p.posting_number,
     order_id: p.order_id,
+    order_number: p.order_number ?? "",
     status: p.status,
     in_process_at: p.in_process_at,
     shipment_date: p.shipment_date,

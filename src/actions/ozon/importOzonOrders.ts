@@ -37,6 +37,13 @@ export type ImportOzonOrder = {
   items: ImportOzonOrderItem[];
 };
 
+// Multiple postings that belong to the same Ozon order (split delivery).
+// Imported as a single Order with one OzonOrderData per posting.
+export type ImportOzonOrderGroup = {
+  orderNumber: string;   // the shared base number, e.g. "04727454-0339"
+  postings: ImportOzonOrder[];
+};
+
 // Imports selected Ozon orders into the database.
 // For each posting:
 //   - Creates an Order record (source=OZON, next sequenceNumber in the year)
@@ -234,5 +241,219 @@ export async function importOzonOrders(
     return { imported: importedCount, orderIds };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Ошибка при импорте" };
+  }
+}
+
+// Imports a group of split postings (same Ozon order_number) as a single Order.
+// Creates ONE Order record with ONE OzonOrderData per posting, all sharing the same orderId.
+// Items are combined by offerId across all postings (quantities summed, prices from first posting
+// that has financial data for that item).
+export async function importOzonOrderGroup(
+  group: ImportOzonOrderGroup,
+  partnerId: string
+): Promise<{ orderId: string } | { error: string }> {
+  if (group.postings.length === 0) return { error: "Нет отправлений в группе" };
+
+  try {
+    const [partner, avgServiceFeeSetting, avgCommissionSetting, globalDivisorSetting, paymentMethodIdSetting] =
+      await Promise.all([
+        db.partner.findUnique({
+          where: { id: partnerId },
+          include: { names: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 } },
+        }),
+        db.settings.findUnique({ where: { field: "ozonAverageServiceFeeRub" } }),
+        db.settings.findUnique({ where: { field: "ozonAverageCommissionPercent" } }),
+        db.settings.findUnique({ where: { field: "ozonDefaultDivisor" } }),
+        db.settings.findUnique({ where: { field: "ozonPaymentMethodId" } }),
+      ]);
+
+    if (!partner) return { error: "Партнёр не найден" };
+    const clientName = partner.names[0]?.name ?? "Ozon";
+    const avgServiceFee = avgServiceFeeSetting ? parseFloat(avgServiceFeeSetting.value) : 0;
+    const avgCommissionPercent = avgCommissionSetting ? parseFloat(avgCommissionSetting.value) : 0;
+    const globalDivisor = globalDivisorSetting ? parseInt(globalDivisorSetting.value, 10) : 1;
+    const marketplacePaymentMethodId = paymentMethodIdSetting?.value ?? null;
+
+    // Combine items across all postings by offerId — same SKU appears in each split posting.
+    const combinedByOfferId = new Map<string, { item: ImportOzonOrderItem; totalQuantity: number; totalPayout: number }>();
+    for (const posting of group.postings) {
+      for (const item of posting.items) {
+        const existing = combinedByOfferId.get(item.offerId);
+        if (existing) {
+          existing.totalQuantity += item.quantity;
+          existing.totalPayout += item.payout;
+        } else {
+          combinedByOfferId.set(item.offerId, {
+            item,
+            totalQuantity: item.quantity,
+            totalPayout: item.payout,
+          });
+        }
+      }
+    }
+
+    const combinedItems = [...combinedByOfferId.values()];
+    const allOfferIds = combinedItems.map((c) => c.item.offerId);
+    const totalBuyerPrice = group.postings.reduce((s, p) => s + p.totalBuyerPrice, 0);
+    const totalPayout = group.postings.reduce((s, p) => s + p.totalPayout, 0);
+    const totalOzonUnits = combinedItems.reduce((s, c) => s + c.totalQuantity, 0);
+
+    // Service fees: sum across all postings that have settled data; estimate the rest.
+    const totalServiceFees = group.postings.reduce((s, p) => {
+      if (p.serviceFeesBreakdown) return s + p.serviceFeesBreakdown.total;
+      return s + avgServiceFee * p.items.reduce((qs, i) => qs + i.quantity, 0);
+    }, 0);
+    const feesSettledOnImport = group.postings.every((p) => p.serviceFeesBreakdown !== null);
+
+    const [mappings, products] = await Promise.all([
+      db.ozonMapping.findMany({
+        where: { ozonOfferId: { in: allOfferIds } },
+        select: { ozonOfferId: true, divisor: true },
+      }),
+      db.product.findMany({
+        where: { sku: { in: allOfferIds } },
+        select: { id: true, sku: true, length_mm: true, width_mm: true },
+      }),
+    ]);
+    const divisorBySku = new Map(mappings.map((m) => [m.ozonOfferId, m.divisor]));
+    const dimensionsById = new Map(products.map((p) => [p.id, p]));
+    const productBySku = new Map(products.map((p) => [p.sku, p]));
+
+    const first = group.postings[0];
+    const orderDate = new Date(first.orderDate);
+    const year = orderDate.getFullYear();
+    const status = first.mappedStatus;
+    const plannedDeliveryDate = first.shipmentDate ? new Date(first.shipmentDate) : null;
+
+    const { orderId } = await db.$transaction(async (tx) => {
+      const last = await tx.order.findFirst({
+        where: { year },
+        orderBy: { sequenceNumber: "desc" },
+        select: { sequenceNumber: true },
+      });
+      const sequenceNumber = (last?.sequenceNumber ?? 0) + 1;
+
+      const postingNumbers = group.postings.map((p) => p.postingNumber).join(", ");
+      const created = await tx.order.create({
+        data: {
+          year,
+          sequenceNumber,
+          orderDate,
+          orderType: OrderTypeEnum.SALE,
+          status,
+          source: OrderSourceEnum.OZON,
+          partnerId,
+          paymentStatus: PaymentStatusEnum.PAID,
+          paymentMethodId: marketplacePaymentMethodId ?? undefined,
+          plannedDeliveryDate,
+          note: [
+            `Заказ Ozon № ${group.orderNumber} (${group.postings.length} отправления: ${postingNumbers})`,
+            first.city,
+            "(импортировано)",
+          ].filter(Boolean).join(" "),
+          totalRub: 0,
+        },
+      });
+
+      // Create one OzonOrderData per posting, all linked to the same order.
+      for (const posting of group.postings) {
+        const postingOzonUnits = posting.items.reduce((s, i) => s + i.quantity, 0);
+        await tx.ozonOrderData.create({
+          data: {
+            postingNumber: posting.postingNumber,
+            buyerTotal: posting.totalBuyerPrice,
+            commissionAmount: posting.items.reduce((s, i) => s + i.commissionAmount, 0),
+            payoutAmount: posting.totalPayout,
+            feesSettled: posting.serviceFeesBreakdown !== null,
+            logisticsRub: posting.serviceFeesBreakdown?.logisticsRub ?? 0,
+            dropoffRub: posting.serviceFeesBreakdown?.dropoffRub ?? 0,
+            lastMileRub: posting.serviceFeesBreakdown?.lastMileRub ?? 0,
+            starsMembershipRub: posting.serviceFeesBreakdown?.starsMembershipRub ?? 0,
+            acquiringRub: posting.serviceFeesBreakdown?.acquiringRub ?? 0,
+            orderId: created.id,
+          },
+        });
+        void postingOzonUnits; // tracked per-posting for future granular recalc
+      }
+
+      // Create combined order items (one per unique offerId, quantities summed).
+      let totalRub = 0;
+      const variantQuantities = new Map<string, number>();
+
+      for (const { item, totalQuantity, totalPayout: combinedPayout } of combinedItems) {
+        const product = productBySku.get(item.offerId);
+        if (!product) continue;
+
+        const effectiveDivisor = divisorBySku.get(item.offerId) ?? globalDivisor;
+        const payoutPerOzonUnit = combinedPayout > 0
+          ? combinedPayout / totalQuantity
+          : item.buyerPrice * (1 - avgCommissionPercent / 100);
+        const netPerOzonUnit = payoutPerOzonUnit - totalServiceFees / totalOzonUnits;
+        const warehouseQty = totalQuantity * effectiveDivisor;
+
+        const dims = dimensionsById.get(product.id);
+        const quantityM2 = dims
+          ? (dims.length_mm * dims.width_mm * warehouseQty) / 1_000_000
+          : null;
+
+        let priceRubKopecks: number;
+        let itemTotal: number;
+        let priceUnit: PriceUnitEnum;
+
+        if (dims && quantityM2) {
+          const m2PerOzonUnit = (dims.length_mm * dims.width_mm * effectiveDivisor) / 1_000_000;
+          priceRubKopecks = Math.round((netPerOzonUnit / m2PerOzonUnit) * 100);
+          itemTotal = Math.round(quantityM2 * priceRubKopecks);
+          priceUnit = PriceUnitEnum.M2;
+        } else {
+          priceRubKopecks = Math.round((netPerOzonUnit / effectiveDivisor) * 100);
+          itemTotal = warehouseQty * priceRubKopecks;
+          priceUnit = PriceUnitEnum.ITEM;
+        }
+
+        await tx.orderItem.create({
+          data: {
+            orderId: created.id,
+            productId: product.id,
+            productVariantId: item.variantId,
+            quantity: warehouseQty,
+            quantityM2,
+            priceUnit,
+            priceInCents: priceRubKopecks,
+            priceCurrency: CurrencyEnum.RUB,
+            priceRub: priceRubKopecks,
+            totalRub: itemTotal,
+          },
+        });
+
+        totalRub += itemTotal;
+        variantQuantities.set(item.variantId, (variantQuantities.get(item.variantId) ?? 0) + warehouseQty);
+      }
+
+      await tx.order.update({ where: { id: created.id }, data: { totalRub } });
+
+      if (RESERVE_STATUSES.has(status)) {
+        for (const [variantId, qty] of variantQuantities) {
+          await tx.productReserve.create({
+            data: {
+              productVariantId: variantId,
+              orderId: created.id,
+              quantity: qty,
+              reserveDate: orderDate,
+              client: clientName,
+              status: ProductReserveStatusEnum.ACTIVE,
+            },
+          });
+          await recalculateWarehouseQuantity(variantId, tx);
+        }
+      }
+
+      return { orderId: created.id };
+    });
+
+    revalidatePath("/admin");
+    return { orderId };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Ошибка при импорте группы" };
   }
 }
