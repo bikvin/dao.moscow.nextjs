@@ -621,6 +621,16 @@ export function CreateInvoiceForm({
   const [invoiceType, setInvoiceType] = useState<InvoiceTypeEnum>(
     initialInvoice?.invoiceType ?? defaultInvoiceType ?? InvoiceTypeEnum.CASH,
   );
+
+  // Auto-select the single legal entity for the initial partner (when opened from an order).
+  const initialLeId = (() => {
+    const pId = initialOrder?.partnerId;
+    if (!pId || initialInvoice) return "";
+    const p = partners.find((x) => x.id === pId);
+    return p?.legalEntities.length === 1 ? p.legalEntities[0].id : "";
+  })();
+  const [selectedLeId, setSelectedLeId] = useState(initialLeId);
+
   const [items, setItems] = useState<ItemState[]>(
     initialInvoice ? itemsFromInitial(initialInvoice)
       : initialOrder ? itemsFromOrder(initialOrder)
@@ -628,21 +638,39 @@ export function CreateInvoiceForm({
   );
   const [showSeller, setShowSeller] = useState(false);
 
-  const [buyer, setBuyer] = useState(
-    initialInvoice
-      ? {
-          buyerLegalName: initialInvoice.buyerLegalName,
-          buyerInn: initialInvoice.buyerInn,
-          buyerKpp: initialInvoice.buyerKpp,
-          buyerAddress: initialInvoice.buyerAddress,
-          buyerPhone: initialInvoice.buyerPhone,
-          buyerBankName: initialInvoice.buyerBankName,
-          buyerBik: initialInvoice.buyerBik,
-          buyerBankAccNo: initialInvoice.buyerBankAccNo,
-          buyerAccNo: initialInvoice.buyerAccNo,
-        }
-      : EMPTY_BUYER,
-  );
+  const [buyer, setBuyer] = useState(() => {
+    if (initialInvoice) {
+      return {
+        buyerLegalName: initialInvoice.buyerLegalName,
+        buyerInn: initialInvoice.buyerInn,
+        buyerKpp: initialInvoice.buyerKpp,
+        buyerAddress: initialInvoice.buyerAddress,
+        buyerPhone: initialInvoice.buyerPhone,
+        buyerBankName: initialInvoice.buyerBankName,
+        buyerBik: initialInvoice.buyerBik,
+        buyerBankAccNo: initialInvoice.buyerBankAccNo,
+        buyerAccNo: initialInvoice.buyerAccNo,
+      };
+    }
+    if (initialLeId) {
+      const p = partners.find((x) => x.id === initialOrder?.partnerId);
+      const le = p?.legalEntities.find((e) => e.id === initialLeId);
+      if (le) {
+        return {
+          buyerLegalName: le.name ?? "",
+          buyerInn: le.inn ?? "",
+          buyerKpp: le.kpp ?? "",
+          buyerAddress: le.legalAddress ?? "",
+          buyerPhone: le.phones ?? "",
+          buyerBankName: le.bankName ?? "",
+          buyerBik: le.bik ?? "",
+          buyerBankAccNo: le.correspondentAccount ?? "",
+          buyerAccNo: le.checkingAccount ?? "",
+        };
+      }
+    }
+    return EMPTY_BUYER;
+  });
 
   useEffect(() => {
     if (formState.success) {
@@ -656,6 +684,7 @@ export function CreateInvoiceForm({
         setItems([{ ...EMPTY_ITEM }]);
         setShowSeller(false);
         setBuyer(EMPTY_BUYER);
+        setSelectedLeId("");
         if (newId) {
           router.push(`/admin/invoices?tab=${invoiceType}&newInvoiceId=${newId}`, { scroll: false });
         }
@@ -669,7 +698,25 @@ export function CreateInvoiceForm({
 
   const handlePartnerChange = (id: string) => {
     setPartnerId(id);
-    setBuyer(EMPTY_BUYER);
+    const newPartner = partners.find((p) => p.id === id);
+    if (newPartner?.legalEntities.length === 1) {
+      const le = newPartner.legalEntities[0];
+      setSelectedLeId(le.id);
+      setBuyer({
+        buyerLegalName: le.name ?? "",
+        buyerInn: le.inn ?? "",
+        buyerKpp: le.kpp ?? "",
+        buyerAddress: le.legalAddress ?? "",
+        buyerPhone: le.phones ?? "",
+        buyerBankName: le.bankName ?? "",
+        buyerBik: le.bik ?? "",
+        buyerBankAccNo: le.correspondentAccount ?? "",
+        buyerAccNo: le.checkingAccount ?? "",
+      });
+    } else {
+      setBuyer(EMPTY_BUYER);
+      setSelectedLeId("");
+    }
   };
 
   const handleLegalEntityChange = (id: string) => {
@@ -783,6 +830,25 @@ export function CreateInvoiceForm({
           </div>
         </div>
 
+        {isBank && (
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-slate-500">Юрлицо покупателя</label>
+            <select
+              value={selectedLeId}
+              onChange={(e) => {
+                setSelectedLeId(e.target.value);
+                if (e.target.value) handleLegalEntityChange(e.target.value);
+              }}
+              className="admin-form-input h-8 text-sm w-52"
+            >
+              <option value="">— выбрать юрлицо —</option>
+              {(partner?.legalEntities ?? []).map((le) => (
+                <option key={le.id} value={le.id}>{le.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="flex flex-col gap-0.5">
           <label className="text-xs text-slate-500">
             Заказ (необязательно)
@@ -877,8 +943,8 @@ export function CreateInvoiceForm({
                 <button
                   key={le.id}
                   type="button"
-                  className="text-xs text-blue-500 hover:underline"
-                  onClick={() => handleLegalEntityChange(le.id)}
+                  className={`text-xs hover:underline ${selectedLeId === le.id ? "text-blue-700 font-semibold" : "text-blue-500"}`}
+                  onClick={() => { setSelectedLeId(le.id); handleLegalEntityChange(le.id); }}
                 >
                   {le.name}
                 </button>
