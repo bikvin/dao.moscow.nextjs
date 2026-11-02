@@ -446,6 +446,22 @@ export function InvoicesGrid({
                       </a>
                     </div>
                   </div>
+                  {inv.invoiceType === InvoiceTypeEnum.BANK && (
+                    <div className="flex flex-col gap-0.5 mt-1">
+                      <span className="text-xs text-slate-900">Запрос бухгалтеру:</span>
+                      <div className="flex gap-2">
+                        <a
+                          href={`/api/invoices/${inv.id}/accountant-request`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-green-600 hover:text-green-700 text-xs"
+                          title="Запрос бухгалтеру Excel"
+                        >
+                          Excel
+                        </a>
+                      </div>
+                    </div>
+                  )}
                   {inv.invoiceType === InvoiceTypeEnum.CASH && (
                     <div className="flex flex-col gap-0.5 mt-1">
                       <span className="text-xs text-slate-900">Скачать накладную:</span>
