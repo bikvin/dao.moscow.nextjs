@@ -229,7 +229,7 @@ type Order = {
     buyerTotal: number;
     subsidyTotal: number;
   } | null;
-  ozonData: { feesSettled: boolean; feesEstimated: boolean; buyerTotal: number } | null;
+  ozonData: { feesSettled: boolean; feesEstimated: boolean; buyerTotal: number }[];
   ozonReturnData: { feesSettled: boolean; returnLogisticFeeRub: number } | null;
 };
 
@@ -431,18 +431,20 @@ export function OrdersGrid({
                   order.partner.names.find((n) => n.isPrimary)?.name ??
                   order.partner.names[0]?.name ??
                   "—";
+                const ozonDataArr = order.ozonData ?? [];
                 const isEstimate =
                   (order.yandexData != null && !order.yandexData.feesSettled) ||
-                  (order.ozonData != null && (!order.ozonData.feesSettled || order.ozonData.feesEstimated)) ||
+                  (ozonDataArr.length > 0 && ozonDataArr.some(d => !d.feesSettled || d.feesEstimated)) ||
                   (order.ozonReturnData != null &&
                     !order.ozonReturnData.feesSettled);
                 const approx = (v: string) => (isEstimate ? `≈${v}` : v);
                 const fmt0 = (rubles: number) =>
                   Math.round(rubles).toLocaleString("ru-RU");
+                const ozonBuyerTotal = ozonDataArr.reduce((s, d) => s + d.buyerTotal, 0);
                 const retailPrice = order.yandexData
                   ? order.yandexData.buyerTotal + order.yandexData.subsidyTotal
-                  : order.ozonData
-                    ? order.ozonData.buyerTotal
+                  : ozonDataArr.length > 0
+                    ? ozonBuyerTotal
                     : null;
                 const displayTotalRub =
                   order.orderType === OrderTypeEnum.RETURN
