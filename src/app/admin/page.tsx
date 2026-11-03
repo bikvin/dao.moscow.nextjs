@@ -215,7 +215,7 @@ export default async function OrdersPage({
         width_mm: true,
         productVariants: {
           where: { status: "ACTIVE" },
-          select: { id: true, variantName: true, isMain: true },
+          select: { id: true, variantName: true, isMain: true, availableQuantity: true, warehouseQuantity: true },
           orderBy: { variantName: "asc" },
         },
         prices: {

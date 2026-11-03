@@ -131,6 +131,7 @@ function ItemRow({
 
   const selectedProduct = products.find((p) => p.id === item.productId);
   const availableVariants = selectedProduct?.productVariants ?? [];
+  const selectedVariant = availableVariants.find((v) => v.id === item.variantId);
 
   const quantityM2 =
     selectedProduct && item.quantity
@@ -194,6 +195,12 @@ function ItemRow({
           className={`admin-form-input text-sm w-20 ${touched && !(parseInt(item.quantity) > 0) ? "border-red-500" : ""}`}
           min="1"
         />
+        {selectedVariant && (
+          <div className="flex flex-col mt-0.5">
+            <span className="text-xs text-green-600">Свободно: {selectedVariant.availableQuantity}шт.</span>
+            <span className="text-xs text-slate-400">Всего: {selectedVariant.warehouseQuantity}шт.</span>
+          </div>
+        )}
       </Field>
 
       {quantityM2 !== null && (
