@@ -82,7 +82,7 @@ export default async function InvoicesPage({
         where: { status: ProductStatusEnum.ACTIVE },
         orderBy: { sku: "asc" },
         include: {
-          productVariants: { orderBy: [{ isMain: "desc" }, { variantName: "asc" }] },
+          productVariants: { orderBy: [{ isMain: "desc" }, { variantName: "asc" }], select: { id: true, variantName: true, isMain: true, availableQuantity: true, warehouseQuantity: true } },
           prices: { where: { type: { in: [PriceTypeEnum.DEALER, PriceTypeEnum.RETAIL] } } },
         },
       }),
@@ -168,6 +168,8 @@ export default async function InvoicesPage({
       id: v.id,
       variantName: v.variantName,
       isMain: v.isMain,
+      availableQuantity: v.availableQuantity,
+      warehouseQuantity: v.warehouseQuantity,
     })),
     prices: p.prices.map((pr) => ({
       type: pr.type,
