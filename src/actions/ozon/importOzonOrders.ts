@@ -303,8 +303,6 @@ export async function importOzonOrderGroup(
       if (p.serviceFeesBreakdown) return s + p.serviceFeesBreakdown.total;
       return s + avgServiceFee * p.items.reduce((qs, i) => qs + i.quantity, 0);
     }, 0);
-    const feesSettledOnImport = group.postings.every((p) => p.serviceFeesBreakdown !== null);
-
     const [mappings, products] = await Promise.all([
       db.ozonMapping.findMany({
         where: { ozonOfferId: { in: allOfferIds } },
