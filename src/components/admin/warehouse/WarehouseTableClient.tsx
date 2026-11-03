@@ -57,7 +57,7 @@ export function WarehouseTableClient({
       />
 
       {/* Sticky headers — stripe div inside keeps it aligned when scrolling */}
-      <div className="sticky top-0 z-10 hidden md:block relative">
+      <div className="sticky top-0 z-10 hidden md:block">
         <div className="absolute inset-y-0 bg-slate-100 pointer-events-none" style={stripeStyle} />
 
         {/* Group labels */}
