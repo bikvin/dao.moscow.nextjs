@@ -40,14 +40,14 @@ export async function GET(
   ];
 
   const font = { name: "Arial", size: 10 };
-  const center: ExcelJS.Alignment = { horizontal: "center", vertical: "middle" };
+  const center = { horizontal: "center", vertical: "middle" } as ExcelJS.Alignment;
   const borderColor = { argb: "FFC1C1C1" };
-  const thinBorder: ExcelJS.Borders = {
+  const thinBorder = {
     top:    { style: "thin", color: borderColor },
     left:   { style: "thin", color: borderColor },
     bottom: { style: "thin", color: borderColor },
     right:  { style: "thin", color: borderColor },
-  };
+  } as ExcelJS.Borders;
 
   // Header row
   const hdr = ws.addRow(["Артикул", "Покупатель", "кол-во м2", "Цена за м2", "Стоимость"]);
