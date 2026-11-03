@@ -294,8 +294,6 @@ export async function importOzonOrderGroup(
 
     const combinedItems = [...combinedByOfferId.values()];
     const allOfferIds = combinedItems.map((c) => c.item.offerId);
-    const totalBuyerPrice = group.postings.reduce((s, p) => s + p.totalBuyerPrice, 0);
-    const totalPayout = group.postings.reduce((s, p) => s + p.totalPayout, 0);
     const totalOzonUnits = combinedItems.reduce((s, c) => s + c.totalQuantity, 0);
 
     // Service fees: sum across all postings that have settled data; estimate the rest.
