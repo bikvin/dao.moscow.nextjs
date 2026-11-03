@@ -34,6 +34,7 @@ export default async function DashboardPage({
 
   const [
     orders,
+    expenses,
     availableYearRows,
     usdRateSetting,
     rmbRateSetting,
@@ -77,6 +78,15 @@ export default async function DashboardPage({
         },
       },
     }),
+    db.expense.findMany({
+      where: {
+        date: {
+          gte: new Date(`${selectedYear}-01-01`),
+          lt: new Date(`${selectedYear + 1}-01-01`),
+        },
+      },
+      select: { amount: true, currency: true, date: true },
+    }),
     db.order.findMany({
       where: { orderType: { in: [OrderTypeEnum.SALE, OrderTypeEnum.RETURN] }, status: { not: OrderStatusEnum.CANCELLED } },
       select: { year: true },
@@ -111,11 +121,13 @@ export default async function DashboardPage({
     taxRub: number;
     commissionRub: number;
     marginRub: number;
+    expensesRub: number;
+    netProfitRub: number; // marginRub − expensesRub
   };
 
   const months: MonthRow[] = Array.from({ length: 12 }, () => ({
     saleCount: 0, saleM2: 0, returnCount: 0, returnM2: 0,
-    revenueRub: 0, costRub: 0, taxRub: 0, commissionRub: 0, marginRub: 0,
+    revenueRub: 0, costRub: 0, taxRub: 0, commissionRub: 0, marginRub: 0, expensesRub: 0, netProfitRub: 0,
   }));
 
   for (const order of orders) {
@@ -142,6 +154,19 @@ export default async function DashboardPage({
     }
   }
 
+  for (const expense of expenses) {
+    const month = new Date(expense.date).getMonth();
+    let amountRub: number | null = null;
+    if (expense.currency === "RUB") amountRub = expense.amount / 100;
+    else if (expense.currency === "USD" && usdRate != null) amountRub = (expense.amount / 100) * usdRate;
+    else if (expense.currency === "RMB" && rmbRate != null) amountRub = (expense.amount / 100) * rmbRate;
+    if (amountRub != null) months[month].expensesRub += amountRub;
+  }
+
+  for (const m of months) {
+    m.netProfitRub = m.marginRub - m.expensesRub;
+  }
+
   const total: MonthRow = months.reduce((acc, m) => ({
     saleCount: acc.saleCount + m.saleCount,
     saleM2: acc.saleM2 + m.saleM2,
@@ -152,7 +177,9 @@ export default async function DashboardPage({
     taxRub: acc.taxRub + m.taxRub,
     commissionRub: acc.commissionRub + m.commissionRub,
     marginRub: acc.marginRub + m.marginRub,
-  }), { saleCount: 0, saleM2: 0, returnCount: 0, returnM2: 0, revenueRub: 0, costRub: 0, taxRub: 0, commissionRub: 0, marginRub: 0 });
+    expensesRub: acc.expensesRub + m.expensesRub,
+    netProfitRub: acc.netProfitRub + m.netProfitRub,
+  }), { saleCount: 0, saleM2: 0, returnCount: 0, returnM2: 0, revenueRub: 0, costRub: 0, taxRub: 0, commissionRub: 0, marginRub: 0, expensesRub: 0, netProfitRub: 0 });
 
   const yearRange = availableYears.length > 0 ? availableYears : [currentYear];
 
@@ -216,6 +243,16 @@ export default async function DashboardPage({
                         <span className="font-normal ml-1">({pct(row.marginRub, row.revenueRub)})</span>
                       </span>
                     </>}
+                    {row.expensesRub > 0 && <>
+                      <span className="text-slate-400">Расходы</span>
+                      <span>{fmt(row.expensesRub)} ₽</span>
+                    </>}
+                    {row.costRub > 0 && <>
+                      <span className="text-slate-400">Чистая прибыль</span>
+                      <span className={`font-medium ${row.netProfitRub >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                        {(row.netProfitRub >= 0 ? "+" : "") + fmt(row.netProfitRub)} ₽
+                      </span>
+                    </>}
                   </div>
                 </div>
               );
@@ -251,6 +288,16 @@ export default async function DashboardPage({
                     <span className="font-normal ml-1">({pct(total.marginRub, total.revenueRub)})</span>
                   </span>
                 </>}
+                {total.expensesRub > 0 && <>
+                  <span className="text-slate-400">Расходы</span>
+                  <span className="font-semibold">{fmt(total.expensesRub)} ₽</span>
+                </>}
+                {total.costRub > 0 && <>
+                  <span className="text-slate-400">Чистая прибыль</span>
+                  <span className={`font-semibold ${total.netProfitRub >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    {(total.netProfitRub >= 0 ? "+" : "") + fmt(total.netProfitRub)} ₽
+                  </span>
+                </>}
               </div>
             </div>
           </div>
@@ -269,6 +316,8 @@ export default async function DashboardPage({
                   {commissionRate ? <th className="text-right py-2 px-3 font-medium">Комиссия</th> : null}
                   <th className="text-right py-2 px-3 font-medium">Маржа</th>
                   <th className="text-right py-2 px-3 font-medium">%</th>
+                  <th className="text-right py-2 px-3 font-medium">Расходы</th>
+                  <th className="text-right py-2 px-3 font-medium">Чистая прибыль</th>
                 </tr>
               </thead>
               <tbody>
@@ -294,6 +343,12 @@ export default async function DashboardPage({
                       <td className={`text-right px-3 ${hasData ? marginColor : ""}`}>
                         {hasData && row.costRub > 0 ? pct(row.marginRub, row.revenueRub) : "—"}
                       </td>
+                      <td className="text-right px-3 text-slate-500">
+                        {hasData && row.expensesRub > 0 ? fmt(row.expensesRub) + " ₽" : "—"}
+                      </td>
+                      <td className={`text-right px-3 font-medium ${hasData && row.costRub > 0 ? (row.netProfitRub >= 0 ? "text-emerald-600" : "text-red-500") : ""}`}>
+                        {hasData && row.costRub > 0 ? (row.netProfitRub >= 0 ? "+" : "") + fmt(row.netProfitRub) + " ₽" : "—"}
+                      </td>
                     </tr>
                   );
                 })}
@@ -316,6 +371,12 @@ export default async function DashboardPage({
                   </td>
                   <td className={`text-right px-3 ${total.marginRub >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                     {total.costRub > 0 ? pct(total.marginRub, total.revenueRub) : "—"}
+                  </td>
+                  <td className="text-right px-3 text-slate-500">
+                    {total.expensesRub > 0 ? fmt(total.expensesRub) + " ₽" : "—"}
+                  </td>
+                  <td className={`text-right px-3 font-semibold ${total.netProfitRub >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    {total.costRub > 0 ? (total.netProfitRub >= 0 ? "+" : "") + fmt(total.netProfitRub) + " ₽" : "—"}
                   </td>
                 </tr>
               </tfoot>
